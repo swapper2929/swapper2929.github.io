@@ -20,33 +20,42 @@
     background: var(--bg); color: var(--text);
     min-height: 100vh; min-height: 100dvh; overflow: hidden;
   }
-  .app { display:flex; flex-direction:column; height:100dvh; padding:12px; gap:10px; }
+  .app { display:flex; flex-direction:column; height:100dvh; padding:10px; gap:8px; }
 
-  .topbar { display:flex; justify-content:space-between; align-items:center; padding:6px 4px; }
-  .topbar h1 { font-size:1.1rem; }
-  .status { font-size:.78rem; padding:4px 10px; border-radius:999px; background:#334155; transition:.3s; }
+  .topbar { display:flex; justify-content:space-between; align-items:center; padding:4px; }
+  .topbar h1 { font-size:1.05rem; }
+  .status { font-size:.75rem; padding:4px 10px; border-radius:999px; background:#334155; transition:.3s; }
   .status.online  { background: var(--success); }
   .status.calling { background: var(--warn); }
   .status.error   { background: var(--danger); }
 
   .videos { flex:1; display:grid; grid-template-columns:1fr; gap:8px; min-height:0; }
   @media (min-width:700px){ .videos{ grid-template-columns:1fr 1fr; } }
-  .video-wrap { position:relative; background:#000; border-radius:12px; overflow:hidden; min-height:0; }
+  .video-wrap { position:relative; background:#000; border-radius:12px; overflow:hidden; min-height:0;
+                display:flex; align-items:center; justify-content:center; }
   .video-wrap video { width:100%; height:100%; object-fit:cover; display:block; }
-  .label { position:absolute; bottom:8px; left:8px; background:rgba(0,0,0,.6);
-           padding:4px 10px; border-radius:999px; font-size:.72rem; }
+  .video-wrap.no-video video { display:none; }
+  .video-wrap.no-video::after {
+    content: attr(data-placeholder);
+    position:absolute; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    color:#64748b; font-size:.85rem; text-align:center; padding:8px;
+  }
+  .label { position:absolute; bottom:8px; left:8px; background:rgba(0,0,0,.65);
+           padding:3px 9px; border-radius:999px; font-size:.7rem; z-index:2; }
 
   .panel {
-    background: var(--panel); border-radius:12px; padding:12px;
-    display:flex; flex-direction:column; gap:10px;
+    background: var(--panel); border-radius:12px; padding:10px;
+    display:flex; flex-direction:column; gap:8px;
   }
   .row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
   .row.center { justify-content:center; }
 
   .btn {
-    padding:10px 16px; border:none; border-radius:8px;
-    background:#475569; color:white; font-size:.9rem; font-weight:600;
+    padding:10px 14px; border:none; border-radius:8px;
+    background:#475569; color:white; font-size:.85rem; font-weight:600;
     cursor:pointer; transition: transform .1s, opacity .2s; white-space:nowrap;
+    display:inline-flex; align-items:center; justify-content:center; gap:5px;
   }
   .btn:hover:not(:disabled){ transform:translateY(-1px); }
   .btn:disabled { opacity:.4; cursor:not-allowed; }
@@ -54,100 +63,125 @@
   .btn.success { background: var(--success); }
   .btn.danger  { background: var(--danger); }
   .btn.warn    { background: var(--warn); }
-  .btn.big     { padding:14px 22px; font-size:1rem; flex:1 1 160px; }
+  .btn.off     { background:#334155; opacity:.8; }
+  .btn.big     { padding:14px 20px; font-size:.95rem; flex:1 1 160px; }
 
   input[type=text] {
     padding:10px 14px; border-radius:8px; border:1px solid #475569;
-    background:#0f172a; color:var(--text); font-size:.95rem;
+    background:#0f172a; color:var(--text); font-size:.9rem;
     flex:1 1 180px; font-family: ui-monospace, monospace;
   }
   input[type=text]:focus { outline:2px solid var(--accent); }
 
   .room-box {
     display:none; flex-direction:column; gap:8px;
-    background:#0b1220; border:1px dashed #475569; border-radius:10px; padding:12px;
+    background:#0b1220; border:1px dashed #475569; border-radius:10px; padding:10px;
   }
   .room-box.show { display:flex; }
   .room-box .code {
-    font-family: ui-monospace, monospace; font-size:1.35rem; font-weight:700;
+    font-family: ui-monospace, monospace; font-size:1.25rem; font-weight:700;
     letter-spacing:.05em; color:#7dd3fc; word-break:break-all;
     text-align:center; padding:10px; background:#020617; border-radius:8px;
-    cursor:pointer;
+    cursor:pointer; user-select:all;
   }
-  .room-box .tip { font-size:.72rem; opacity:.65; text-align:center; }
+  .room-box .tip { font-size:.7rem; opacity:.65; text-align:center; }
+
+  /* Media toggle buttons */
+  .media-row { justify-content:center; }
+  .media-btn { min-width:120px; }
 
   .log {
-    max-height:80px; overflow-y:auto; font-size:.7rem;
+    max-height:70px; overflow-y:auto; font-size:.68rem;
     font-family: ui-monospace, monospace; background:#0b1220;
-    padding:6px 10px; border-radius:8px; opacity:.75; line-height:1.4;
+    padding:6px 8px; border-radius:8px; opacity:.8; line-height:1.4;
   }
 
   .hidden { display:none !important; }
+
+  .toast {
+    position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
+    background:#1e293b; color:#e2e8f0; padding:10px 18px;
+    border-radius:999px; font-size:.85rem; z-index:999;
+    box-shadow: 0 4px 20px rgba(0,0,0,.4);
+    opacity:0; pointer-events:none; transition:opacity .3s;
+  }
+  .toast.show { opacity:1; }
 </style>
 </head>
 <body>
 <div class="app">
   <header class="topbar">
     <h1>📹 Video Call</h1>
-    <span id="status" class="status">Đang khởi tạo…</span>
+    <span id="status" class="status">Chưa sẵn sàng</span>
   </header>
 
   <main class="videos">
-    <div class="video-wrap">
+    <div class="video-wrap no-video" id="localWrap" data-placeholder="Camera đang tắt">
       <video id="localVideo" autoplay muted playsinline></video>
       <span class="label">Bạn</span>
     </div>
-    <div class="video-wrap">
+    <div class="video-wrap no-video" id="remoteWrap" data-placeholder="Chưa có kết nối">
       <video id="remoteVideo" autoplay playsinline></video>
       <span class="label" id="remoteLabel">Đối phương</span>
     </div>
   </main>
 
-  <!-- ===== LOBBY: chọn Tạo phòng hoặc Vào phòng ===== -->
+  <!-- ===== Media controls (luôn hiển thị) ===== -->
+  <section class="panel">
+    <div class="row media-row">
+      <button id="micBtn" class="btn media-btn off">🎤 Bật Mic</button>
+      <button id="camBtn" class="btn media-btn off">📷 Bật Cam</button>
+    </div>
+  </section>
+
+  <!-- ===== LOBBY ===== -->
   <section id="lobby" class="panel">
     <div class="row center">
       <button id="createBtn" class="btn success big">➕ Tạo phòng (Host)</button>
-      <button id="joinShowBtn" class="btn primary big">🔗 Vào phòng (Nhập ID)</button>
+      <button id="joinShowBtn" class="btn primary big">🔗 Vào phòng</button>
     </div>
 
     <div id="joinBox" class="room-box">
-      <input id="roomInput" type="text" placeholder="Dán ID phòng của Host vào đây (vd: vc-a1b2c3d4)" />
+      <input id="roomInput" type="text" placeholder="Dán ID phòng của Host (vd: vc-a1b2-c3d4)" />
       <div class="row">
         <button id="joinBtn" class="btn success" style="flex:1">📞 Vào & Gọi</button>
-        <button id="joinCancel" class="btn">Hủy</button>
+        <button id="joinCancel" class="btn" style="flex:0">Hủy</button>
       </div>
     </div>
   </section>
 
-  <!-- ===== ROOM INFO: hiện ID phòng sau khi tạo ===== -->
+  <!-- ===== ROOM INFO (Host) ===== -->
   <section id="roomInfo" class="panel hidden">
-    <div style="text-align:center; font-weight:600;">🔑 ID phòng của bạn — gửi cho người kia:</div>
-    <div class="room-box show" style="display:flex;">
+    <div style="text-align:center; font-weight:600; font-size:.9rem;">
+      🔑 ID phòng — gửi cho người kia:
+    </div>
+    <div class="room-box show">
       <div class="code" id="roomCode" title="Nhấn để copy">…</div>
-      <div class="tip">👆 Nhấn vào ID để copy • Chờ đối phương gọi tới</div>
+      <div class="tip">👆 Nhấn để copy • Đang chờ đối phương gọi tới…</div>
       <div class="row">
-        <button id="copyBtn" class="btn primary" style="flex:1">📋 Copy ID</button>
+        <button id="copyBtn" class="btn primary" style="flex:1">📋 Copy</button>
         <button id="shareBtn" class="btn" style="flex:1">📤 Chia sẻ</button>
+        <button id="cancelRoomBtn" class="btn danger" style="flex:0">✖</button>
       </div>
     </div>
   </section>
 
-  <!-- ===== IN-CALL controls ===== -->
+  <!-- ===== IN-CALL ===== -->
   <section id="inCall" class="panel hidden">
     <div class="row center">
-      <button id="muteBtn" class="btn">🎤 Mic</button>
-      <button id="camBtn" class="btn">📷 Cam</button>
-      <button id="hangupBtn" class="btn danger">❌ Kết thúc</button>
+      <button id="hangupBtn" class="btn danger big">❌ Kết thúc</button>
     </div>
   </section>
 
   <div class="log" id="log"></div>
 </div>
 
+<div class="toast" id="toast"></div>
+
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 
 <script>
-/* ================== PWA: manifest + service worker inline ================== */
+/* ================== PWA inline ================== */
 (function setupPWA(){
   const manifest = {
     name:"Video Call PWA", short_name:"VideoCall", start_url:".",
@@ -155,9 +189,7 @@
     orientation:"any",
     icons:[
       { src:"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTkyIj48cmVjdCB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgcng9IjM2IiBmaWxsPSIjM2I4MmY2Ii8+PHRleHQgeD0iOTYiIHk9IjEyMCIgZm9udC1zaXplPSI5NiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+8J+SuTwvdGV4dD48L3N2Zz4=",
-        sizes:"192x192", type:"image/svg+xml", purpose:"any maskable" },
-      { src:"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9Ijk2IiBmaWxsPSIjM2I4MmY2Ii8+PHRleHQgeD0iMjU2IiB5PSIzMjAiIGZvbnQtc2l6ZT0iMjU2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7wn5K5PC90ZXh0Pjwvc3ZnPg==",
-        sizes:"512x512", type:"image/svg+xml", purpose:"any maskable" }
+        sizes:"192x192", type:"image/svg+xml", purpose:"any maskable" }
     ]
   };
   const link = document.createElement("link");
@@ -167,7 +199,7 @@
 
   if ("serviceWorker" in navigator) {
     const swCode = `
-      const CACHE='videocall-v1';
+      const CACHE='videocall-v2';
       self.addEventListener('install',e=>self.skipWaiting());
       self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));
       self.addEventListener('fetch',e=>{
@@ -177,17 +209,21 @@
         }).catch(()=>c.match(e.request))));
       });
     `;
-    const swURL = URL.createObjectURL(new Blob([swCode], {type:"application/javascript"}));
-    navigator.serviceWorker.register(swURL).catch(err => console.warn("SW:", err));
+    navigator.serviceWorker.register(
+      URL.createObjectURL(new Blob([swCode], {type:"application/javascript"}))
+    ).catch(err => console.warn("SW:", err));
   }
 })();
 
-/* ================== DOM refs ================== */
+/* ================== DOM ================== */
 const $ = id => document.getElementById(id);
 const localVideo  = $("localVideo");
 const remoteVideo = $("remoteVideo");
+const localWrap   = $("localWrap");
+const remoteWrap  = $("remoteWrap");
 const statusEl    = $("status");
 const logEl       = $("log");
+const toastEl     = $("toast");
 
 const lobby       = $("lobby");
 const createBtn   = $("createBtn");
@@ -201,9 +237,10 @@ const roomInfo    = $("roomInfo");
 const roomCode    = $("roomCode");
 const copyBtn     = $("copyBtn");
 const shareBtn    = $("shareBtn");
+const cancelRoomBtn = $("cancelRoomBtn");
 
 const inCall      = $("inCall");
-const muteBtn     = $("muteBtn");
+const micBtn      = $("micBtn");
 const camBtn      = $("camBtn");
 const hangupBtn   = $("hangupBtn");
 const remoteLabel = $("remoteLabel");
@@ -214,17 +251,26 @@ let localStream = null;
 let currentCall = null;
 let myRoomId = null;
 let isHost = false;
-let micOn = true, camOn = true;
+
+let micEnabled = false;
+let camEnabled = false;
+let micTrack = null;
+let camTrack = null;
 
 /* ================== Utils ================== */
 function log(msg){
   const t = new Date().toLocaleTimeString();
   logEl.innerHTML += `[${t}] ${msg}<br>`;
   logEl.scrollTop = logEl.scrollHeight;
+  console.log("[VC]", msg);
 }
 function setStatus(text, cls=""){ statusEl.textContent = text; statusEl.className = "status "+cls; }
-
-// Tạo ID phòng dễ đọc: vc-xxxx-xxxx
+function toast(msg, ms=2200){
+  toastEl.textContent = msg;
+  toastEl.classList.add("show");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(()=>toastEl.classList.remove("show"), ms);
+}
 function generateRoomId(){
   const s = () => Math.random().toString(36).slice(2,6);
   return `vc-${s()}-${s()}`;
@@ -232,48 +278,158 @@ function generateRoomId(){
 function show(el){ el.classList.remove("hidden"); }
 function hide(el){ el.classList.add("hidden"); }
 
-/* ================== 1. Lấy media ================== */
-async function initLocalStream(){
+/* ================== Media: bật/tắt bất kỳ lúc nào ================== */
+async function enableMic(){
+  if (micEnabled) return;
   try {
-    localStream = await navigator.mediaDevices.getUserMedia({
-      video:{ width:{ideal:1280}, height:{ideal:720} },
-      audio:{ echoCancellation:true, noiseSuppression:true }
-    });
-    localVideo.srcObject = localStream;
-    log("✅ Đã lấy camera + mic");
-    return true;
+    const s = await navigator.mediaDevices.getUserMedia({ audio: {
+      echoCancellation:true, noiseSuppression:true, autoGainControl:true
+    }});
+    micTrack = s.getAudioTracks()[0];
+    micTrack.enabled = true;
+    micEnabled = true;
+    updateMicBtn();
+    attachTrackToCall(micTrack, localStream);
+    addToLocalStream(micTrack);
+    log("🎤 Mic đã bật");
   } catch(err){
-    log("❌ Media lỗi: " + err.message);
-    setStatus("Không có quyền camera/mic", "error");
-    alert("Cần quyền camera và mic để thực hiện cuộc gọi.");
-    return false;
+    log("❌ Mic lỗi: " + err.message);
+    toast("Không truy cập được mic: " + err.name);
+  }
+}
+function disableMic(){
+  if (!micEnabled) return;
+  if (micTrack) {
+    micTrack.stop();
+    if (localStream) localStream.removeTrack(micTrack);
+    micTrack = null;
+  }
+  micEnabled = false;
+  updateMicBtn();
+  log("🔇 Mic đã tắt");
+}
+async function enableCam(){
+  if (camEnabled) return;
+  try {
+    const s = await navigator.mediaDevices.getUserMedia({
+      video: { width:{ideal:1280}, height:{ideal:720}, facingMode:"user" }
+    });
+    camTrack = s.getVideoTracks()[0];
+    camTrack.enabled = true;
+    camEnabled = true;
+    updateCamBtn();
+    addToLocalStream(camTrack);
+    attachTrackToCall(camTrack, localStream);
+
+    // Hiển thị preview
+    localVideo.srcObject = localStream;
+    localWrap.classList.remove("no-video");
+    log("📷 Cam đã bật");
+  } catch(err){
+    log("❌ Cam lỗi: " + err.message);
+    toast("Không truy cập được camera: " + err.name);
+  }
+}
+function disableCam(){
+  if (!camEnabled) return;
+  if (camTrack) {
+    camTrack.stop();
+    if (localStream) localStream.removeTrack(camTrack);
+    camTrack = null;
+  }
+  camEnabled = false;
+  updateCamBtn();
+  localVideo.srcObject = null;
+  localWrap.classList.add("no-video");
+  log("🚫 Cam đã tắt");
+}
+
+/* Thêm track vào localStream (tạo mới nếu chưa có) */
+function addToLocalStream(track){
+  if (!localStream) {
+    localStream = new MediaStream();
+  }
+  localStream.addTrack(track);
+  localVideo.srcObject = localStream;
+  if (track.kind === "video") localWrap.classList.remove("no-video");
+}
+
+/* Thêm track vào PeerConnection của cuộc gọi hiện tại (nếu có) */
+function attachTrackToCall(track, stream){
+  if (!currentCall || !currentCall.peerConnection) return;
+  try {
+    const pc = currentCall.peerConnection;
+    const senders = pc.getSenders();
+    const sender = senders.find(s => s.track && s.track.kind === track.kind);
+    if (sender) {
+      sender.replaceTrack(track);
+      log("🔄 Đã thay track " + track.kind + " trong call");
+    } else {
+      pc.addTrack(track, stream);
+      log("➕ Đã thêm track " + track.kind + " vào call");
+      // Renegotiate
+      if (typeof currentCall.negotiate === "function") {
+        // PeerJS chưa expose API đơn giản → trigger bằng cách tạo offer mới
+      }
+    }
+  } catch(e) {
+    log("⚠️ attachTrack lỗi: " + e.message);
   }
 }
 
-/* ================== 2. Khởi tạo Peer với ID chỉ định ================== */
+function updateMicBtn(){
+  if (micEnabled) {
+    micBtn.textContent = "🎤 Mic đang bật";
+    micBtn.classList.remove("off");
+    micBtn.classList.add("success");
+  } else {
+    micBtn.textContent = "🎤 Bật Mic";
+    micBtn.classList.add("off");
+    micBtn.classList.remove("success");
+  }
+}
+function updateCamBtn(){
+  if (camEnabled) {
+    camBtn.textContent = "📷 Cam đang bật";
+    camBtn.classList.remove("off");
+    camBtn.classList.add("success");
+  } else {
+    camBtn.textContent = "📷 Bật Cam";
+    camBtn.classList.add("off");
+    camBtn.classList.remove("success");
+  }
+}
+
+/* ================== Peer ================== */
 function initPeer(roomId){
   return new Promise((resolve, reject) => {
     setStatus("Đang kết nối signaling…");
-    log("🔌 Đăng ký Peer ID: " + roomId);
+    log("🔌 Peer ID: " + roomId);
 
     peer = new Peer(roomId, {
       debug: 2,
       config: {
-        // Google STUN + fallback
         iceServers: [
           { urls: "stun:stun.l.google.com:19302" },
           { urls: "stun:stun1.l.google.com:19302" },
           { urls: "stun:stun2.l.google.com:19302" },
           { urls: "stun:stun3.l.google.com:19302" },
           { urls: "stun:stun4.l.google.com:19302" }
-          // Thêm TURN nếu cần xuyên NAT đối xứng:
+          // Nếu 2 bên khác mạng NAT chặt, thêm TURN:
           // { urls:"turn:openrelay.metered.ca:80", username:"openrelayproject", credential:"openrelayproject" }
         ],
-        iceCandidatePoolSize: 10
+        iceCandidatePoolSize: 10,
+        sdpSemantics: "unified-plan"
       }
     });
 
+    const timeout = setTimeout(() => {
+      log("⏱️ Timeout kết nối signaling");
+      reject(new Error("signaling-timeout"));
+    }, 15000);
+
     peer.on("open", id => {
+      clearTimeout(timeout);
       log("🟢 Peer online: " + id);
       setStatus("Sẵn sàng", "online");
       resolve(id);
@@ -282,73 +438,99 @@ function initPeer(roomId){
     peer.on("error", err => {
       log("⚠️ Peer error: " + err.type + " – " + err.message);
       if (err.type === "unavailable-id") {
-        setStatus("ID phòng đã tồn tại", "error");
+        setStatus("ID trùng, thử lại", "error");
         reject(err);
       } else if (err.type === "peer-unavailable") {
         setStatus("Không tìm thấy phòng", "error");
-        log("❌ Không tìm thấy Peer ID này — kiểm tra lại ID.");
+        toast("Không tìm thấy phòng — kiểm tra lại ID");
+      } else if (err.type === "network" || err.type === "server-error") {
+        setStatus("Lỗi signaling server", "error");
       } else {
         setStatus("Lỗi: " + err.type, "error");
       }
     });
 
     peer.on("disconnected", () => {
-      log("🔌 Mất kết nối signaling, reconnect…");
-      peer.reconnect();
+      log("🔌 Signaling mất kết nối, reconnect…");
+      if (peer && !peer.destroyed) peer.reconnect();
     });
 
-    // Nhận cuộc gọi đến (Host chờ)
+    // Host nhận cuộc gọi tới
     peer.on("call", call => {
-      log("📞 Có cuộc gọi đến từ: " + call.peer);
-      setStatus("Đang kết nối…", "calling");
-      call.answer(localStream);
+      log("📞 Cuộc gọi đến từ: " + call.peer);
+      setStatus("Đang nhận cuộc gọi…", "calling");
+
+      // Trả lời — dùng stream hiện tại (có thể rỗng cũng OK, vẫn nhận được video bên kia)
+      const streamToSend = localStream || new MediaStream();
+      call.answer(streamToSend);
       handleCall(call);
     });
   });
 }
 
-/* ================== 3. Xử lý cuộc gọi ================== */
+/* ================== Call ================== */
 function handleCall(call){
   currentCall = call;
 
   call.on("stream", remoteStream => {
-    log("🎥 Đã nhận stream đối phương");
+    log("🎥 Nhận stream đối phương");
     remoteVideo.srcObject = remoteStream;
-    setStatus("Đang trò chuyện", "online");
-    remoteLabel.textContent = "Đối phương (" + call.peer + ")";
+    // Kiểm tra có video track đang hoạt động không
+    const hasVideo = remoteStream.getVideoTracks().length > 0;
+    if (hasVideo) remoteWrap.classList.remove("no-video");
+    else remoteWrap.classList.add("no-video");
 
-    // UI: ẩn lobby + roomInfo, hiện điều khiển
+    // Nếu remote gửi track mới sau này
+    remoteStream.onaddtrack = () => {
+      const v = remoteStream.getVideoTracks().length > 0;
+      if (v) remoteWrap.classList.remove("no-video");
+      else remoteWrap.classList.add("no-video");
+    };
+
+    setStatus("Đang trò chuyện", "online");
+    remoteLabel.textContent = "Đối phương (" + call.peer.slice(0,12) + ")";
     hide(lobby); hide(roomInfo); show(inCall);
+    toast("Đã kết nối!");
   });
 
   call.on("close", () => {
     log("📴 Cuộc gọi kết thúc");
-    endCallCleanup();
+    cleanupAfterCall();
   });
 
   call.on("error", err => {
     log("❌ Call error: " + err.message);
     setStatus("Lỗi cuộc gọi", "error");
+    toast("Lỗi cuộc gọi: " + err.message);
   });
+
+  // Timeout nếu 20s không nhận được stream
+  const streamTimeout = setTimeout(() => {
+    if (!remoteVideo.srcObject) {
+      log("⏱️ Timeout — không nhận được video từ đối phương");
+      toast("Không kết nối được — thử kiểm tra mạng");
+    }
+  }, 20000);
+  call.on("stream", () => clearTimeout(streamTimeout));
 }
 
-function endCallCleanup(){
+function cleanupAfterCall(){
   remoteVideo.srcObject = null;
+  remoteWrap.classList.add("no-video");
   currentCall = null;
   setStatus("Sẵn sàng", "online");
   hide(inCall);
-  if (isHost && myRoomId) {
-    // Host quay về màn hình phòng để chờ cuộc gọi mới
+
+  if (isHost && myRoomId && peer && !peer.destroyed) {
     show(roomInfo);
   } else {
-    // Guest quay về lobby
     show(lobby);
     hide(joinBox);
     roomInput.value = "";
   }
 }
 
-/* ================== 4. Host: Tạo phòng ================== */
+/* ================== Host: Tạo phòng ================== */
 async function createRoom(){
   createBtn.disabled = true;
   isHost = true;
@@ -359,134 +541,140 @@ async function createRoom(){
   } catch(e) {
     createBtn.disabled = false;
     isHost = false;
+    myRoomId = null;
+    toast("Không tạo được phòng — thử lại");
     return;
   }
 
-  // Hiện màn hình ID phòng
   roomCode.textContent = myRoomId;
   hide(lobby);
   show(roomInfo);
   setStatus("Phòng đã tạo — chờ gọi", "online");
   log("🏠 Đã tạo phòng: " + myRoomId);
+  toast("Phòng đã sẵn sàng!");
 }
 
-/* ================== 5. Guest: Vào phòng ================== */
+/* ================== Guest: Vào phòng ================== */
 async function joinRoom(){
   const targetId = roomInput.value.trim();
-  if (!targetId) return alert("Vui lòng dán ID phòng của Host");
-  if (!targetId.startsWith("vc-")) {
-    if (!confirm("ID không đúng định dạng 'vc-xxxx-xxxx'. Vẫn tiếp tục?")) return;
-  }
+  if (!targetId) { toast("Vui lòng dán ID phòng"); return; }
 
   joinBtn.disabled = true;
   isHost = false;
 
-  // Guest dùng ID ngẫu nhiên cho chính mình
   const guestId = "vc-" + Math.random().toString(36).slice(2,10);
 
   try {
     await initPeer(guestId);
   } catch(e){
     joinBtn.disabled = false;
+    toast("Không kết nối signaling");
     return;
   }
 
-  log("📞 Đang gọi tới phòng: " + targetId);
+  log("📞 Gọi tới phòng: " + targetId);
   setStatus("Đang gọi…", "calling");
 
-  const call = peer.call(targetId, localStream);
-  if (!call) {
-    setStatus("Không gọi được", "error");
+  // Nếu không có stream thì tạo stream rỗng để gọi audio-only
+  const streamToSend = localStream || new MediaStream();
+
+  try {
+    const call = peer.call(targetId, streamToSend);
+    if (!call) throw new Error("Không tạo được call");
+    handleCall(call);
+  } catch(err) {
+    log("❌ Gọi thất bại: " + err.message);
+    setStatus("Gọi thất bại", "error");
+    toast("Không gọi được: " + err.message);
     joinBtn.disabled = false;
-    return;
   }
-  handleCall(call);
 }
 
-/* ================== 6. Toggle mic/cam ================== */
-function toggleMic(){
-  if (!localStream) return;
-  micOn = !micOn;
-  localStream.getAudioTracks().forEach(t => t.enabled = micOn);
-  muteBtn.textContent = micOn ? "🎤 Mic" : "🔇 Mic (off)";
-}
-function toggleCam(){
-  if (!localStream) return;
-  camOn = !camOn;
-  localStream.getVideoTracks().forEach(t => t.enabled = camOn);
-  camBtn.textContent = camOn ? "📷 Cam" : "🚫 Cam (off)";
-}
-
-/* ================== 7. Hangup ================== */
+/* ================== Hangup / Cancel ================== */
 function hangup(){
-  if (currentCall) { currentCall.close(); currentCall = null; }
+  if (currentCall) { try{currentCall.close();}catch{} currentCall = null; }
   log("📴 Bạn đã kết thúc cuộc gọi");
-  endCallCleanup();
+  cleanupAfterCall();
 }
 
-/* ================== 8. Copy & Share ================== */
+function cancelRoom(){
+  if (currentCall) { try{currentCall.close();}catch{} currentCall = null; }
+  if (peer && !peer.destroyed) { try{peer.destroy();}catch{} peer = null; }
+  myRoomId = null;
+  isHost = false;
+  setStatus("Chưa sẵn sàng");
+  hide(roomInfo);
+  show(lobby);
+  createBtn.disabled = false;
+  log("✖ Đã hủy phòng");
+}
+
+/* ================== Copy & Share ================== */
 async function copyRoomCode(){
   if (!myRoomId) return;
   try {
     await navigator.clipboard.writeText(myRoomId);
     copyBtn.textContent = "✅ Đã copy!";
-    setTimeout(() => copyBtn.textContent = "📋 Copy ID", 1500);
-    log("📋 Đã copy ID phòng");
+    setTimeout(() => copyBtn.textContent = "📋 Copy", 1500);
+    toast("Đã copy ID phòng");
   } catch {
-    prompt("Copy ID phòng của bạn:", myRoomId);
+    prompt("Copy ID phòng:", myRoomId);
   }
 }
 async function shareRoomCode(){
   if (!myRoomId) return;
-  const shareData = {
+  const data = {
     title: "Tham gia cuộc gọi video",
     text: `Vào room này để gọi video với tôi: ${myRoomId}`,
     url: location.href
   };
   if (navigator.share) {
-    try { await navigator.share(shareData); } catch {}
+    try { await navigator.share(data); } catch {}
   } else {
     copyRoomCode();
-    alert("Đã copy ID phòng — hãy dán vào tin nhắn gửi cho bạn bè!");
   }
 }
 
-/* ================== 9. Gắn sự kiện ================== */
-createBtn.addEventListener("click", createRoom);
+/* ================== Events ================== */
+micBtn.addEventListener("click", () => micEnabled ? disableMic() : enableMic());
+camBtn.addEventListener("click", () => camEnabled ? disableCam() : enableCam());
 
+createBtn.addEventListener("click", createRoom);
 joinShowBtn.addEventListener("click", () => {
   joinBox.classList.toggle("show");
   if (joinBox.classList.contains("show")) roomInput.focus();
 });
-
 joinCancel.addEventListener("click", () => {
   joinBox.classList.remove("show");
   roomInput.value = "";
 });
-
 joinBtn.addEventListener("click", joinRoom);
 roomInput.addEventListener("keydown", e => { if (e.key === "Enter") joinRoom(); });
 
 roomCode.addEventListener("click", copyRoomCode);
 copyBtn.addEventListener("click", copyRoomCode);
 shareBtn.addEventListener("click", shareRoomCode);
+cancelRoomBtn.addEventListener("click", cancelRoom);
 
-muteBtn.addEventListener("click", toggleMic);
-camBtn.addEventListener("click", toggleCam);
 hangupBtn.addEventListener("click", hangup);
 
 window.addEventListener("beforeunload", () => {
   if (currentCall) currentCall.close();
-  if (peer) peer.destroy();
+  if (peer && !peer.destroyed) peer.destroy();
 });
 
-/* ================== 10. Boot ================== */
-(async function boot(){
+/* ================== Boot ================== */
+(function boot(){
   log("🚀 Khởi động");
-  const ok = await initLocalStream();
-  if (!ok) return;
-  setStatus("Chọn Tạo hoặc Vào phòng");
-  log("👉 Bấm 'Tạo phòng' (Host) hoặc 'Vào phòng' (Guest)");
+  setStatus("Chưa bật mic/cam");
+
+  // Tự thử xin quyền và bật cam trước — nếu bị từ chối thì vẫn cho dùng
+  navigator.permissions?.query({name:"camera"}).then(p => {
+    if (p.state === "granted") {
+      enableCam();
+      log("🎬 Đã bật cam (quyền cũ)");
+    }
+  }).catch(()=>{});
 })();
 </script>
 </body>
