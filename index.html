@@ -26,14 +26,17 @@
   .topbar h1 { font-size:1.05rem; }
   .status { font-size:.75rem; padding:4px 10px; border-radius:999px; background:#334155; transition:.3s; }
   .status.online  { background: var(--success); }
-  .status.calling { background: var(--warn); }
+  .status.calling { background: var(--warn); animation: pulse 1.2s ease-in-out infinite; }
   .status.error   { background: var(--danger); }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.55;} }
 
   .videos { flex:1; display:grid; grid-template-columns:1fr; gap:8px; min-height:0; }
   @media (min-width:700px){ .videos{ grid-template-columns:1fr 1fr; } }
   .video-wrap { position:relative; background:#000; border-radius:12px; overflow:hidden; min-height:0;
                 display:flex; align-items:center; justify-content:center; }
   .video-wrap video { width:100%; height:100%; object-fit:cover; display:block; }
+  /* Mirror local video — đúng như gương, không bị "lệch" */
+  #localVideo { transform: scaleX(-1); }
   .video-wrap.no-video video { display:none; }
   .video-wrap.no-video::after {
     content: attr(data-placeholder);
@@ -63,8 +66,9 @@
   .btn.success { background: var(--success); }
   .btn.danger  { background: var(--danger); }
   .btn.warn    { background: var(--warn); }
-  .btn.off     { background:#334155; opacity:.8; }
+  .btn.off     { background:#334155; opacity:.85; }
   .btn.big     { padding:14px 20px; font-size:.95rem; flex:1 1 160px; }
+  .btn.xl      { padding:16px 26px; font-size:1.05rem; flex:1; font-weight:700; }
 
   input[type=text] {
     padding:10px 14px; border-radius:8px; border:1px solid #475569;
@@ -86,12 +90,11 @@
   }
   .room-box .tip { font-size:.7rem; opacity:.65; text-align:center; }
 
-  /* Media toggle buttons */
   .media-row { justify-content:center; }
   .media-btn { min-width:120px; }
 
   .log {
-    max-height:70px; overflow-y:auto; font-size:.68rem;
+    max-height:60px; overflow-y:auto; font-size:.68rem;
     font-family: ui-monospace, monospace; background:#0b1220;
     padding:6px 8px; border-radius:8px; opacity:.8; line-height:1.4;
   }
@@ -104,8 +107,44 @@
     border-radius:999px; font-size:.85rem; z-index:999;
     box-shadow: 0 4px 20px rgba(0,0,0,.4);
     opacity:0; pointer-events:none; transition:opacity .3s;
+    max-width:90vw; text-align:center;
   }
   .toast.show { opacity:1; }
+
+  /* ===== INCOMING CALL OVERLAY ===== */
+  .overlay {
+    position:fixed; inset:0; background:rgba(2,6,23,.85);
+    backdrop-filter: blur(6px);
+    display:flex; align-items:center; justify-content:center;
+    z-index:1000; padding:20px;
+    animation: fadeIn .2s ease;
+  }
+  @keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
+  .overlay.hidden { display:none !important; }
+  .call-card {
+    background:#1e293b; border-radius:16px; padding:24px;
+    max-width:380px; width:100%; text-align:center;
+    box-shadow: 0 20px 60px rgba(0,0,0,.6);
+    border: 1px solid #334155;
+  }
+  .call-card .avatar {
+    width:80px; height:80px; border-radius:50%; margin:0 auto 14px;
+    background: linear-gradient(135deg,#3b82f6,#8b5cf6);
+    display:flex; align-items:center; justify-content:center;
+    font-size:2rem; animation: ring 1.2s ease-in-out infinite;
+  }
+  @keyframes ring { 0%,100%{transform:scale(1);} 50%{transform:scale(1.1);} }
+  .call-card h2 { font-size:1.1rem; margin-bottom:6px; }
+  .call-card .caller { font-size:.85rem; opacity:.7; margin-bottom:20px;
+                       font-family: ui-monospace, monospace; word-break:break-all; }
+  .call-actions { display:flex; gap:10px; }
+  .call-actions .btn { flex:1; padding:14px; font-size:.95rem; }
+
+  /* Waiting state */
+  .waiting {
+    text-align:center; padding:20px; font-size:.9rem;
+    color:#94a3b8; animation: pulse 1.5s ease-in-out infinite;
+  }
 </style>
 </head>
 <body>
@@ -126,11 +165,12 @@
     </div>
   </main>
 
-  <!-- ===== Media controls (luôn hiển thị) ===== -->
+  <!-- ===== Media controls ===== -->
   <section class="panel">
     <div class="row media-row">
       <button id="micBtn" class="btn media-btn off">🎤 Bật Mic</button>
       <button id="camBtn" class="btn media-btn off">📷 Bật Cam</button>
+      <button id="flipBtn" class="btn media-btn off" title="Đảo camera trước/sau">🔄 Đảo Cam</button>
     </div>
   </section>
 
@@ -176,6 +216,32 @@
   <div class="log" id="log"></div>
 </div>
 
+<!-- ===== INCOMING CALL OVERLAY ===== -->
+<div id="incomingOverlay" class="overlay hidden">
+  <div class="call-card">
+    <div class="avatar">📞</div>
+    <h2>Cuộc gọi đến</h2>
+    <div class="caller" id="incomingCaller">…</div>
+    <div class="call-actions">
+      <button id="rejectCallBtn" class="btn danger">❌ Từ chối</button>
+      <button id="acceptCallBtn" class="btn success">✅ Chấp nhận</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== OUTGOING CALL OVERLAY ===== -->
+<div id="outgoingOverlay" class="overlay hidden">
+  <div class="call-card">
+    <div class="avatar">📞</div>
+    <h2>Đang gọi…</h2>
+    <div class="caller" id="outgoingCaller">…</div>
+    <div class="waiting">Đang chờ đối phương chấp nhận…</div>
+    <div class="call-actions" style="margin-top:20px;">
+      <button id="cancelCallBtn" class="btn danger" style="flex:1;">❌ Hủy</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
@@ -187,10 +253,8 @@
     name:"Video Call PWA", short_name:"VideoCall", start_url:".",
     display:"standalone", background_color:"#0f172a", theme_color:"#0f172a",
     orientation:"any",
-    icons:[
-      { src:"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTkyIj48cmVjdCB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgcng9IjM2IiBmaWxsPSIjM2I4MmY2Ii8+PHRleHQgeD0iOTYiIHk9IjEyMCIgZm9udC1zaXplPSI5NiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+8J+SuTwvdGV4dD48L3N2Zz4=",
-        sizes:"192x192", type:"image/svg+xml", purpose:"any maskable" }
-    ]
+    icons:[{ src:"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTkyIj48cmVjdCB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgcng9IjM2IiBmaWxsPSIjM2I4MmY2Ii8+PHRleHQgeD0iOTYiIHk9IjEyMCIgZm9udC1zaXplPSI5NiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+8J+SuTwvdGV4dD48L3N2Zz4=",
+      sizes:"192x192", type:"image/svg+xml", purpose:"any maskable" }]
   };
   const link = document.createElement("link");
   link.rel = "manifest";
@@ -199,7 +263,7 @@
 
   if ("serviceWorker" in navigator) {
     const swCode = `
-      const CACHE='videocall-v2';
+      const CACHE='videocall-v3';
       self.addEventListener('install',e=>self.skipWaiting());
       self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));
       self.addEventListener('fetch',e=>{
@@ -242,13 +306,24 @@ const cancelRoomBtn = $("cancelRoomBtn");
 const inCall      = $("inCall");
 const micBtn      = $("micBtn");
 const camBtn      = $("camBtn");
+const flipBtn     = $("flipBtn");
 const hangupBtn   = $("hangupBtn");
 const remoteLabel = $("remoteLabel");
+
+const incomingOverlay  = $("incomingOverlay");
+const incomingCaller   = $("incomingCaller");
+const acceptCallBtn    = $("acceptCallBtn");
+const rejectCallBtn    = $("rejectCallBtn");
+
+const outgoingOverlay  = $("outgoingOverlay");
+const outgoingCaller   = $("outgoingCaller");
+const cancelCallBtn    = $("cancelCallBtn");
 
 /* ================== State ================== */
 let peer = null;
 let localStream = null;
 let currentCall = null;
+let pendingCall = null;      // cuộc gọi đến đang chờ user accept
 let myRoomId = null;
 let isHost = false;
 
@@ -256,6 +331,9 @@ let micEnabled = false;
 let camEnabled = false;
 let micTrack = null;
 let camTrack = null;
+let currentFacing = "user";  // "user" | "environment"
+
+let outgoingTimeout = null;
 
 /* ================== Utils ================== */
 function log(msg){
@@ -278,7 +356,7 @@ function generateRoomId(){
 function show(el){ el.classList.remove("hidden"); }
 function hide(el){ el.classList.add("hidden"); }
 
-/* ================== Media: bật/tắt bất kỳ lúc nào ================== */
+/* ================== Media ================== */
 async function enableMic(){
   if (micEnabled) return;
   try {
@@ -286,117 +364,151 @@ async function enableMic(){
       echoCancellation:true, noiseSuppression:true, autoGainControl:true
     }});
     micTrack = s.getAudioTracks()[0];
-    micTrack.enabled = true;
     micEnabled = true;
     updateMicBtn();
-    attachTrackToCall(micTrack, localStream);
-    addToLocalStream(micTrack);
-    log("🎤 Mic đã bật");
+    addTrackToStream(micTrack);
+    replaceTrackInCall(micTrack);
+    log("🎤 Mic bật");
+    toast("Đã bật mic");
   } catch(err){
-    log("❌ Mic lỗi: " + err.message);
+    log("❌ Mic: " + err.message);
     toast("Không truy cập được mic: " + err.name);
   }
 }
 function disableMic(){
   if (!micEnabled) return;
   if (micTrack) {
-    micTrack.stop();
     if (localStream) localStream.removeTrack(micTrack);
+    micTrack.stop();
     micTrack = null;
   }
   micEnabled = false;
   updateMicBtn();
-  log("🔇 Mic đã tắt");
+  log("🔇 Mic tắt");
 }
-async function enableCam(){
+
+async function enableCam(facing){
+  if (facing) currentFacing = facing;
   if (camEnabled) return;
   try {
     const s = await navigator.mediaDevices.getUserMedia({
-      video: { width:{ideal:1280}, height:{ideal:720}, facingMode:"user" }
+      video: {
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+        facingMode: { ideal: currentFacing }
+      }
     });
     camTrack = s.getVideoTracks()[0];
-    camTrack.enabled = true;
     camEnabled = true;
     updateCamBtn();
-    addToLocalStream(camTrack);
-    attachTrackToCall(camTrack, localStream);
-
-    // Hiển thị preview
+    addTrackToStream(camTrack);
+    replaceTrackInCall(camTrack);
     localVideo.srcObject = localStream;
     localWrap.classList.remove("no-video");
-    log("📷 Cam đã bật");
+    log("📷 Cam bật (" + currentFacing + ")");
+    toast("Đã bật cam");
   } catch(err){
-    log("❌ Cam lỗi: " + err.message);
+    log("❌ Cam: " + err.message);
     toast("Không truy cập được camera: " + err.name);
   }
 }
 function disableCam(){
   if (!camEnabled) return;
   if (camTrack) {
-    camTrack.stop();
     if (localStream) localStream.removeTrack(camTrack);
+    camTrack.stop();
     camTrack = null;
   }
   camEnabled = false;
   updateCamBtn();
   localVideo.srcObject = null;
   localWrap.classList.add("no-video");
-  log("🚫 Cam đã tắt");
+  log("🚫 Cam tắt");
 }
 
-/* Thêm track vào localStream (tạo mới nếu chưa có) */
-function addToLocalStream(track){
-  if (!localStream) {
-    localStream = new MediaStream();
+/* Đảo camera trước/sau — chỉ có ý nghĩa trên mobile */
+async function flipCamera(){
+  if (!camEnabled) { toast("Bật cam trước đã"); return; }
+  const newFacing = currentFacing === "user" ? "environment" : "user";
+
+  try {
+    const s = await navigator.mediaDevices.getUserMedia({
+      video: {
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+        facingMode: { ideal: newFacing }
+      }
+    });
+    const newTrack = s.getVideoTracks()[0];
+
+    // Dừng track cũ
+    if (camTrack) {
+      if (localStream) localStream.removeTrack(camTrack);
+      camTrack.stop();
+    }
+    camTrack = newTrack;
+    currentFacing = newFacing;
+
+    addTrackToStream(camTrack);
+    replaceTrackInCall(camTrack);
+    localVideo.srcObject = localStream;
+    localWrap.classList.remove("no-video");
+    log("🔄 Đảo cam → " + currentFacing);
+    toast("Đã đảo camera: " + (currentFacing === "user" ? "trước" : "sau"));
+  } catch(err) {
+    log("❌ Đảo cam lỗi: " + err.message);
+    toast("Thiết bị không hỗ trợ đảo cam");
   }
+}
+
+function addTrackToStream(track){
+  if (!localStream) localStream = new MediaStream();
+  // Xoá track cũ cùng kind nếu còn sót
+  localStream.getTracks()
+    .filter(t => t.kind === track.kind && t !== track)
+    .forEach(t => localStream.removeTrack(t));
   localStream.addTrack(track);
   localVideo.srcObject = localStream;
   if (track.kind === "video") localWrap.classList.remove("no-video");
 }
 
-/* Thêm track vào PeerConnection của cuộc gọi hiện tại (nếu có) */
-function attachTrackToCall(track, stream){
+function replaceTrackInCall(track){
   if (!currentCall || !currentCall.peerConnection) return;
   try {
     const pc = currentCall.peerConnection;
-    const senders = pc.getSenders();
-    const sender = senders.find(s => s.track && s.track.kind === track.kind);
+    const sender = pc.getSenders().find(s => s.track && s.track.kind === track.kind);
     if (sender) {
       sender.replaceTrack(track);
-      log("🔄 Đã thay track " + track.kind + " trong call");
+      log("🔄 Thay track " + track.kind + " trong call");
     } else {
-      pc.addTrack(track, stream);
-      log("➕ Đã thêm track " + track.kind + " vào call");
-      // Renegotiate
-      if (typeof currentCall.negotiate === "function") {
-        // PeerJS chưa expose API đơn giản → trigger bằng cách tạo offer mới
-      }
+      pc.addTrack(track, localStream);
+      log("➕ Thêm track " + track.kind + " vào call");
     }
   } catch(e) {
-    log("⚠️ attachTrack lỗi: " + e.message);
+    log("⚠️ replaceTrack: " + e.message);
   }
 }
 
 function updateMicBtn(){
   if (micEnabled) {
     micBtn.textContent = "🎤 Mic đang bật";
-    micBtn.classList.remove("off");
-    micBtn.classList.add("success");
+    micBtn.classList.remove("off"); micBtn.classList.add("success");
   } else {
     micBtn.textContent = "🎤 Bật Mic";
-    micBtn.classList.add("off");
-    micBtn.classList.remove("success");
+    micBtn.classList.add("off"); micBtn.classList.remove("success");
   }
 }
 function updateCamBtn(){
   if (camEnabled) {
     camBtn.textContent = "📷 Cam đang bật";
-    camBtn.classList.remove("off");
-    camBtn.classList.add("success");
+    camBtn.classList.remove("off"); camBtn.classList.add("success");
+    flipBtn.disabled = false;
+    flipBtn.classList.remove("off");
   } else {
     camBtn.textContent = "📷 Bật Cam";
-    camBtn.classList.add("off");
-    camBtn.classList.remove("success");
+    camBtn.classList.add("off"); camBtn.classList.remove("success");
+    flipBtn.disabled = true;
+    flipBtn.classList.add("off");
   }
 }
 
@@ -415,16 +527,15 @@ function initPeer(roomId){
           { urls: "stun:stun2.l.google.com:19302" },
           { urls: "stun:stun3.l.google.com:19302" },
           { urls: "stun:stun4.l.google.com:19302" }
-          // Nếu 2 bên khác mạng NAT chặt, thêm TURN:
+          // Thêm TURN nếu cần xuyên NAT chặt:
           // { urls:"turn:openrelay.metered.ca:80", username:"openrelayproject", credential:"openrelayproject" }
         ],
-        iceCandidatePoolSize: 10,
-        sdpSemantics: "unified-plan"
+        iceCandidatePoolSize: 10
       }
     });
 
     const timeout = setTimeout(() => {
-      log("⏱️ Timeout kết nối signaling");
+      log("⏱️ Timeout signaling");
       reject(new Error("signaling-timeout"));
     }, 15000);
 
@@ -437,60 +548,128 @@ function initPeer(roomId){
 
     peer.on("error", err => {
       log("⚠️ Peer error: " + err.type + " – " + err.message);
-      if (err.type === "unavailable-id") {
-        setStatus("ID trùng, thử lại", "error");
-        reject(err);
-      } else if (err.type === "peer-unavailable") {
+      if (err.type === "unavailable-id") { setStatus("ID trùng", "error"); reject(err); }
+      else if (err.type === "peer-unavailable") {
         setStatus("Không tìm thấy phòng", "error");
-        toast("Không tìm thấy phòng — kiểm tra lại ID");
-      } else if (err.type === "network" || err.type === "server-error") {
-        setStatus("Lỗi signaling server", "error");
-      } else {
-        setStatus("Lỗi: " + err.type, "error");
+        toast("Không tìm thấy phòng — kiểm tra ID");
+        hide(outgoingOverlay);
+        clearTimeout(outgoingTimeout);
       }
+      else if (err.type === "network" || err.type === "server-error") {
+        setStatus("Lỗi signaling", "error");
+      }
+      else { setStatus("Lỗi: " + err.type, "error"); }
     });
 
     peer.on("disconnected", () => {
-      log("🔌 Signaling mất kết nối, reconnect…");
+      log("🔌 Signaling mất, reconnect…");
       if (peer && !peer.destroyed) peer.reconnect();
     });
 
-    // Host nhận cuộc gọi tới
+    /* ===== Nhận cuộc gọi đến — HIỆN NÚT ACCEPT/REJECT ===== */
     peer.on("call", call => {
-      log("📞 Cuộc gọi đến từ: " + call.peer);
-      setStatus("Đang nhận cuộc gọi…", "calling");
+      log("📞 Có cuộc gọi đến từ: " + call.peer);
 
-      // Trả lời — dùng stream hiện tại (có thể rỗng cũng OK, vẫn nhận được video bên kia)
-      const streamToSend = localStream || new MediaStream();
-      call.answer(streamToSend);
-      handleCall(call);
+      // Nếu đang trong cuộc gọi khác → từ chối
+      if (currentCall) {
+        log("⛔ Đang bận → tự động từ chối");
+        call.close();
+        return;
+      }
+
+      pendingCall = call;
+      incomingCaller.textContent = call.peer;
+      show(incomingOverlay);
+      setStatus("Có cuộc gọi đến!", "calling");
+      playRingSound();
     });
   });
 }
 
-/* ================== Call ================== */
+/* ================== Accept / Reject ================== */
+async function acceptIncoming(){
+  hide(incomingOverlay);
+  stopRingSound();
+
+  const call = pendingCall;
+  pendingCall = null;
+  if (!call) return;
+
+  // Nếu chưa có stream thì tạo rỗng — call vẫn thành công
+  const streamToSend = localStream || new MediaStream();
+  log("✅ Đã chấp nhận cuộc gọi");
+  call.answer(streamToSend);
+  handleCall(call);
+}
+
+function rejectIncoming(){
+  hide(incomingOverlay);
+  stopRingSound();
+
+  const call = pendingCall;
+  pendingCall = null;
+  if (call) {
+    try {
+      // Gửi tín hiệu đóng qua data channel trước khi close
+      const dc = call.peerConnection?.createDataChannel?.("reject");
+      // Đơn giản: chỉ close
+      call.close();
+    } catch{}
+    log("❌ Đã từ chối cuộc gọi");
+    toast("Đã từ chối cuộc gọi");
+  }
+  setStatus("Sẵn sàng", "online");
+}
+
+/* ================== Ring sound ================== */
+let ringCtx = null, ringOsc = null, ringGain = null, ringInterval = null;
+function playRingSound(){
+  try {
+    stopRingSound();
+    ringCtx = new (window.AudioContext || window.webkitAudioContext)();
+    ringGain = ringCtx.createGain();
+    ringGain.gain.value = 0.08;
+    ringGain.connect(ringCtx.destination);
+
+    const beep = () => {
+      if (!ringCtx) return;
+      const o = ringCtx.createOscillator();
+      o.frequency.value = 660;
+      o.type = "sine";
+      o.connect(ringGain);
+      o.start();
+      setTimeout(() => o.stop(), 380);
+    };
+    beep();
+    ringInterval = setInterval(beep, 1000);
+  } catch(e) { /* ignore */ }
+}
+function stopRingSound(){
+  if (ringInterval) { clearInterval(ringInterval); ringInterval = null; }
+  if (ringCtx) { try{ringCtx.close();}catch{} ringCtx = null; }
+}
+
+/* ================== Call handler ================== */
 function handleCall(call){
   currentCall = call;
+  hide(lobby); hide(roomInfo);
+  show(inCall);
 
   call.on("stream", remoteStream => {
     log("🎥 Nhận stream đối phương");
     remoteVideo.srcObject = remoteStream;
-    // Kiểm tra có video track đang hoạt động không
-    const hasVideo = remoteStream.getVideoTracks().length > 0;
-    if (hasVideo) remoteWrap.classList.remove("no-video");
-    else remoteWrap.classList.add("no-video");
 
-    // Nếu remote gửi track mới sau này
-    remoteStream.onaddtrack = () => {
-      const v = remoteStream.getVideoTracks().length > 0;
-      if (v) remoteWrap.classList.remove("no-video");
+    const updateRemoteView = () => {
+      const hasLive = remoteStream.getVideoTracks().some(t => t.readyState === "live");
+      if (hasLive) remoteWrap.classList.remove("no-video");
       else remoteWrap.classList.add("no-video");
     };
+    updateRemoteView();
+    remoteStream.onaddtrack = updateRemoteView;
+    remoteStream.onremovetrack = updateRemoteView;
 
     setStatus("Đang trò chuyện", "online");
     remoteLabel.textContent = "Đối phương (" + call.peer.slice(0,12) + ")";
-    hide(lobby); hide(roomInfo); show(inCall);
-    toast("Đã kết nối!");
   });
 
   call.on("close", () => {
@@ -502,22 +681,19 @@ function handleCall(call){
     log("❌ Call error: " + err.message);
     setStatus("Lỗi cuộc gọi", "error");
     toast("Lỗi cuộc gọi: " + err.message);
+    cleanupAfterCall();
   });
-
-  // Timeout nếu 20s không nhận được stream
-  const streamTimeout = setTimeout(() => {
-    if (!remoteVideo.srcObject) {
-      log("⏱️ Timeout — không nhận được video từ đối phương");
-      toast("Không kết nối được — thử kiểm tra mạng");
-    }
-  }, 20000);
-  call.on("stream", () => clearTimeout(streamTimeout));
 }
 
 function cleanupAfterCall(){
   remoteVideo.srcObject = null;
   remoteWrap.classList.add("no-video");
   currentCall = null;
+  pendingCall = null;
+  stopRingSound();
+  hide(incomingOverlay);
+  hide(outgoingOverlay);
+  clearTimeout(outgoingTimeout);
   setStatus("Sẵn sàng", "online");
   hide(inCall);
 
@@ -527,6 +703,7 @@ function cleanupAfterCall(){
     show(lobby);
     hide(joinBox);
     roomInput.value = "";
+    joinBtn.disabled = false;
   }
 }
 
@@ -542,16 +719,16 @@ async function createRoom(){
     createBtn.disabled = false;
     isHost = false;
     myRoomId = null;
-    toast("Không tạo được phòng — thử lại");
+    toast("Không tạo được phòng");
     return;
   }
 
   roomCode.textContent = myRoomId;
   hide(lobby);
   show(roomInfo);
-  setStatus("Phòng đã tạo — chờ gọi", "online");
-  log("🏠 Đã tạo phòng: " + myRoomId);
-  toast("Phòng đã sẵn sàng!");
+  setStatus("Phòng đã tạo", "online");
+  log("🏠 Phòng: " + myRoomId);
+  toast("Phòng sẵn sàng — chờ cuộc gọi");
 }
 
 /* ================== Guest: Vào phòng ================== */
@@ -572,28 +749,52 @@ async function joinRoom(){
     return;
   }
 
-  log("📞 Gọi tới phòng: " + targetId);
+  log("📞 Gọi tới: " + targetId);
   setStatus("Đang gọi…", "calling");
 
-  // Nếu không có stream thì tạo stream rỗng để gọi audio-only
+  // Hiện overlay đang gọi
+  outgoingCaller.textContent = targetId;
+  show(outgoingOverlay);
+  hide(lobby);
+  hide(joinBox);
+
   const streamToSend = localStream || new MediaStream();
 
   try {
     const call = peer.call(targetId, streamToSend);
     if (!call) throw new Error("Không tạo được call");
     handleCall(call);
+
+    // Timeout gọi 30s (đủ để user accept)
+    outgoingTimeout = setTimeout(() => {
+      if (currentCall && !remoteVideo.srcObject) {
+        log("⏱️ Hết thời gian chờ — không có ai nhấc máy");
+        toast("Không có ai trả lời");
+        try { currentCall.close(); } catch{}
+        cleanupAfterCall();
+      }
+    }, 30000);
+
   } catch(err) {
     log("❌ Gọi thất bại: " + err.message);
     setStatus("Gọi thất bại", "error");
-    toast("Không gọi được: " + err.message);
+    toast("Không gọi được");
+    hide(outgoingOverlay);
     joinBtn.disabled = false;
+    show(lobby);
   }
 }
 
 /* ================== Hangup / Cancel ================== */
 function hangup(){
   if (currentCall) { try{currentCall.close();}catch{} currentCall = null; }
-  log("📴 Bạn đã kết thúc cuộc gọi");
+  log("📴 Kết thúc");
+  cleanupAfterCall();
+}
+
+function cancelOutgoing(){
+  if (currentCall) { try{currentCall.close();}catch{} currentCall = null; }
+  log("✖ Hủy gọi");
   cleanupAfterCall();
 }
 
@@ -630,14 +831,13 @@ async function shareRoomCode(){
   };
   if (navigator.share) {
     try { await navigator.share(data); } catch {}
-  } else {
-    copyRoomCode();
-  }
+  } else copyRoomCode();
 }
 
 /* ================== Events ================== */
 micBtn.addEventListener("click", () => micEnabled ? disableMic() : enableMic());
 camBtn.addEventListener("click", () => camEnabled ? disableCam() : enableCam());
+flipBtn.addEventListener("click", flipCamera);
 
 createBtn.addEventListener("click", createRoom);
 joinShowBtn.addEventListener("click", () => {
@@ -657,24 +857,32 @@ shareBtn.addEventListener("click", shareRoomCode);
 cancelRoomBtn.addEventListener("click", cancelRoom);
 
 hangupBtn.addEventListener("click", hangup);
+cancelCallBtn.addEventListener("click", cancelOutgoing);
+
+acceptCallBtn.addEventListener("click", acceptIncoming);
+rejectCallBtn.addEventListener("click", rejectIncoming);
+
+// Keyboard shortcuts
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") {
+    if (!incomingOverlay.classList.contains("hidden")) rejectIncoming();
+    else if (!outgoingOverlay.classList.contains("hidden")) cancelOutgoing();
+    else if (!inCall.classList.contains("hidden")) hangup();
+  }
+});
 
 window.addEventListener("beforeunload", () => {
   if (currentCall) currentCall.close();
   if (peer && !peer.destroyed) peer.destroy();
+  stopRingSound();
 });
 
 /* ================== Boot ================== */
 (function boot(){
   log("🚀 Khởi động");
-  setStatus("Chưa bật mic/cam");
-
-  // Tự thử xin quyền và bật cam trước — nếu bị từ chối thì vẫn cho dùng
-  navigator.permissions?.query({name:"camera"}).then(p => {
-    if (p.state === "granted") {
-      enableCam();
-      log("🎬 Đã bật cam (quyền cũ)");
-    }
-  }).catch(()=>{});
+  setStatus("Bật mic/cam tùy ý");
+  updateMicBtn();
+  updateCamBtn();
 })();
 </script>
 </body>
