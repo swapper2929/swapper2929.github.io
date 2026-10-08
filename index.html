@@ -4,67 +4,69 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
 <meta name="theme-color" content="#0f172a" />
-<title>🏓 Ping Pong Online</title>
-<link rel="manifest" href='data:application/manifest+json,{"name":"Ping Pong Online","short_name":"PingPong","start_url":".","display":"standalone","background_color":"%230f172a","theme_color":"%230f172a","icons":[{"src":"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTkyIj48cmVjdCB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgcng9IjMyIiBmaWxsPSIjMGYxNzJhIi8+PHRleHQgeD0iOTYiIHk9IjEyMCIgZm9udC1zaXplPSI5NiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+8J+SjzwvdGV4dD48L3N2Zz4=","sizes":"192x192","type":"image/svg+xml"}]}' />
+<title>🏓 Ping Pong Online — QR Room</title>
+<link rel="manifest" href='data:application/manifest+json,{"name":"Ping Pong QR","short_name":"PingPong","start_url":".","display":"standalone","background_color":"%230f172a","theme_color":"%230f172a","icons":[{"src":"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTkyIj48cmVjdCB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgcng9IjMyIiBmaWxsPSIjMGYxNzJhIi8+PHRleHQgeD0iOTYiIHk9IjEyMCIgZm9udC1zaXplPSI5NiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+8J+SjzwvdGV4dD48L3N2Zz4=","sizes":"192x192","type":"image/svg+xml"}]}' />
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body {
-    height: 100%;
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    height: 100%; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     background: radial-gradient(circle at top, #1e293b, #0f172a);
-    color: #e2e8f0;
-    overflow: hidden;
-    touch-action: none;
-    user-select: none;
+    color: #e2e8f0; overflow-x: hidden; touch-action: manipulation;
   }
   #app {
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
+    display: flex; flex-direction: column; align-items: center;
     min-height: 100vh; padding: 16px; gap: 14px;
   }
   h1 {
-    font-size: 1.6rem; letter-spacing: 1px;
+    font-size: 1.5rem; letter-spacing: 1px;
     background: linear-gradient(90deg, #38bdf8, #a78bfa);
     -webkit-background-clip: text; background-clip: text; color: transparent;
   }
   .screen {
-    display: flex; flex-direction: column; gap: 10px;
-    width: 100%; max-width: 640px; align-items: center;
+    display: flex; flex-direction: column; gap: 12px;
+    width: 100%; max-width: 520px; align-items: center;
   }
   .hidden { display: none !important; }
+
   .btn {
-    padding: 12px 24px; border: none; border-radius: 10px;
+    padding: 12px 22px; border: none; border-radius: 10px;
     background: #334155; color: #f1f5f9; font-size: 1rem;
-    font-weight: 600; cursor: pointer;
+    font-weight: 600; cursor: pointer; width: 100%; max-width: 340px;
     transition: transform .15s, background .2s;
-    width: 100%; max-width: 340px;
   }
   .btn:hover { background: #475569; transform: translateY(-2px); }
   .btn.primary {
     background: linear-gradient(135deg, #38bdf8, #6366f1);
     box-shadow: 0 8px 20px rgba(56,189,248,.3);
   }
-  .btn.primary:hover { box-shadow: 0 10px 24px rgba(99,102,241,.5); }
+  .btn.danger { background: #dc2626; }
   .btn.ghost { background: transparent; border: 1px solid #334155; }
-  textarea {
-    width: 100%; min-height: 76px; padding: 10px;
-    border-radius: 8px; border: 1px solid #334155;
-    background: #1e293b; color: #e2e8f0;
-    font-family: ui-monospace, monospace; font-size: .8rem;
-    resize: vertical; word-break: break-all;
-  }
-  .row { display: flex; gap: 10px; width: 100%; max-width: 340px; }
-  .row .btn { max-width: none; }
-  #joinArea, #hostArea {
-    width: 100%; display: flex; flex-direction: column; gap: 10px;
-    margin-top: 6px; animation: fade .3s ease;
+
+  .card {
+    width: 100%; background: #0b1220; border: 1px solid #1e293b;
+    border-radius: 14px; padding: 16px; display: flex;
+    flex-direction: column; gap: 10px; align-items: center;
+    animation: fade .3s ease;
   }
   @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-  .hint { font-size: .78rem; color: #94a3b8; text-align: center; line-height: 1.4; }
-  .label { font-size: .8rem; color: #94a3b8; align-self: flex-start; }
 
+  .qr-wrap {
+    background: #fff; padding: 10px; border-radius: 12px;
+    display: inline-block; box-shadow: 0 0 30px rgba(56,189,248,.25);
+  }
+  .qr-wrap img, .qr-wrap canvas { display: block; width: 240px; height: 240px; }
+
+  .label { font-size: .82rem; color: #94a3b8; text-align: center; line-height: 1.4; }
+  .label b { color: #38bdf8; }
+  .hint { font-size: .78rem; color: #94a3b8; text-align: center; line-height: 1.5; }
+  .badge {
+    display: inline-block; padding: 4px 10px; border-radius: 999px;
+    background: #1e293b; color: #38bdf8; font-size: .75rem; font-weight: 600;
+  }
+
+  /* GAME */
   #game { max-width: 100%; }
-  canvas {
+  canvas#canvas {
     width: 100%; max-width: 800px; height: auto;
     background: #020617; border-radius: 12px;
     box-shadow: 0 0 40px rgba(56,189,248,.2);
@@ -73,13 +75,18 @@
   #status { text-align: center; color: #94a3b8; font-size: .9rem; margin-top: 8px; }
   #scoreboard {
     display: flex; justify-content: space-between; width: 100%;
-    max-width: 800px; font-size: 1.4rem; font-weight: 700;
-    color: #38bdf8; padding: 0 12px;
+    max-width: 800px; font-size: 1.5rem; font-weight: 700;
+    padding: 0 12px;
   }
+  #scoreboard span:first-child { color: #38bdf8; }
   #scoreboard span:last-child { color: #a78bfa; }
+
+  #qrReader { width: 100%; max-width: 320px; border-radius: 12px; border: 2px solid #334155; }
+  #readerWrap { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+
   @media (max-width: 600px) {
-    h1 { font-size: 1.3rem; }
-    .btn { padding: 10px 18px; font-size: .95rem; }
+    h1 { font-size: 1.25rem; }
+    .qr-wrap img, .qr-wrap canvas { width: 200px; height: 200px; }
   }
 </style>
 </head>
@@ -87,34 +94,44 @@
 <div id="app">
   <h1>🏓 Ping Pong Online</h1>
 
-  <!-- ============ MENU ============ -->
+  <!-- ================= MENU ================= -->
   <div id="menu" class="screen">
-    <button id="btnCreate" class="btn primary">🎮 Tạo phòng (Host)</button>
-    <button id="btnJoin" class="btn">🔗 Tham gia phòng (Guest)</button>
-
-    <div id="hostArea" class="hidden">
-      <span class="label">1. Gửi <b>Offer code</b> này cho Guest:</span>
-      <textarea id="offerOutput" readonly placeholder="Đang tạo offer..."></textarea>
-      <button id="btnCopyOffer" class="btn ghost">📋 Copy Offer</button>
-      <span class="label">2. Dán <b>Answer code</b> từ Guest vào đây:</span>
-      <textarea id="answerInput" placeholder="Dán Answer code..."></textarea>
-      <button id="btnConnect" class="btn primary">🔌 Kết nối</button>
-    </div>
-
-    <div id="joinArea" class="hidden">
-      <span class="label">1. Dán <b>Offer code</b> từ Host vào đây:</span>
-      <textarea id="offerInput" placeholder="Dán Offer code..."></textarea>
-      <button id="btnGenAnswer" class="btn primary">✅ Tạo Answer</button>
-      <span class="label">2. Gửi <b>Answer code</b> này lại cho Host:</span>
-      <textarea id="answerOutput" readonly placeholder="Answer code sẽ hiện ở đây..."></textarea>
-      <button id="btnCopyAnswer" class="btn ghost">📋 Copy Answer</button>
-    </div>
-
-    <p class="hint">Không cần server – dùng WebRTC + Google STUN<br>
-    Trao đổi code qua Zalo/Messenger/Telegram để kết nối.</p>
+    <button id="btnCreate" class="btn primary">🎮 Tạo phòng (QR)</button>
+    <button id="btnScan" class="btn">📷 Quét QR để vào phòng</button>
+    <p class="hint">Host tạo phòng → hiện QR → Guest quét là vào chơi ngay</p>
   </div>
 
-  <!-- ============ GAME ============ -->
+  <!-- ================= HOST ================= -->
+  <div id="hostScreen" class="screen hidden">
+    <span class="badge">🎮 HOST — Bạn là PADDLE TRÁI</span>
+    <div class="card">
+      <div class="label">1️⃣ Mời bạn bè quét QR này để vào phòng:</div>
+      <div class="qr-wrap"><div id="offerQR"></div></div>
+      <button id="btnCopyLink" class="btn ghost">📋 Copy link phòng</button>
+    </div>
+
+    <div class="card">
+      <div class="label">2️⃣ Quét QR <b>Answer</b> mà Guest hiện trên màn hình:</div>
+      <button id="btnScanAnswer" class="btn primary">📷 Quét QR Answer</button>
+      <div id="readerWrap" class="hidden">
+        <video id="qrReader"></video>
+        <button id="btnStopScan" class="btn danger">✕ Dừng quét</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= GUEST ================= -->
+  <div id="guestScreen" class="screen hidden">
+    <span class="badge">🎮 GUEST — Bạn là PADDLE PHẢI</span>
+    <div class="card">
+      <div class="label">Gửi QR <b>Answer</b> này lại cho Host quét:</div>
+      <div class="qr-wrap"><div id="answerQR"></div></div>
+      <button id="btnCopyAnswerLink" class="btn ghost">📋 Copy Answer link</button>
+      <p class="hint">Đang chờ Host kết nối...</p>
+    </div>
+  </div>
+
+  <!-- ================= GAME ================= -->
   <div id="game" class="screen hidden">
     <div id="scoreboard">
       <span id="scoreLeft">0</span>
@@ -125,29 +142,25 @@
   </div>
 </div>
 
+<!-- ============ Thư viện QR (tự chứa, không cần server) ============ -->
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+
 <script>
 /* =========================================================
-   PWA SW (inline)
+   PWA Service Worker inline
 ========================================================= */
 if ("serviceWorker" in navigator) {
   const swCode = `
     self.addEventListener('install', e => self.skipWaiting());
     self.addEventListener('activate', e => self.clients.claim());
-    self.addEventListener('fetch', e => {
-      e.respondWith(
-        caches.open('pp-v1').then(c =>
-          fetch(e.request).then(r => { c.put(e.request, r.clone()); return r; })
-            .catch(() => c.match(e.request))
-        )
-      );
-    });
   `;
   const blob = new Blob([swCode], { type: "text/javascript" });
   navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(()=>{});
 }
 
 /* =========================================================
-   CẤU HÌNH WEBRTC — Google STUN
+   WEBRTC + Google STUN
 ========================================================= */
 const RTC_CONFIG = {
   iceServers: [
@@ -163,377 +176,432 @@ const RTC_CONFIG = {
    DOM
 ========================================================= */
 const $ = id => document.getElementById(id);
-const menuEl = $("menu"), gameEl = $("game"), statusEl = $("status");
+const menuEl = $("menu"), hostEl = $("hostScreen"), guestEl = $("guestScreen");
+const gameEl = $("game"), statusEl = $("status");
 const canvas = $("canvas"), ctx = canvas.getContext("2d");
 const scoreLeftEl = $("scoreLeft"), scoreRightEl = $("scoreRight");
 
 /* =========================================================
-   TRẠNG THÁI GAME
+   NÉN SDP (giảm kích thước cho QR)
 ========================================================= */
-const W = canvas.width, H = canvas.height;
-const PADDLE_W = 12, PADDLE_H = 90, BALL_R = 9;
-const PADDLE_SPEED = 480;      // px/s
-const BALL_SPEED_INIT = 320;   // px/s
-const WIN_SCORE = 7;
-
-const game = {
-  running: false,
-  myRole: null,          // "host" | "guest"
-  left:  { y: (H - PADDLE_H) / 2, dy: 0 },
-  right: { y: (H - PADDLE_H) / 2, dy: 0 },
-  ball:  { x: W/2, y: H/2, vx: BALL_SPEED_INIT, vy: 120 },
-  scoreL: 0, scoreR: 0,
-  keys: {},
-  lastInput: 0
-};
+function encodeSDP(sdp) {
+  // Loại bỏ các dòng không cần thiết để QR gọn hơn
+  const cleaned = sdp
+    .split("\r\n")
+    .filter(line =>
+      !line.startsWith("a=extmap") &&
+      !line.startsWith("a=rtcp-fb") &&
+      !line.startsWith("a=fmtp") &&
+      !line.startsWith("a=rtpmap") &&
+      !line.startsWith("a=ssrc") &&
+      !line.startsWith("a=msid") &&
+      !line.startsWith("a=mid") &&
+      !line.startsWith("a=rtcp-mux")
+    )
+    .join("\r\n");
+  return btoa(unescape(encodeURIComponent(cleaned)))
+    .replace(/=+$/, "")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_");
+}
+function decodeSDP(str) {
+  let s = str.replace(/-/g, "+").replace(/_/g, "/");
+  while (s.length % 4) s += "=";
+  return decodeURIComponent(escape(atob(s)));
+}
 
 /* =========================================================
-   WEBRTC
+   TẠO QR CODE
 ========================================================= */
-let pc = null, dataChannel = null;
+async function makeQR(el, text) {
+  el.innerHTML = "";
+  const canvasQR = document.createElement("canvas");
+  await QRCode.toCanvas(canvasQR, text, {
+    width: 240, margin: 1,
+    errorCorrectionLevel: "L",
+    color: { dark: "#0f172a", light: "#ffffff" }
+  });
+  el.appendChild(canvasQR);
+}
+
+/* =========================================================
+   WEBRTC STATE
+========================================================= */
+let pc = null, dc = null;
+let role = null;              // "host" | "guest"
+let iceTimer = null;
 
 function createPeer(isHost) {
   pc = new RTCPeerConnection(RTC_CONFIG);
 
   pc.onconnectionstatechange = () => {
     log("Trạng thái: " + pc.connectionState);
-    if (pc.connectionState === "connected") startGame(isHost ? "host" : "guest");
-    if (["failed", "disconnected", "closed"].includes(pc.connectionState)) {
+    if (pc.connectionState === "connected") startGame();
+    if (["failed","disconnected","closed"].includes(pc.connectionState)) {
       statusEl.textContent = "❌ Mất kết nối";
       game.running = false;
     }
   };
 
   if (isHost) {
-    dataChannel = pc.createDataChannel("game");
-    setupDataChannel();
+    dc = pc.createDataChannel("game", { ordered: false, maxRetransmits: 0 });
+    setupDC();
   } else {
-    pc.ondatachannel = e => { dataChannel = e.channel; setupDataChannel(); };
+    pc.ondatachannel = e => { dc = e.channel; setupDC(); };
   }
   return pc;
 }
 
-function setupDataChannel() {
-  dataChannel.onopen = () => log("✅ DataChannel mở");
-  dataChannel.onmessage = e => {
-    try { handleNetMessage(JSON.parse(e.data)); } catch(_) {}
-  };
-  dataChannel.onclose = () => { statusEl.textContent = "🔌 Đã ngắt kết nối"; game.running = false; };
+function setupDC() {
+  dc.onopen = () => log("✅ Kết nối P2P thành công!");
+  dc.onmessage = e => { try { onNet(JSON.parse(e.data)); } catch(_){} };
+  dc.onclose = () => { statusEl.textContent = "🔌 Đã ngắt kết nối"; game.running = false; };
 }
+function send(o) { if (dc && dc.readyState === "open") dc.send(JSON.stringify(o)); }
 
-function sendMsg(obj) {
-  if (dataChannel && dataChannel.readyState === "open") {
-    dataChannel.send(JSON.stringify(obj));
-  }
-}
-
-/* --- Encoding SDP an toàn để dán --- */
-function encodeSDP(sdp) { return btoa(unescape(encodeURIComponent(sdp))); }
-function decodeSDP(str) { return decodeURIComponent(escape(atob(str.trim()))); }
-
-/* =========================================================
-   HOST
-========================================================= */
-$("btnCreate").onclick = async () => {
-  $("hostArea").classList.remove("hidden");
-  $("joinArea").classList.add("hidden");
-  $("offerOutput").value = "Đang tạo offer...";
-
-  createPeer(true);
-  const offer = await pc.createOffer();
-  await pc.setLocalDescription(offer);
-
-  await waitIceComplete(pc);
-  $("offerOutput").value = encodeSDP(pc.localDescription.sdp);
-  log("Offer sẵn sàng — gửi cho Guest");
-};
-
-$("btnConnect").onclick = async () => {
-  const ans = $("answerInput").value.trim();
-  if (!ans) return alert("Dán Answer code vào đây!");
-  try {
-    const sdp = decodeSDP(ans);
-    await pc.setRemoteDescription({ type: "answer", sdp });
-    log("Đã set remote answer");
-  } catch (e) {
-    alert("Answer không hợp lệ: " + e.message);
-  }
-};
-
-$("btnCopyOffer").onclick = () => copyText($("offerOutput").value);
-
-/* =========================================================
-   GUEST
-========================================================= */
-$("btnJoin").onclick = () => {
-  $("joinArea").classList.remove("hidden");
-  $("hostArea").classList.add("hidden");
-};
-
-$("btnGenAnswer").onclick = async () => {
-  const off = $("offerInput").value.trim();
-  if (!off) return alert("Dán Offer code vào đây!");
-  try {
-    createPeer(false);
-    const sdp = decodeSDP(off);
-    await pc.setRemoteDescription({ type: "offer", sdp });
-
-    const answer = await pc.createAnswer();
-    await pc.setLocalDescription(answer);
-
-    await waitIceComplete(pc);
-    $("answerOutput").value = encodeSDP(pc.localDescription.sdp);
-    log("Answer sẵn sàng — gửi lại Host");
-  } catch (e) {
-    alert("Offer không hợp lệ: " + e.message);
-  }
-};
-
-$("btnCopyAnswer").onclick = () => copyText($("answerOutput").value);
-
-/* =========================================================
-   HELPERS
-========================================================= */
-function waitIceComplete(pc) {
-  return new Promise(resolve => {
-    if (pc.iceGatheringState === "complete") return resolve();
-    const t = setTimeout(resolve, 3000); // timeout fallback
+function waitICE(pc) {
+  return new Promise(res => {
+    if (pc.iceGatheringState === "complete") return res();
+    const t = setTimeout(res, 2500);
     pc.onicegatheringstatechange = () => {
-      if (pc.iceGatheringState === "complete") {
-        clearTimeout(t);
-        resolve();
-      }
+      if (pc.iceGatheringState === "complete") { clearTimeout(t); res(); }
     };
   });
 }
 
-function copyText(text) {
-  if (!text) return;
-  navigator.clipboard.writeText(text).then(() => {
-    const btn = event.target;
-    const old = btn.textContent;
-    btn.textContent = "✅ Đã copy!";
-    setTimeout(() => btn.textContent = old, 1200);
+/* =========================================================
+   HOST: tạo phòng
+========================================================= */
+$("btnCreate").onclick = async () => {
+  role = "host";
+  menuEl.classList.add("hidden");
+  hostEl.classList.remove("hidden");
+
+  createPeer(true);
+  const offer = await pc.createOffer();
+  await pc.setLocalDescription(offer);
+  await waitICE(pc);
+
+  const encoded = encodeSDP(pc.localDescription.sdp);
+  const baseURL = location.origin + location.pathname;
+  const roomURL = baseURL + "#o=" + encoded;
+
+  await makeQR($("offerQR"), roomURL);
+  window._roomURL = roomURL;
+
+  log("QR phòng sẵn sàng — chờ Guest quét");
+};
+
+$("btnCopyLink").onclick = (e) => {
+  if (!window._roomURL) return;
+  navigator.clipboard.writeText(window._roomURL).then(() => {
+    e.target.textContent = "✅ Đã copy!";
+    setTimeout(() => e.target.textContent = "📋 Copy link phòng", 1200);
   });
+};
+
+/* =========================================================
+   HOST: quét QR Answer
+========================================================= */
+$("btnScanAnswer").onclick = () => startScanner(async (text) => {
+  stopScanner();
+  try {
+    const sdp = decodeSDP(text.replace(/^.*#a=/, ""));
+    await pc.setRemoteDescription({ type: "answer", sdp });
+    log("Đã nhận Answer — đang kết nối...");
+  } catch (e) {
+    alert("QR Answer không hợp lệ: " + e.message);
+  }
+});
+
+$("btnStopScan").onclick = stopScanner;
+
+/* =========================================================
+   GUEST: đọc hash khi mở URL
+========================================================= */
+window.addEventListener("load", autoJoinFromURL);
+window.addEventListener("hashchange", autoJoinFromURL);
+let joined = false;
+
+async function autoJoinFromURL() {
+  if (joined) return;
+  const h = location.hash || "";
+  const m = h.match(/#o=(.+)/);
+  if (!m) return;
+  joined = true;
+
+  role = "guest";
+  menuEl.classList.add("hidden");
+  guestEl.classList.remove("hidden");
+
+  try {
+    createPeer(false);
+    const sdp = decodeSDP(m[1]);
+    await pc.setRemoteDescription({ type: "offer", sdp });
+
+    const ans = await pc.createAnswer();
+    await pc.setLocalDescription(ans);
+    await waitICE(pc);
+
+    const encoded = encodeSDP(pc.localDescription.sdp);
+    const baseURL = location.origin + location.pathname;
+    const answerURL = baseURL + "#a=" + encoded;
+    window._answerURL = answerURL;
+
+    await makeQR($("answerQR"), answerURL);
+    log("QR Answer sẵn sàng — đưa Host quét");
+  } catch (e) {
+    alert("Không đọc được Offer: " + e.message);
+  }
 }
+
+$("btnCopyAnswerLink").onclick = (e) => {
+  if (!window._answerURL) return;
+  navigator.clipboard.writeText(window._answerURL).then(() => {
+    e.target.textContent = "✅ Đã copy!";
+    setTimeout(() => e.target.textContent = "📋 Copy Answer link", 1200);
+  });
+};
+
+/* =========================================================
+   SCANNER dùng camera + jsQR
+========================================================= */
+let scanStream = null, scanRAF = null;
+async function startScanner(onResult) {
+  const video = $("qrReader");
+  $("readerWrap").classList.remove("hidden");
+  try {
+    scanStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "environment" }, audio: false
+    });
+    video.srcObject = scanStream;
+    video.setAttribute("playsinline", true);
+    await video.play();
+
+    const tmp = document.createElement("canvas");
+    const tctx = tmp.getContext("2d", { willReadFrequently: true });
+
+    const tick = () => {
+      if (video.readyState === video.HAVE_ENOUGH_DATA) {
+        tmp.width = video.videoWidth;
+        tmp.height = video.videoHeight;
+        tctx.drawImage(video, 0, 0, tmp.width, tmp.height);
+        const img = tctx.getImageData(0, 0, tmp.width, tmp.height);
+        const code = jsQR(img.data, img.width, img.height, { inversionAttempts: "dontInvert" });
+        if (code && code.data) { onResult(code.data); return; }
+      }
+      scanRAF = requestAnimationFrame(tick);
+    };
+    scanRAF = requestAnimationFrame(tick);
+  } catch (e) {
+    alert("Không mở được camera: " + e.message);
+    stopScanner();
+  }
+}
+function stopScanner() {
+  if (scanRAF) cancelAnimationFrame(scanRAF);
+  scanRAF = null;
+  if (scanStream) { scanStream.getTracks().forEach(t => t.stop()); scanStream = null; }
+  $("readerWrap").classList.add("hidden");
+}
+
+/* Nút "Quét QR để vào phòng" ở menu → chuyển hướng nếu đã có hash, ngược lại mở camera */
+$("btnScan").onclick = () => {
+  startScanner((text) => {
+    stopScanner();
+    // Nếu QR chứa URL có #o=... → chuyển hướng
+    try {
+      const url = new URL(text);
+      if (url.hash.startsWith("#o=") || url.hash.startsWith("#a=")) {
+        location.href = url.href;
+        location.reload();
+        return;
+      }
+    } catch(_) {}
+    // Nếu QR chỉ chứa chuỗi SDP đã encode
+    if (text.length > 50) {
+      location.hash = "#o=" + text;
+      location.reload();
+    } else {
+      alert("QR không hợp lệ");
+    }
+  });
+};
+
+/* =========================================================
+   GAME LOGIC (giữ nguyên như bản trước, tinh gọn)
+========================================================= */
+const W = canvas.width, H = canvas.height;
+const PADDLE_W = 12, PADDLE_H = 90, BALL_R = 9;
+const PADDLE_SPEED = 480;
+const BALL_SPEED_INIT = 320;
+const WIN_SCORE = 7;
+
+const game = {
+  running: false,
+  left:  { y: (H - PADDLE_H) / 2, dy: 0 },
+  right: { y: (H - PADDLE_H) / 2, dy: 0 },
+  ball:  { x: W/2, y: H/2, vx: BALL_SPEED_INIT, vy: 120 },
+  scoreL: 0, scoreR: 0
+};
 
 function log(msg) { statusEl.textContent = msg; console.log("[PP]", msg); }
 
-/* =========================================================
-   BẮT ĐẦU GAME (2 bên đều chạy)
-========================================================= */
-function startGame(role) {
+function startGame() {
   if (game.running) return;
-  game.myRole = role;
   game.running = true;
   menuEl.classList.add("hidden");
+  hostEl.classList.add("hidden");
+  guestEl.classList.add("hidden");
   gameEl.classList.remove("hidden");
 
-  // Host là người mô phỏng vật lý
-  if (role === "host") {
-    resetBall(Math.random() < 0.5 ? -1 : 1);
-  }
-  statusEl.textContent = role === "host"
-    ? "Bạn là PADDLE TRÁI (Host) 👈"
-    : "Bạn là PADDLE PHẢI (Guest) 👉";
+  if (role === "host") resetBall(Math.random() < 0.5 ? -1 : 1);
 
+  statusEl.textContent = role === "host"
+    ? "Bạn là PADDLE TRÁI 👈 (W/S hoặc ↑/↓)"
+    : "Bạn là PADDLE PHẢI 👉 (W/S hoặc ↑/↓)";
+
+  lastTime = performance.now();
   requestAnimationFrame(loop);
 }
 
 function resetBall(dir = 1) {
   game.ball.x = W / 2;
   game.ball.y = H / 2;
-  const speed = BALL_SPEED_INIT;
   const angle = (Math.random() - 0.5) * Math.PI / 3;
-  game.ball.vx = Math.cos(angle) * speed * dir;
-  game.ball.vy = Math.sin(angle) * speed;
+  game.ball.vx = Math.cos(angle) * BALL_SPEED_INIT * dir;
+  game.ball.vy = Math.sin(angle) * BALL_SPEED_INIT;
 }
 
-/* =========================================================
-   INPUT
-========================================================= */
+/* ---- INPUT ---- */
 const MY_KEYS = new Set();
 window.addEventListener("keydown", e => {
-  if (["ArrowUp","ArrowDown","w","s","W","S"].includes(e.key)) {
-    e.preventDefault();
-    MY_KEYS.add(e.key.toLowerCase());
-    sendInput();
+  const k = e.key.toLowerCase();
+  if (["arrowup","arrowdown","w","s"].includes(k)) {
+    e.preventDefault(); MY_KEYS.add(k); sendInput();
   }
 });
 window.addEventListener("keyup", e => {
-  MY_KEYS.delete(e.key.toLowerCase());
-  sendInput();
+  MY_KEYS.delete(e.key.toLowerCase()); sendInput();
 });
 
-/* Điều khiển bằng chạm / chuột trên canvas */
-let pointerActive = false;
-function pointerY(ev) {
-  const rect = canvas.getBoundingClientRect();
-  const clientY = ev.touches ? ev.touches[0].clientY : ev.clientY;
-  return (clientY - rect.top) * (H / rect.height);
+let pointerActive = false, pointerTargetY = null;
+function canvasY(ev) {
+  const r = canvas.getBoundingClientRect();
+  const cy = ev.touches ? ev.touches[0].clientY : ev.clientY;
+  return (cy - r.top) * (H / r.height);
 }
-["touchstart","touchmove","mousedown","mousemove"].forEach(evName => {
-  canvas.addEventListener(evName, e => {
-    if (evName === "mousemove" && e.buttons !== 1) return;
-    if (evName === "touchstart" || evName === "mousedown") pointerActive = true;
+["touchstart","touchmove","mousedown","mousemove"].forEach(name => {
+  canvas.addEventListener(name, e => {
+    if (name === "mousemove" && e.buttons !== 1) return;
+    if (name === "touchstart" || name === "mousedown") pointerActive = true;
     if (!pointerActive) return;
     e.preventDefault();
-    const y = pointerY(e);
-    setPointerTarget(y);
+    pointerTargetY = canvasY(e);
+    sendInput();
   }, { passive: false });
 });
-["touchend","touchcancel","mouseup","mouseleave"].forEach(evName => {
-  canvas.addEventListener(evName, () => { pointerActive = false; }, { passive: true });
+["touchend","touchcancel","mouseup","mouseleave"].forEach(name => {
+  canvas.addEventListener(name, () => { pointerActive = false; });
 });
 
-let pointerTargetY = null;
-function setPointerTarget(y) {
-  pointerTargetY = y;
-  sendInput();
-}
-
 function sendInput() {
-  // Chỉ gửi khi là guest (host tự tính)
-  if (game.myRole !== "guest") return;
+  if (role !== "guest") return;
   let dir = 0;
-  if (MY_KEYS.has("arrowup") || MY_KEYS.has("w")) dir -= 1;
-  if (MY_KEYS.has("arrowdown") || MY_KEYS.has("s")) dir += 1;
-
-  // Nếu có pointer → ghi đè
+  if (MY_KEYS.has("arrowup") || MY_KEYS.has("w")) dir--;
+  if (MY_KEYS.has("arrowdown") || MY_KEYS.has("s")) dir++;
   if (pointerTargetY !== null) {
-    const paddle = game.right;
-    const center = paddle.y + PADDLE_H / 2;
-    if (Math.abs(pointerTargetY - center) > 6) dir = pointerTargetY > center ? 1 : -1;
-    else dir = 0;
+    const c = game.right.y + PADDLE_H / 2;
+    dir = Math.abs(pointerTargetY - c) > 6 ? (pointerTargetY > c ? 1 : -1) : 0;
   }
-  sendMsg({ t: "input", dir });
-  // Guest tự cập nhật paddle của mình cho mượt
+  send({ t: "i", d: dir });
   game.right.dy = dir * PADDLE_SPEED;
 }
 
-/* =========================================================
-   NET MESSAGE HANDLER
-========================================================= */
-function handleNetMessage(msg) {
-  if (msg.t === "input" && game.myRole === "host") {
-    game.right.dy = msg.dir * PADDLE_SPEED;
-  }
-  else if (msg.t === "state" && game.myRole === "guest") {
-    game.ball.x = msg.bx;
-    game.ball.y = msg.by;
-    game.left.y  = msg.ly;
-    game.left.dy = msg.ldy;
-    game.right.y = msg.ry;
-    game.scoreL = msg.sl;
-    game.scoreR = msg.sr;
-    scoreLeftEl.textContent = msg.sl;
-    scoreRightEl.textContent = msg.sr;
-  }
-  else if (msg.t === "reset" && game.myRole === "guest") {
-    // đã có state gửi kèm, không cần gì thêm
+/* ---- NET ---- */
+function onNet(m) {
+  if (m.t === "i" && role === "host") game.right.dy = m.d * PADDLE_SPEED;
+  else if (m.t === "s" && role === "guest") {
+    game.ball.x = m.bx; game.ball.y = m.by;
+    game.left.y = m.ly; game.left.dy = m.ldy;
+    game.right.y = m.ry;
+    game.scoreL = m.sl; game.scoreR = m.sr;
+    scoreLeftEl.textContent = m.sl;
+    scoreRightEl.textContent = m.sr;
   }
 }
 
-/* =========================================================
-   GAME LOOP
-========================================================= */
+/* ---- LOOP ---- */
 let lastTime = performance.now();
-let netAccum = 0;
-
+let netAcc = 0;
 function loop(now) {
   if (!game.running) return;
   const dt = Math.min((now - lastTime) / 1000, 0.05);
   lastTime = now;
 
-  if (game.myRole === "host") {
+  if (role === "host") {
     updateHost(dt);
-    // Gửi state cho guest ~30fps
-    netAccum += dt;
-    if (netAccum > 1/30) {
-      sendMsg({
-        t: "state",
+    netAcc += dt;
+    if (netAcc > 1/30) {
+      send({
+        t: "s",
         bx: game.ball.x, by: game.ball.y,
         ly: game.left.y, ldy: game.left.dy,
         ry: game.right.y,
         sl: game.scoreL, sr: game.scoreR
       });
-      netAccum = 0;
+      netAcc = 0;
     }
   } else {
-    // Guest: chỉ dự đoán nhẹ paddle phải cho mượt
-    game.right.y += game.right.dy * dt;
-    game.right.y = clamp(game.right.y, 0, H - PADDLE_H);
+    game.right.y = clamp(game.right.y + game.right.dy * dt, 0, H - PADDLE_H);
   }
-
   render();
   requestAnimationFrame(loop);
 }
 
 function updateHost(dt) {
-  // Host điều khiển paddle TRÁI bằng bàn phím / chuột của mình
   let dir = 0;
-  if (MY_KEYS.has("arrowup") || MY_KEYS.has("w")) dir -= 1;
-  if (MY_KEYS.has("arrowdown") || MY_KEYS.has("s")) dir += 1;
+  if (MY_KEYS.has("arrowup") || MY_KEYS.has("w")) dir--;
+  if (MY_KEYS.has("arrowdown") || MY_KEYS.has("s")) dir++;
   if (pointerTargetY !== null) {
-    const center = game.left.y + PADDLE_H / 2;
-    if (Math.abs(pointerTargetY - center) > 6)
-      dir = pointerTargetY > center ? 1 : -1;
-    else dir = 0;
+    const c = game.left.y + PADDLE_H / 2;
+    dir = Math.abs(pointerTargetY - c) > 6 ? (pointerTargetY > c ? 1 : -1) : 0;
   }
   game.left.dy = dir * PADDLE_SPEED;
-
-  // Update paddles
   game.left.y  = clamp(game.left.y  + game.left.dy  * dt, 0, H - PADDLE_H);
   game.right.y = clamp(game.right.y + game.right.dy * dt, 0, H - PADDLE_H);
 
-  // Update ball
   const b = game.ball;
   b.x += b.vx * dt;
   b.y += b.vy * dt;
 
-  // Tường trên/dưới
   if (b.y - BALL_R < 0) { b.y = BALL_R; b.vy = Math.abs(b.vy); }
   if (b.y + BALL_R > H) { b.y = H - BALL_R; b.vy = -Math.abs(b.vy); }
 
-  // Paddle trái
   if (b.x - BALL_R < PADDLE_W && b.vx < 0 &&
       b.y > game.left.y && b.y < game.left.y + PADDLE_H) {
-    b.x = PADDLE_W + BALL_R;
-    bounceOffPaddle(game.left, 1);
+    b.x = PADDLE_W + BALL_R; bounce(game.left, 1);
   }
-  // Paddle phải
   if (b.x + BALL_R > W - PADDLE_W && b.vx > 0 &&
       b.y > game.right.y && b.y < game.right.y + PADDLE_H) {
-    b.x = W - PADDLE_W - BALL_R;
-    bounceOffPaddle(game.right, -1);
+    b.x = W - PADDLE_W - BALL_R; bounce(game.right, -1);
   }
 
-  // Ghi điểm
-  if (b.x - BALL_R < 0) {
-    game.scoreR++;
-    checkWin();
-    resetBall(1);
-  } else if (b.x + BALL_R > W) {
-    game.scoreL++;
-    checkWin();
-    resetBall(-1);
-  }
+  if (b.x - BALL_R < 0) { game.scoreR++; checkWin(); resetBall(1); }
+  else if (b.x + BALL_R > W) { game.scoreL++; checkWin(); resetBall(-1); }
 
   scoreLeftEl.textContent = game.scoreL;
   scoreRightEl.textContent = game.scoreR;
 }
 
-function bounceOffPaddle(paddle, dirX) {
+function bounce(pad, dirX) {
   const b = game.ball;
-  const paddleCenter = paddle.y + PADDLE_H / 2;
-  const rel = (b.y - paddleCenter) / (PADDLE_H / 2); // -1..1
-  const maxAngle = Math.PI / 3.5;
-  const angle = rel * maxAngle;
-
-  // Tăng tốc nhẹ mỗi lần đánh
-  const speed = Math.min(Math.hypot(b.vx, b.vy) * 1.06, 900);
-  b.vx = Math.cos(angle) * speed * dirX;
-  b.vy = Math.sin(angle) * speed;
+  const c = pad.y + PADDLE_H / 2;
+  const rel = (b.y - c) / (PADDLE_H / 2);
+  const ang = rel * (Math.PI / 3.5);
+  const sp = Math.min(Math.hypot(b.vx, b.vy) * 1.06, 900);
+  b.vx = Math.cos(ang) * sp * dirX;
+  b.vy = Math.sin(ang) * sp;
 }
 
 function checkWin() {
@@ -541,83 +609,54 @@ function checkWin() {
     const who = game.scoreL >= WIN_SCORE ? "TRÁI (Host)" : "PHẢI (Guest)";
     setTimeout(() => {
       alert("🏆 " + who + " thắng!");
-      game.scoreL = 0; game.scoreR = 0;
-      scoreLeftEl.textContent = "0";
-      scoreRightEl.textContent = "0";
+      game.scoreL = game.scoreR = 0;
+      scoreLeftEl.textContent = scoreRightEl.textContent = "0";
       resetBall(Math.random() < 0.5 ? -1 : 1);
-    }, 50);
+    }, 40);
   }
 }
 
 function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
 
-/* =========================================================
-   RENDER
-========================================================= */
 function render() {
-  // Nền
   ctx.fillStyle = "#020617";
   ctx.fillRect(0, 0, W, H);
 
-  // Lưới giữa
   ctx.strokeStyle = "#1e293b";
   ctx.lineWidth = 3;
   ctx.setLineDash([12, 14]);
-  ctx.beginPath();
-  ctx.moveTo(W / 2, 0);
-  ctx.lineTo(W / 2, H);
-  ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(W/2, 0); ctx.lineTo(W/2, H); ctx.stroke();
   ctx.setLineDash([]);
 
-  // Paddle trái (gradient xanh)
-  const gradL = ctx.createLinearGradient(0, 0, PADDLE_W, 0);
-  gradL.addColorStop(0, "#38bdf8");
-  gradL.addColorStop(1, "#0ea5e9");
-  ctx.fillStyle = gradL;
+  const gL = ctx.createLinearGradient(0, 0, PADDLE_W, 0);
+  gL.addColorStop(0, "#38bdf8"); gL.addColorStop(1, "#0ea5e9");
+  ctx.fillStyle = gL;
   roundRect(0, game.left.y, PADDLE_W, PADDLE_H, 6);
 
-  // Paddle phải (gradient tím)
-  const gradR = ctx.createLinearGradient(W - PADDLE_W, 0, W, 0);
-  gradR.addColorStop(0, "#8b5cf6");
-  gradR.addColorStop(1, "#a78bfa");
-  ctx.fillStyle = gradR;
+  const gR = ctx.createLinearGradient(W - PADDLE_W, 0, W, 0);
+  gR.addColorStop(0, "#8b5cf6"); gR.addColorStop(1, "#a78bfa");
+  ctx.fillStyle = gR;
   roundRect(W - PADDLE_W, game.right.y, PADDLE_W, PADDLE_H, 6);
 
-  // Bóng + glow
   ctx.shadowColor = "#facc15";
   ctx.shadowBlur = 22;
   ctx.fillStyle = "#facc15";
-  ctx.beginPath();
-  ctx.arc(game.ball.x, game.ball.y, BALL_R, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.beginPath(); ctx.arc(game.ball.x, game.ball.y, BALL_R, 0, Math.PI*2); ctx.fill();
   ctx.shadowBlur = 0;
 
-  // Viền
-  ctx.strokeStyle = "#1e293b";
-  ctx.lineWidth = 2;
+  ctx.strokeStyle = "#1e293b"; ctx.lineWidth = 2;
   ctx.strokeRect(0, 0, W, H);
 }
-
 function roundRect(x, y, w, h, r) {
   ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.arcTo(x + w, y, x + w, y + h, r);
-  ctx.arcTo(x + w, y + h, x, y + h, r);
-  ctx.arcTo(x, y + h, x, y, r);
-  ctx.arcTo(x, y, x + w, y, r);
-  ctx.closePath();
-  ctx.fill();
+  ctx.moveTo(x+r, y);
+  ctx.arcTo(x+w, y, x+w, y+h, r);
+  ctx.arcTo(x+w, y+h, x, y+h, r);
+  ctx.arcTo(x, y+h, x, y, r);
+  ctx.arcTo(x, y, x+w, y, r);
+  ctx.closePath(); ctx.fill();
 }
-
-/* Vẽ lần đầu để canvas không trống */
 render();
-
-/* =========================================================
-   HIỂN THỊ NÚT COPY ĐÚNG (dùng event.target)
-========================================================= */
-document.addEventListener("click", e => {
-  if (e.target.tagName === "BUTTON") e.target._lastClick = true;
-});
 </script>
 </body>
 </html>
