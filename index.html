@@ -13,10 +13,9 @@
 <h1>📹 Meeting Room</h1>
 
 <p>
-  Trạng thái: <b id="status">Chưa sẵn sàng</b>
-  | Phòng: <b id="roomBadgeId">—</b>
-  | Thành viên: <b id="countNum">1</b>
-  | <button id="participantsBtn" type="button">👥 Danh sách</button>
+  Trạng thái: <b id="status">Chưa sẵn sàng</b> |
+  Thành viên: <b id="countNum">1</b> |
+  <button id="participantsBtn" type="button">👥 Danh sách</button>
 </p>
 
 <hr />
@@ -40,54 +39,85 @@
 
 <hr />
 
+<!-- ========== LOBBY ========== -->
 <section id="lobby">
   <h2>Sảnh chờ</h2>
   <p>
     <button id="createBtn" type="button">➕ Tạo phòng họp</button>
     <button id="joinShowBtn" type="button">🔗 Vào phòng</button>
   </p>
+
   <div id="joinBox" hidden>
-    <p>
-      <label>ID phòng: <input id="roomInput" type="text" placeholder="mt-xxxx-yyyy" size="24" /></label>
-    </p>
-    <p>
-      <label>Tên bạn: <input id="nameInput" type="text" placeholder="Tên (tùy chọn)" maxlength="20" size="20" /></label>
-    </p>
-    <p>
-      <button id="joinBtn" type="button">🚪 Vào phòng</button>
-      <button id="joinCancel" type="button">Hủy</button>
-    </p>
+    <fieldset>
+      <legend>Vào phòng họp</legend>
+      <p>
+        <label for="roomInput">ID phòng:</label><br />
+        <input id="roomInput" type="text" placeholder="mt-xxxx-yyyy"
+               size="28" autocomplete="off" autocapitalize="off" spellcheck="false" />
+      </p>
+      <p>
+        <label for="nameInput">Tên bạn:</label><br />
+        <input id="nameInput" type="text" placeholder="Tên (tùy chọn)"
+               maxlength="20" size="20" autocomplete="off" />
+      </p>
+      <p>
+        <button id="joinBtn" type="button">🚪 Vào phòng</button>
+        <button id="joinCancel" type="button">Hủy</button>
+      </p>
+    </fieldset>
   </div>
 </section>
 
+<!-- ========== ROOM INFO — NGUỒN DUY NHẤT của ID phòng ========== -->
 <section id="roomInfo" hidden>
-  <h2>ID phòng của bạn</h2>
-  <p><big><b id="roomCode" title="Nhấn để copy">…</b></big></p>
-  <p><small>(Nhấn vào ID để copy • Mọi người vào tự động, không cần accept)</small></p>
-  <p>
-    <button id="copyBtn" type="button">📋 Copy</button>
-    <button id="shareBtn" type="button">📤 Chia sẻ</button>
-    <button id="lockBtn" type="button">🔓 Mở</button>
-    <button id="cancelRoomBtn" type="button">✖ Đóng phòng</button>
-  </p>
+  <h2>🔑 ID phòng của bạn</h2>
+
+  <fieldset>
+    <legend>Gửi ID này cho mọi người để họ vào</legend>
+
+    <p>
+      <input id="roomCodeInput" type="text" readonly size="30"
+             style="font-size:1.4em;font-weight:bold;text-align:center;padding:8px;width:100%;box-sizing:border-box;background:#ffffcc;border:2px solid #000;"
+             onclick="this.select()" />
+    </p>
+
+    <p>
+      <button id="copyBtn" type="button">📋 Copy ID</button>
+      <button id="shareBtn" type="button">📤 Chia sẻ</button>
+      <button id="lockBtn" type="button">🔓 Mở</button>
+      <button id="cancelRoomBtn" type="button">✖ Đóng phòng</button>
+    </p>
+
+    <p><small>
+      💡 Bấm vào ô ID để chọn hết → Ctrl/Cmd+C để copy<br />
+      Hoặc bấm "📋 Copy ID" — ID sẽ được copy ngay<br />
+      Mọi người vào tự động, không cần accept
+    </small></p>
+  </fieldset>
 </section>
 
+<!-- ========== IN MEETING ========== -->
 <section id="inMeeting" hidden>
-  <h2>Đang trong phòng</h2>
+  <h2>Đang trong phòng họp</h2>
+  <p>ID phòng: <b id="meetingRoomId">—</b>
+     <button id="copyMeetingIdBtn" type="button">📋 Copy</button>
+  </p>
   <p><button id="leaveBtn" type="button">🚪 Rời phòng</button></p>
 </section>
 
 <hr />
 
 <h2>Nhật ký</h2>
-<pre id="log"></pre>
+<pre id="log" style="max-height:150px;overflow:auto;background:#f0f0f0;padding:8px;border:1px solid #ccc;"></pre>
 
 <hr />
 
 <aside id="participantsPanel" hidden>
-  <h3>👥 Thành viên (<span id="pCount">1</span>)</h3>
-  <button id="sidebarClose" type="button">✖ Đóng</button>
-  <div id="participantsList"></div>
+  <fieldset>
+    <legend>👥 Thành viên (<span id="pCount">1</span>)</legend>
+    <button id="sidebarClose" type="button">✖ Đóng</button>
+    <div id="participantsList"></div>
+  </fieldset>
 </aside>
 
 <p id="toast" hidden></p>
@@ -110,7 +140,7 @@
 
   if ("serviceWorker" in navigator) {
     const swCode = `
-      const CACHE='meetingroom-nocss-v1';
+      const CACHE='meetingroom-nocss-v2';
       self.addEventListener('install',e=>self.skipWaiting());
       self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));
       self.addEventListener('fetch',e=>{
@@ -129,13 +159,11 @@
 /* ================== DOM ================== */
 const $ = id => document.getElementById(id);
 const localVideo  = $("localVideo");
-const localTile   = $("localTile");
 const localName   = $("localName");
 const videosGrid  = $("videosGrid");
 const statusEl    = $("status");
 const logEl       = $("log");
 const toastEl     = $("toast");
-const roomBadgeId = $("roomBadgeId");
 const countNum    = $("countNum");
 
 const lobby       = $("lobby");
@@ -148,13 +176,15 @@ const joinBtn     = $("joinBtn");
 const joinCancel  = $("joinCancel");
 
 const roomInfo    = $("roomInfo");
-const roomCode    = $("roomCode");
+const roomCodeInput = $("roomCodeInput");     // ← NGUỒN DUY NHẤT ID phòng
 const copyBtn     = $("copyBtn");
 const shareBtn    = $("shareBtn");
 const lockBtn     = $("lockBtn");
 const cancelRoomBtn = $("cancelRoomBtn");
 
 const inMeeting   = $("inMeeting");
+const meetingRoomId = $("meetingRoomId");
+const copyMeetingIdBtn = $("copyMeetingIdBtn");
 const leaveBtn    = $("leaveBtn");
 
 const micBtn      = $("micBtn");
@@ -170,7 +200,7 @@ const sidebarClose = $("sidebarClose");
 /* ================== State ================== */
 let peer = null;
 let localStream = null;
-let myRoomId = null;
+let myRoomId = null;      // ID phòng — 1 nguồn duy nhất cho cả host & guest
 let myPeerId = null;
 let myName = "Guest";
 let isHost = false;
@@ -209,6 +239,58 @@ function hide(el){ el.hidden = true; }
 function shortId(id){ return id.length > 14 ? id.slice(0,6)+"…"+id.slice(-4) : id; }
 function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+/* =========================================================
+   ⭐ SET ROOM ID — chỉ gọi 1 hàm này khi cần đổi ID
+   ========================================================= */
+function setRoomId(id){
+  myRoomId = id;
+  if (roomCodeInput) roomCodeInput.value = id || "";
+  if (meetingRoomId) meetingRoomId.textContent = id || "—";
+}
+
+/* =========================================================
+   ⭐ COPY — dùng 1 hàm duy nhất, hoạt động trên mọi browser
+   ========================================================= */
+async function copyText(text, successMsg = "Đã copy!"){
+  if (!text) { toast("Không có gì để copy"); return false; }
+
+  // 1. Thử Clipboard API hiện đại (chỉ HTTPS)
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      toast(successMsg);
+      return true;
+    }
+  } catch(e) { /* fallthrough */ }
+
+  // 2. Fallback: textarea + execCommand (chạy cả HTTP, cả file://)
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "fixed";
+    ta.style.top = "-1000px";
+    ta.style.left = "-1000px";
+    document.body.appendChild(ta);
+    ta.select();
+    ta.setSelectionRange(0, ta.value.length);
+    const ok = document.execCommand("copy");
+    document.body.removeChild(ta);
+    if (ok) {
+      toast(successMsg);
+      return true;
+    }
+  } catch(e) { /* fallthrough */ }
+
+  // 3. Fallback cuối: chọn sẵn input để user tự Ctrl+C
+  if (roomCodeInput) {
+    roomCodeInput.focus();
+    roomCodeInput.select();
+  }
+  toast("Không tự copy được — hãy nhấn Ctrl/Cmd+C", 3500);
+  return false;
 }
 
 /* ================== Media ================== */
@@ -340,7 +422,6 @@ function createRemoteTile(peerId, name){
   wrap.appendChild(video);
   wrap.appendChild(label);
 
-  // Nút kick — chỉ host thấy
   if (isHost) {
     const kick = document.createElement("button");
     kick.type = "button";
@@ -457,7 +538,6 @@ function initPeer(peerId){
   });
 }
 
-/* ================== Host: gọi lại guest ================== */
 function makeCallToGuest(guestPeerId, name){
   if (!peer || peer.destroyed) return;
   const streamToSend = localStream || new MediaStream();
@@ -472,7 +552,6 @@ function callHost(hostPeerId, hostName){
   attachCall(call, hostPeerId, hostName || "Host");
 }
 
-/* ================== Attach call ================== */
 function attachCall(call, peerId, name){
   if (peers.has(peerId)) {
     const old = peers.get(peerId);
@@ -508,7 +587,6 @@ function attachCall(call, peerId, name){
   renderParticipants();
 }
 
-/* ================== Broadcast participants ================== */
 function broadcastParticipants(){
   if (!isHost) return;
   const list = [{ id: myPeerId, name: myName, isHost: true }];
@@ -519,7 +597,6 @@ function broadcastParticipants(){
   renderParticipants();
 }
 
-/* ================== Kick ================== */
 function kickPeer(peerId){
   if (!isHost) return;
   const conn = guestConns.get(peerId);
@@ -540,27 +617,30 @@ async function createRoom(){
   isHost = true;
   myName = "Host";
   localName.textContent = "Host";
-  myRoomId = generateRoomId();
+
+  const newRoomId = generateRoomId();
+  setRoomId(newRoomId);          // ⭐ set 1 nơi
 
   try {
-    await initPeer(myRoomId);
+    await initPeer(newRoomId);
   } catch(e) {
     createBtn.disabled = false;
     isHost = false;
-    myRoomId = null;
+    setRoomId(null);
     toast("Không tạo được phòng");
     return;
   }
 
-  roomCode.textContent = myRoomId;
-  roomBadgeId.textContent = myRoomId;
   hide(lobby);
   show(roomInfo);
   show(inMeeting);
   setStatus("Đang chờ mọi người…");
   renderParticipants();
-  log("🏠 Phòng: " + myRoomId);
+  log("🏠 Phòng: " + newRoomId);
   toast("Phòng đã tạo — gửi ID cho mọi người");
+
+  // Tự động copy ID vào clipboard cho tiện
+  await copyText(newRoomId, "Đã tạo phòng & copy ID!");
 }
 
 /* ================== Join room ================== */
@@ -574,6 +654,8 @@ async function joinRoom(){
   isHost = false;
   myName = guestName;
   localName.textContent = myName;
+
+  setRoomId(targetId);           // ⭐ set 1 nơi — guest cũng biết ID phòng
 
   const guestId = "g-" + Math.random().toString(36).slice(2,10);
 
@@ -625,7 +707,6 @@ async function joinRoom(){
     }
   }, 500);
 
-  roomBadgeId.textContent = targetId;
   hide(lobby);
   hide(roomInfo);
   show(inMeeting);
@@ -667,23 +748,27 @@ function leaveMeeting(){
     log("🚪 Đã rời phòng");
   }
 
-  roomBadgeId.textContent = "—";
+  setRoomId(null);              // ⭐ reset 1 nơi
   renderParticipants();
 }
 
 /* ================== Copy / Share ================== */
-async function copyRoomCode(){
+function copyRoomCode(){
   if (!myRoomId) return;
-  try {
-    await navigator.clipboard.writeText(myRoomId);
-    toast("Đã copy ID phòng");
-  } catch { prompt("Copy ID:", myRoomId); }
+  copyText(myRoomId, "Đã copy ID phòng!");
 }
 async function shareRoomCode(){
   if (!myRoomId) return;
-  const data = { title:"Tham gia phòng họp", text:`Vào phòng họp: ${myRoomId}`, url: location.href };
-  if (navigator.share) { try{ await navigator.share(data); }catch{} }
-  else copyRoomCode();
+  const shareData = {
+    title: "Tham gia phòng họp",
+    text: `Vào phòng họp: ${myRoomId}`,
+    url: location.href
+  };
+  if (navigator.share) {
+    try { await navigator.share(shareData); } catch {}
+  } else {
+    copyRoomCode();
+  }
 }
 
 /* ================== Lock room ================== */
@@ -712,8 +797,21 @@ joinCancel.addEventListener("click", () => {
 joinBtn.addEventListener("click", joinRoom);
 roomInput.addEventListener("keydown", e => { if (e.key === "Enter") joinRoom(); });
 
-roomCode.addEventListener("click", copyRoomCode);
+// ⭐ Click vào ô ID → tự select all
+roomCodeInput.addEventListener("click", () => roomCodeInput.select());
+roomCodeInput.addEventListener("focus", () => roomCodeInput.select());
+
+// ⭐ Click vào ô đọc-only ở meeting → tự select
+meetingRoomId.addEventListener("click", () => {
+  const r = document.createRange();
+  r.selectNodeContents(meetingRoomId);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(r);
+});
+
 copyBtn.addEventListener("click", copyRoomCode);
+copyMeetingIdBtn.addEventListener("click", copyRoomCode);
 shareBtn.addEventListener("click", shareRoomCode);
 lockBtn.addEventListener("click", toggleLock);
 cancelRoomBtn.addEventListener("click", () => {
@@ -735,7 +833,7 @@ window.addEventListener("beforeunload", () => {
 
 /* ================== Boot ================== */
 (function boot(){
-  log("🚀 Meeting Room khởi động (no CSS)");
+  log("🚀 Meeting Room khởi động");
   setStatus("Sẵn sàng");
   updateMicBtn();
   updateCamBtn();
