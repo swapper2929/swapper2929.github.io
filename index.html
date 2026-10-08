@@ -2,279 +2,95 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<meta name="theme-color" content="#0f172a" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Meeting Room</title>
+<meta name="theme-color" content="#000000" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTkyIj48cmVjdCB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgcng9IjM2IiBmaWxsPSIjM2I4MmY2Ii8+PHRleHQgeD0iOTYiIHk9IjEyMCIgZm9udC1zaXplPSI5NiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+8J+SuTwvdGV4dD48L3N2Zz4=" />
-
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --bg:#0f172a; --panel:#1e293b; --panel2:#0b1220;
-    --accent:#3b82f6; --success:#10b981; --danger:#ef4444;
-    --warn:#f59e0b; --text:#e2e8f0; --muted:#94a3b8;
-  }
-  html, body {
-    font-family: system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-    background: var(--bg); color: var(--text);
-    height:100%; overflow:hidden;
-  }
-  .app { display:flex; flex-direction:column; height:100dvh; padding:8px; gap:8px; }
-
-  /* ===== Topbar ===== */
-  .topbar { display:flex; justify-content:space-between; align-items:center; padding:4px 6px; flex-wrap:wrap; gap:6px; }
-  .topbar .left { display:flex; align-items:center; gap:8px; }
-  .topbar h1 { font-size:1rem; }
-  .badge {
-    font-size:.7rem; padding:3px 8px; border-radius:999px; background:#334155;
-    display:inline-flex; align-items:center; gap:4px;
-  }
-  .badge.live { background: var(--danger); }
-  .badge.live::before {
-    content:""; width:6px; height:6px; border-radius:50%; background:#fff;
-    animation: blink 1s ease-in-out infinite;
-  }
-  @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:.35;} }
-  .badge.online { background: var(--success); }
-  .badge.warn { background: var(--warn); }
-
-  /* ===== Videos grid ===== */
-  .videos {
-    flex:1; display:grid; gap:8px; min-height:0;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    grid-auto-rows: 1fr;
-    overflow-y:auto; padding:2px;
-  }
-  .videos:has(.video-tile:only-child) { grid-template-columns:1fr; }
-  .videos:has(.video-tile:nth-child(2):last-child) { grid-template-columns:repeat(2,1fr); }
-
-  .video-tile {
-    position:relative; background:#000; border-radius:12px;
-    overflow:hidden; min-height:150px; min-width:0;
-    display:flex; align-items:center; justify-content:center;
-    border:2px solid transparent; transition:border-color .2s;
-  }
-  .video-tile.speaking { border-color: var(--success); }
-  .video-tile.host { border-color: var(--warn); }
-  .video-tile video { width:100%; height:100%; object-fit:cover; display:block; }
-  .video-tile.mirror video { transform: scaleX(-1); }
-  .video-tile.no-video video { display:none; }
-  .video-tile.no-video::after {
-    content: attr(data-placeholder);
-    position:absolute; inset:0;
-    display:flex; align-items:center; justify-content:center;
-    color:#64748b; font-size:.8rem; text-align:center; padding:12px;
-    background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
-  }
-  .tile-name {
-    position:absolute; bottom:8px; left:8px;
-    background:rgba(0,0,0,.7); padding:3px 9px; border-radius:999px;
-    font-size:.72rem; max-width:70%; overflow:hidden;
-    text-overflow:ellipsis; white-space:nowrap; z-index:2;
-    display:flex; align-items:center; gap:5px;
-  }
-  .tile-name .role { font-size:.6rem; background:var(--warn); color:#000;
-                     padding:1px 6px; border-radius:999px; font-weight:700; }
-  .tile-mute-icon {
-    position:absolute; top:8px; right:8px; z-index:2;
-    background:rgba(239,68,68,.9); padding:4px 7px; border-radius:999px;
-    font-size:.7rem;
-  }
-  .tile-kick {
-    position:absolute; top:8px; left:8px; z-index:3;
-    background:rgba(239,68,68,.9); border:none; color:white;
-    width:26px; height:26px; border-radius:50%; cursor:pointer;
-    font-size:.75rem; display:none;
-  }
-  .video-tile:hover .tile-kick.show { display:block; }
-
-  /* ===== Bottom panel ===== */
-  .bottom {
-    background: var(--panel); border-radius:12px; padding:8px;
-    display:flex; flex-direction:column; gap:6px;
-  }
-  .row { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
-  .row.center { justify-content:center; }
-
-  .btn {
-    padding:9px 13px; border:none; border-radius:8px;
-    background:#475569; color:white; font-size:.82rem; font-weight:600;
-    cursor:pointer; transition: transform .1s, opacity .2s, background .2s;
-    display:inline-flex; align-items:center; justify-content:center; gap:4px;
-    white-space:nowrap;
-  }
-  .btn:hover:not(:disabled){ transform:translateY(-1px); }
-  .btn:disabled { opacity:.4; cursor:not-allowed; }
-  .btn.primary { background: var(--accent); }
-  .btn.success { background: var(--success); }
-  .btn.danger  { background: var(--danger); }
-  .btn.warn    { background: var(--warn); color:#000; }
-  .btn.off     { background:#334155; opacity:.85; }
-  .btn.big     { padding:13px 18px; font-size:.92rem; flex:1 1 140px; }
-
-  input[type=text] {
-    padding:9px 13px; border-radius:8px; border:1px solid #475569;
-    background:var(--panel2); color:var(--text); font-size:.88rem;
-    flex:1 1 160px; font-family: ui-monospace, monospace;
-  }
-  input[type=text]:focus { outline:2px solid var(--accent); }
-
-  .room-box {
-    display:none; flex-direction:column; gap:6px;
-    background:var(--panel2); border:1px dashed #475569; border-radius:10px; padding:9px;
-  }
-  .room-box.show { display:flex; }
-  .room-box .code {
-    font-family: ui-monospace, monospace; font-size:1.2rem; font-weight:700;
-    letter-spacing:.05em; color:#7dd3fc; word-break:break-all;
-    text-align:center; padding:9px; background:#020617; border-radius:8px;
-    cursor:pointer; user-select:all;
-  }
-  .room-box .tip { font-size:.68rem; opacity:.65; text-align:center; }
-
-  /* ===== Participants sidebar ===== */
-  .participants {
-    position:fixed; top:0; right:0; bottom:0; width:260px;
-    background:var(--panel); padding:12px; z-index:50;
-    transform: translateX(100%); transition: transform .25s ease;
-    display:flex; flex-direction:column; gap:8px;
-    box-shadow: -4px 0 20px rgba(0,0,0,.5);
-    overflow-y:auto;
-  }
-  .participants.open { transform: translateX(0); }
-  .participants h3 { font-size:.9rem; margin-bottom:4px; }
-  .p-item {
-    display:flex; align-items:center; gap:8px;
-    padding:6px 8px; border-radius:8px; background:var(--panel2);
-    font-size:.8rem;
-  }
-  .p-item .avatar {
-    width:28px; height:28px; border-radius:50%;
-    background:linear-gradient(135deg,#3b82f6,#8b5cf6);
-    display:flex; align-items:center; justify-content:center;
-    font-size:.75rem; font-weight:700; flex-shrink:0;
-  }
-  .p-item .name { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .p-item .kick-mini {
-    background:transparent; border:none; color:var(--danger);
-    cursor:pointer; font-size:.85rem; padding:2px 4px;
-  }
-  .sidebar-close { position:absolute; top:8px; right:8px; background:transparent;
-                   border:none; color:var(--muted); cursor:pointer; font-size:1rem; }
-
-  /* ===== Log ===== */
-  .log {
-    max-height:56px; overflow-y:auto; font-size:.68rem;
-    font-family: ui-monospace, monospace; background:var(--panel2);
-    padding:5px 8px; border-radius:8px; opacity:.8; line-height:1.4;
-  }
-
-  .hidden { display:none !important; }
-
-  .toast {
-    position:fixed; bottom:18px; left:50%; transform:translateX(-50%);
-    background:#1e293b; color:#e2e8f0; padding:10px 18px;
-    border-radius:999px; font-size:.85rem; z-index:9999;
-    box-shadow: 0 4px 20px rgba(0,0,0,.4);
-    opacity:0; pointer-events:none; transition:opacity .3s;
-    max-width:90vw; text-align:center;
-  }
-  .toast.show { opacity:1; }
-
-  /* Scrollbar */
-  ::-webkit-scrollbar { width:6px; height:6px; }
-  ::-webkit-scrollbar-thumb { background:#475569; border-radius:3px; }
-</style>
+<link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTkyIj48cmVjdCB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgcng9IjM2IiBmaWxsPSIjMDAwIi8+PHRleHQgeD0iOTYiIHk9IjEyMCIgZm9udC1zaXplPSI5NiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+8J+SuTwvdGV4dD48L3N2Zz4=" />
 </head>
 <body>
-<div class="app">
-  <!-- ========== TOPBAR ========== -->
-  <header class="topbar">
-    <div class="left">
-      <h1>🎥 Meeting Room</h1>
-      <span id="roomBadge" class="badge hidden">Phòng: <b id="roomBadgeId">—</b></span>
-      <span id="countBadge" class="badge hidden">👥 <b id="countNum">1</b></span>
-    </div>
-    <div class="row">
-      <span id="status" class="badge">Chưa sẵn sàng</span>
-      <button id="participantsBtn" class="btn hidden" style="padding:6px 10px;">👥</button>
-    </div>
-  </header>
 
-  <!-- ========== VIDEOS GRID ========== -->
-  <main class="videos" id="videosGrid">
-    <!-- Local tile -->
-    <div class="video-tile mirror no-video" id="localTile" data-placeholder="Camera đang tắt">
-      <video id="localVideo" autoplay muted playsinline></video>
-      <span class="tile-name" id="localName">Bạn</span>
-    </div>
-    <!-- Remote tiles sẽ được thêm động -->
-  </main>
+<h1>📹 Meeting Room</h1>
 
-  <!-- ========== MEDIA CONTROLS ========== -->
-  <section class="bottom">
-    <div class="row center">
-      <button id="micBtn" class="btn off">🎤 Bật Mic</button>
-      <button id="camBtn" class="btn off">📷 Bật Cam</button>
-      <button id="flipBtn" class="btn off" disabled>🔄 Đảo Cam</button>
-      <button id="speakerBtn" class="btn off hidden" title="Tắt tiếng người khác">🔈</button>
-    </div>
-  </section>
+<p>
+  Trạng thái: <b id="status">Chưa sẵn sàng</b>
+  | Phòng: <b id="roomBadgeId">—</b>
+  | Thành viên: <b id="countNum">1</b>
+  | <button id="participantsBtn" type="button">👥 Danh sách</button>
+</p>
 
-  <!-- ========== LOBBY ========== -->
-  <section id="lobby" class="bottom">
-    <div class="row center">
-      <button id="createBtn" class="btn success big">➕ Tạo phòng họp</button>
-      <button id="joinShowBtn" class="btn primary big">🔗 Vào phòng</button>
-    </div>
+<hr />
 
-    <div id="joinBox" class="room-box">
-      <input id="roomInput" type="text" placeholder="Dán ID phòng (vd: mt-a1b2-c3d4)" />
-      <input id="nameInput" type="text" placeholder="Tên của bạn (tùy chọn)" maxlength="20" />
-      <div class="row">
-        <button id="joinBtn" class="btn success" style="flex:1">🚪 Vào phòng</button>
-        <button id="joinCancel" class="btn" style="flex:0">Hủy</button>
-      </div>
-    </div>
-  </section>
+<h2>Điều khiển thiết bị</h2>
+<p>
+  <button id="micBtn" type="button">🎤 Bật Mic</button>
+  <button id="camBtn" type="button">📷 Bật Cam</button>
+  <button id="flipBtn" type="button" disabled>🔄 Đảo Cam</button>
+</p>
 
-  <!-- ========== ROOM INFO (Host) ========== -->
-  <section id="roomInfo" class="bottom hidden">
-    <div style="text-align:center; font-weight:600; font-size:.88rem;">
-      🔑 ID phòng — gửi cho mọi người:
-    </div>
-    <div class="room-box show">
-      <div class="code" id="roomCode" title="Nhấn để copy">…</div>
-      <div class="tip">👆 Nhấn để copy • Mọi người vào tự động, không cần accept</div>
-      <div class="row">
-        <button id="copyBtn" class="btn primary" style="flex:1">📋 Copy</button>
-        <button id="shareBtn" class="btn" style="flex:1">📤 Chia sẻ</button>
-        <button id="lockBtn" class="btn warn" style="flex:1">🔓 Mở</button>
-        <button id="cancelRoomBtn" class="btn danger" style="flex:0">✖</button>
-      </div>
-    </div>
-  </section>
+<hr />
 
-  <!-- ========== IN-MEETING ========== -->
-  <section id="inMeeting" class="bottom hidden">
-    <div class="row center">
-      <button id="leaveBtn" class="btn danger big">🚪 Rời phòng</button>
-    </div>
-  </section>
-
-  <div class="log" id="log"></div>
+<h2>Video</h2>
+<div id="videosGrid">
+  <div id="localTile">
+    <video id="localVideo" autoplay muted playsinline width="320"></video>
+    <p><b id="localName">Bạn</b></p>
+  </div>
 </div>
 
-<!-- ========== PARTICIPANTS SIDEBAR ========== -->
-<aside id="participantsPanel" class="participants">
-  <button class="sidebar-close" id="sidebarClose">✖</button>
+<hr />
+
+<section id="lobby">
+  <h2>Sảnh chờ</h2>
+  <p>
+    <button id="createBtn" type="button">➕ Tạo phòng họp</button>
+    <button id="joinShowBtn" type="button">🔗 Vào phòng</button>
+  </p>
+  <div id="joinBox" hidden>
+    <p>
+      <label>ID phòng: <input id="roomInput" type="text" placeholder="mt-xxxx-yyyy" size="24" /></label>
+    </p>
+    <p>
+      <label>Tên bạn: <input id="nameInput" type="text" placeholder="Tên (tùy chọn)" maxlength="20" size="20" /></label>
+    </p>
+    <p>
+      <button id="joinBtn" type="button">🚪 Vào phòng</button>
+      <button id="joinCancel" type="button">Hủy</button>
+    </p>
+  </div>
+</section>
+
+<section id="roomInfo" hidden>
+  <h2>ID phòng của bạn</h2>
+  <p><big><b id="roomCode" title="Nhấn để copy">…</b></big></p>
+  <p><small>(Nhấn vào ID để copy • Mọi người vào tự động, không cần accept)</small></p>
+  <p>
+    <button id="copyBtn" type="button">📋 Copy</button>
+    <button id="shareBtn" type="button">📤 Chia sẻ</button>
+    <button id="lockBtn" type="button">🔓 Mở</button>
+    <button id="cancelRoomBtn" type="button">✖ Đóng phòng</button>
+  </p>
+</section>
+
+<section id="inMeeting" hidden>
+  <h2>Đang trong phòng</h2>
+  <p><button id="leaveBtn" type="button">🚪 Rời phòng</button></p>
+</section>
+
+<hr />
+
+<h2>Nhật ký</h2>
+<pre id="log"></pre>
+
+<hr />
+
+<aside id="participantsPanel" hidden>
   <h3>👥 Thành viên (<span id="pCount">1</span>)</h3>
+  <button id="sidebarClose" type="button">✖ Đóng</button>
   <div id="participantsList"></div>
 </aside>
 
-<div class="toast" id="toast"></div>
+<p id="toast" hidden></p>
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 
@@ -283,9 +99,8 @@
 (function setupPWA(){
   const manifest = {
     name:"Meeting Room", short_name:"Meeting", start_url:".",
-    display:"standalone", background_color:"#0f172a", theme_color:"#0f172a",
-    orientation:"any",
-    icons:[{ src:"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTkyIj48cmVjdCB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgcng9IjM2IiBmaWxsPSIjM2I4MmY2Ii8+PHRleHQgeD0iOTYiIHk9IjEyMCIgZm9udC1zaXplPSI5NiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+8J+SuTwvdGV4dD48L3N2Zz4=",
+    display:"standalone", background_color:"#000", theme_color:"#000",
+    icons:[{ src:"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTkyIj48cmVjdCB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgcng9IjM2IiBmaWxsPSIjMDAwIi8+PHRleHQgeD0iOTYiIHk9IjEyMCIgZm9udC1zaXplPSI5NiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+8J+SuTwvdGV4dD48L3N2Zz4=",
       sizes:"192x192", type:"image/svg+xml", purpose:"any maskable" }]
   };
   const link = document.createElement("link");
@@ -295,7 +110,7 @@
 
   if ("serviceWorker" in navigator) {
     const swCode = `
-      const CACHE='meetingroom-v1';
+      const CACHE='meetingroom-nocss-v1';
       self.addEventListener('install',e=>self.skipWaiting());
       self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));
       self.addEventListener('fetch',e=>{
@@ -320,9 +135,7 @@ const videosGrid  = $("videosGrid");
 const statusEl    = $("status");
 const logEl       = $("log");
 const toastEl     = $("toast");
-const roomBadge   = $("roomBadge");
 const roomBadgeId = $("roomBadgeId");
-const countBadge  = $("countBadge");
 const countNum    = $("countNum");
 
 const lobby       = $("lobby");
@@ -348,17 +161,17 @@ const micBtn      = $("micBtn");
 const camBtn      = $("camBtn");
 const flipBtn     = $("flipBtn");
 
-const participantsBtn = $("participantsBtn");
+const participantsBtn   = $("participantsBtn");
 const participantsPanel = $("participantsPanel");
-const participantsList = $("participantsList");
+const participantsList  = $("participantsList");
 const pCount      = $("pCount");
 const sidebarClose = $("sidebarClose");
 
 /* ================== State ================== */
 let peer = null;
 let localStream = null;
-let myRoomId = null;          // ID phòng (của Host)
-let myPeerId = null;          // ID peer của chính mình
+let myRoomId = null;
+let myPeerId = null;
 let myName = "Guest";
 let isHost = false;
 let roomLocked = false;
@@ -369,42 +182,33 @@ let micTrack = null;
 let camTrack = null;
 let currentFacing = "user";
 
-// peerId → { call, name, tile, stream, isHost }
 const peers = new Map();
-// host: peerId → { conn, name, isHost }
 const guestConns = new Map();
-
-// Data connections để trao đổi metadata
-let hostDataConn = null;   // Guest → Host
-let guestDataConns = new Map(); // Host → guest connections
+let hostDataConn = null;
 
 /* ================== Utils ================== */
 function log(msg){
   const t = new Date().toLocaleTimeString();
-  logEl.innerHTML += `[${t}] ${msg}<br>`;
+  logEl.textContent += `[${t}] ${msg}\n`;
   logEl.scrollTop = logEl.scrollHeight;
   console.log("[MR]", msg);
 }
-function setStatus(text, cls="badge"){
-  statusEl.textContent = text;
-  statusEl.className = cls;
-}
-function toast(msg, ms=2200){
-  toastEl.textContent = msg;
-  toastEl.classList.add("show");
+function setStatus(text){ statusEl.textContent = text; }
+function toast(msg, ms=2500){
+  toastEl.textContent = "🔔 " + msg;
+  toastEl.hidden = false;
   clearTimeout(toast._t);
-  toast._t = setTimeout(()=>toastEl.classList.remove("show"), ms);
+  toast._t = setTimeout(()=>{ toastEl.hidden = true; }, ms);
 }
 function generateRoomId(){
   const s = () => Math.random().toString(36).slice(2,6);
   return `mt-${s()}-${s()}`;
 }
-function show(el){ el.classList.remove("hidden"); }
-function hide(el){ el.classList.add("hidden"); }
-
+function show(el){ el.hidden = false; }
+function hide(el){ el.hidden = true; }
 function shortId(id){ return id.length > 14 ? id.slice(0,6)+"…"+id.slice(-4) : id; }
-function initials(name){
-  return (name||"?").trim().split(/\s+/).map(w=>w[0]).join("").slice(0,2).toUpperCase() || "?";
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 }
 
 /* ================== Media ================== */
@@ -438,7 +242,6 @@ function disableMic(){
   broadcastReplaceTrack(null, "audio");
   log("🔇 Mic tắt");
 }
-
 async function enableCam(facing){
   if (facing) currentFacing = facing;
   if (camEnabled) return true;
@@ -455,7 +258,6 @@ async function enableCam(facing){
     addTrackToStream(camTrack);
     broadcastReplaceTrack(camTrack);
     localVideo.srcObject = localStream;
-    localTile.classList.remove("no-video");
     log("📷 Cam bật (" + currentFacing + ")");
     return true;
   } catch(err){
@@ -473,11 +275,9 @@ function disableCam(){
   camEnabled = false;
   updateCamBtn();
   localVideo.srcObject = null;
-  localTile.classList.add("no-video");
   broadcastReplaceTrack(null, "video");
   log("🚫 Cam tắt");
 }
-
 async function flipCamera(){
   if (!camEnabled) return;
   const newFacing = currentFacing === "user" ? "environment" : "user";
@@ -492,11 +292,9 @@ async function flipCamera(){
     addTrackToStream(camTrack);
     broadcastReplaceTrack(camTrack);
     localVideo.srcObject = localStream;
-    localTile.classList.remove("no-video");
     toast("Đảo cam: " + (newFacing === "user" ? "trước" : "sau"));
   } catch(err) { toast("Không đảo được cam"); }
 }
-
 function addTrackToStream(track){
   if (!localStream) localStream = new MediaStream();
   localStream.getTracks()
@@ -504,10 +302,7 @@ function addTrackToStream(track){
     .forEach(t => localStream.removeTrack(t));
   localStream.addTrack(track);
   localVideo.srcObject = localStream;
-  if (track.kind === "video") localTile.classList.remove("no-video");
 }
-
-/* Thay track trong TẤT CẢ peer connection */
 function broadcastReplaceTrack(track, kindIfNull){
   const kind = track ? track.kind : kindIfNull;
   peers.forEach(({ call }) => {
@@ -515,104 +310,75 @@ function broadcastReplaceTrack(track, kindIfNull){
     try {
       const pc = call.peerConnection;
       const sender = pc.getSenders().find(s => s.track && s.track.kind === kind);
-      if (sender) {
-        sender.replaceTrack(track || null);
-      } else if (track) {
-        pc.addTrack(track, localStream);
-      }
+      if (sender) sender.replaceTrack(track || null);
+      else if (track) pc.addTrack(track, localStream);
     } catch(e) { log("⚠️ replaceTrack: " + e.message); }
   });
 }
-
 function updateMicBtn(){
   micBtn.textContent = micEnabled ? "🎤 Mic đang bật" : "🎤 Bật Mic";
-  micBtn.classList.toggle("off", !micEnabled);
-  micBtn.classList.toggle("success", micEnabled);
 }
 function updateCamBtn(){
   camBtn.textContent = camEnabled ? "📷 Cam đang bật" : "📷 Bật Cam";
-  camBtn.classList.toggle("off", !camEnabled);
-  camBtn.classList.toggle("success", camEnabled);
   flipBtn.disabled = !camEnabled;
-  flipBtn.classList.toggle("off", !camEnabled);
 }
 
 /* ================== Tiles ================== */
-function createRemoteTile(peerId, name, isHostPeer){
-  const tile = document.createElement("div");
-  tile.className = "video-tile no-video" + (peerId === "local" ? " mirror" : "");
-  tile.dataset.peerId = peerId;
-  tile.dataset.placeholder = "Đang chờ " + (name || shortId(peerId)) + "…";
+function createRemoteTile(peerId, name){
+  const wrap = document.createElement("div");
+  wrap.dataset.peerId = peerId;
 
   const video = document.createElement("video");
   video.autoplay = true;
   video.playsInline = true;
   video.muted = false;
+  video.width = 320;
 
-  const label = document.createElement("span");
-  label.className = "tile-name";
-  label.innerHTML = `<span>${name || shortId(peerId)}</span>` +
-    (isHostPeer ? `<span class="role">HOST</span>` : "");
+  const label = document.createElement("p");
+  label.innerHTML = `<b>${escapeHtml(name || shortId(peerId))}</b>`;
 
-  tile.appendChild(video);
-  tile.appendChild(label);
+  wrap.appendChild(video);
+  wrap.appendChild(label);
 
-  // Kick button (chỉ Host thấy)
-  if (isHost && !isHostPeer) {
+  // Nút kick — chỉ host thấy
+  if (isHost) {
     const kick = document.createElement("button");
-    kick.className = "tile-kick show";
-    kick.textContent = "✖";
-    kick.title = "Mời ra khỏi phòng";
-    kick.onclick = (e) => {
-      e.stopPropagation();
-      if (confirm("Mời " + (name || peerId) + " ra khỏi phòng?")) {
-        kickPeer(peerId);
-      }
+    kick.type = "button";
+    kick.textContent = "✖ Mời ra";
+    kick.onclick = () => {
+      if (confirm("Mời " + (name || peerId) + " ra khỏi phòng?")) kickPeer(peerId);
     };
-    tile.appendChild(kick);
+    wrap.appendChild(kick);
   }
 
-  videosGrid.appendChild(tile);
-  return { tile, video, label };
+  videosGrid.appendChild(wrap);
+  return { wrap, video, label };
 }
-
 function updateTileVideo(peerId, stream){
   const info = peers.get(peerId);
   if (!info) return;
   info.video.srcObject = stream;
-  const check = () => {
-    const hasLive = stream.getVideoTracks().some(t => t.readyState === "live" && t.enabled);
-    info.tile.classList.toggle("no-video", !hasLive);
-  };
-  check();
-  stream.onaddtrack = check;
-  stream.onremovetrack = check;
-  info.tile.dataset.placeholder = "Camera " + (info.name||shortId(peerId)) + " đang tắt";
 }
-
 function removeTile(peerId){
   const info = peers.get(peerId);
-  if (info && info.tile && info.tile.parentNode) info.tile.remove();
+  if (info && info.wrap && info.wrap.parentNode) info.wrap.remove();
 }
 
-/* ================== Participants sidebar ================== */
+/* ================== Participants ================== */
 function renderParticipants(){
   const list = [{ id:"local", name:myName + " (bạn)", isHost }];
   peers.forEach((v, id) => {
-    list.push({ id, name: v.name || shortId(id), isHost: v.isHost });
+    list.push({ id, name: v.name || shortId(id), isHost: false });
   });
 
   pCount.textContent = list.length;
   countNum.textContent = list.length;
-  countBadge.classList.remove("hidden");
 
   participantsList.innerHTML = list.map(p => `
-    <div class="p-item">
-      <div class="avatar">${initials(p.name)}</div>
-      <div class="name">${escapeHtml(p.name)}</div>
-      ${isHost && p.id !== "local" ? `<button class="kick-mini" data-kick="${p.id}" title="Kick">✖</button>` : ""}
-      ${p.isHost ? `<span class="role" style="font-size:.55rem;background:var(--warn);color:#000;padding:1px 5px;border-radius:99px;font-weight:700;">HOST</span>` : ""}
-    </div>
+    <p>
+      ${p.isHost ? "⭐ " : "👤 "}${escapeHtml(p.name)}
+      ${isHost && p.id !== "local" ? ` <button type="button" data-kick="${p.id}">✖ Kick</button>` : ""}
+    </p>
   `).join("");
 
   participantsList.querySelectorAll("[data-kick]").forEach(btn => {
@@ -621,9 +387,6 @@ function renderParticipants(){
       if (confirm("Mời " + (peers.get(id)?.name || id) + " ra khỏi phòng?")) kickPeer(id);
     };
   });
-}
-function escapeHtml(s){
-  return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 }
 
 /* ================== Peer init ================== */
@@ -637,9 +400,7 @@ function initPeer(peerId){
           { urls: "stun:stun.l.google.com:19302" },
           { urls: "stun:stun1.l.google.com:19302" },
           { urls: "stun:stun2.l.google.com:19302" },
-          { urls: "stun:stun3.l.google.com:19302" },
-          // Thêm TURN nếu cần:
-          // { urls:"turn:openrelay.metered.ca:80", username:"openrelayproject", credential:"openrelayproject" }
+          { urls: "stun:stun3.l.google.com:19302" }
         ],
         iceCandidatePoolSize: 10
       }
@@ -656,82 +417,43 @@ function initPeer(peerId){
 
     peer.on("error", err => {
       log("⚠️ Peer error: " + err.type + " – " + err.message);
-      if (err.type === "unavailable-id") {
-        setStatus("ID trùng", "badge warn");
-        reject(err);
-      } else if (err.type === "peer-unavailable") {
-        toast("Không tìm thấy phòng");
-      } else if (err.type === "network") {
-        setStatus("Lỗi mạng", "badge warn");
-      }
+      if (err.type === "unavailable-id") reject(err);
+      else if (err.type === "peer-unavailable") toast("Không tìm thấy phòng");
     });
 
     peer.on("disconnected", () => {
       if (peer && !peer.destroyed) peer.reconnect();
     });
 
-    /* ===== Nhận DATA connection (metadata: tên, isHost) ===== */
     peer.on("connection", conn => {
       conn.on("data", data => {
         if (data.type === "hello") {
-          // Host nhận thông tin guest
           conn.metadata = { name: data.name, isHost: false };
           const peerId = conn.peer;
-          // Lưu conn
           guestConns.set(peerId, conn);
           log("👋 " + data.name + " tham gia");
           toast(data.name + " đã tham gia");
-          // Đẩy danh sách mới cho mọi guest
           broadcastParticipants();
-          // Host gọi lại guest
           makeCallToGuest(peerId, data.name);
         }
         if (data.type === "kick") {
           toast("Bạn đã bị mời ra khỏi phòng", 3000);
           leaveMeeting();
         }
-        if (data.type === "room-locked") {
-          roomLocked = true;
-          lockBtn.textContent = "🔒 Đã khóa";
-          lockBtn.classList.remove("warn");
-        }
-        if (data.type === "participants-list") {
-          // Cập nhật tên cho các peer đã có
-          (data.list || []).forEach(p => {
-            if (peers.has(p.id)) {
-              peers.get(p.id).name = p.name;
-              peers.get(p.id).isHost = p.isHost;
-            }
-          });
-          renderParticipants();
-          refreshTileLabels();
-        }
       });
       conn.on("close", () => {
-        const peerId = conn.peer;
-        guestConns.delete(peerId);
-        log("👋 " + peerId + " rời phòng");
+        guestConns.delete(conn.peer);
+        log("👋 " + conn.peer + " rời phòng");
         broadcastParticipants();
       });
     });
 
-    /* ===== Nhận CALL (Host nhận từ guest? Không — Host gọi guest. Guest nhận từ Host.) ===== */
     peer.on("call", call => {
       log("📞 Call đến từ: " + call.peer);
-      // Cả 2 đều có thể nhận call tùy luồng — answer luôn
       const streamToSend = localStream || new MediaStream();
       call.answer(streamToSend);
       attachCall(call, call.peer, isHost ? "Guest" : "Host");
     });
-  });
-}
-
-function refreshTileLabels(){
-  peers.forEach((v, id) => {
-    const label = v.label;
-    if (!label) return;
-    label.innerHTML = `<span>${escapeHtml(v.name || shortId(id))}</span>` +
-      (v.isHost ? `<span class="role">HOST</span>` : "");
   });
 }
 
@@ -740,11 +462,9 @@ function makeCallToGuest(guestPeerId, name){
   if (!peer || peer.destroyed) return;
   const streamToSend = localStream || new MediaStream();
   const call = peer.call(guestPeerId, streamToSend);
-  if (!call) { log("❌ Không gọi được " + guestPeerId); return; }
+  if (!call) return;
   attachCall(call, guestPeerId, name);
 }
-
-/* ================== Guest: gọi Host ================== */
 function callHost(hostPeerId, hostName){
   const streamToSend = localStream || new MediaStream();
   const call = peer.call(hostPeerId, streamToSend);
@@ -752,9 +472,8 @@ function callHost(hostPeerId, hostName){
   attachCall(call, hostPeerId, hostName || "Host");
 }
 
-/* ================== Gắn call handler chung ================== */
+/* ================== Attach call ================== */
 function attachCall(call, peerId, name){
-  // Nếu đã có peer này → đóng call cũ
   if (peers.has(peerId)) {
     const old = peers.get(peerId);
     if (old.call && old.call !== call) { try{old.call.close();}catch{} }
@@ -762,8 +481,8 @@ function attachCall(call, peerId, name){
     removeTile(peerId);
   }
 
-  const { tile, video, label } = createRemoteTile(peerId, name, false);
-  const info = { call, name, tile, video, label, stream: null, isHost: false };
+  const { wrap, video, label } = createRemoteTile(peerId, name);
+  const info = { call, name, wrap, video, label, stream: null };
   peers.set(peerId, info);
 
   call.on("stream", stream => {
@@ -789,7 +508,7 @@ function attachCall(call, peerId, name){
   renderParticipants();
 }
 
-/* ================== Host: broadcast participants list ================== */
+/* ================== Broadcast participants ================== */
 function broadcastParticipants(){
   if (!isHost) return;
   const list = [{ id: myPeerId, name: myName, isHost: true }];
@@ -800,16 +519,13 @@ function broadcastParticipants(){
   renderParticipants();
 }
 
-/* ================== Host: kick ================== */
+/* ================== Kick ================== */
 function kickPeer(peerId){
   if (!isHost) return;
-  // Gửi thông báo kick qua data
   const conn = guestConns.get(peerId);
   if (conn) { try { conn.send({ type:"kick" }); } catch{} }
-  // Đóng call
   const info = peers.get(peerId);
   if (info?.call) { try{info.call.close();}catch{} }
-  // Đóng conn
   if (conn) { try{conn.close();}catch{} guestConns.delete(peerId); }
   removeTile(peerId);
   peers.delete(peerId);
@@ -818,13 +534,12 @@ function kickPeer(peerId){
   toast("Đã mời ra khỏi phòng");
 }
 
-/* ================== Host: Tạo phòng ================== */
+/* ================== Create room ================== */
 async function createRoom(){
   createBtn.disabled = true;
   isHost = true;
   myName = "Host";
-  localName.textContent = myName + " (Host)";
-  localName.innerHTML = `${escapeHtml(myName)} <span class="role">HOST</span>`;
+  localName.textContent = "Host";
   myRoomId = generateRoomId();
 
   try {
@@ -839,18 +554,16 @@ async function createRoom(){
 
   roomCode.textContent = myRoomId;
   roomBadgeId.textContent = myRoomId;
-  show(roomBadge);
   hide(lobby);
   show(roomInfo);
   show(inMeeting);
-  show(participantsBtn);
-  setStatus("Đang chờ mọi người…", "badge online");
+  setStatus("Đang chờ mọi người…");
   renderParticipants();
   log("🏠 Phòng: " + myRoomId);
   toast("Phòng đã tạo — gửi ID cho mọi người");
 }
 
-/* ================== Guest: Vào phòng ================== */
+/* ================== Join room ================== */
 async function joinRoom(){
   const targetId = roomInput.value.trim();
   const guestName = (nameInput.value.trim() || "Khách " + Math.random().toString(36).slice(2,5));
@@ -873,9 +586,8 @@ async function joinRoom(){
   }
 
   log("🚪 Đang vào phòng: " + targetId);
-  setStatus("Đang kết nối…", "badge warn");
+  setStatus("Đang kết nối…");
 
-  // Mở data connection tới Host
   hostDataConn = peer.connect(targetId, {
     metadata: { name: guestName, isHost: false },
     reliable: true
@@ -907,22 +619,17 @@ async function joinRoom(){
     }
   });
 
-  // Chờ Host gọi lại (Host sẽ gọi qua makeCallToGuest)
-  // Đồng thời chủ động gọi Host để chắc chắn
   setTimeout(() => {
     if (!peers.has(targetId) && peer && !peer.destroyed) {
       callHost(targetId, "Host");
     }
   }, 500);
 
-  // Chuyển UI
   roomBadgeId.textContent = targetId;
-  show(roomBadge);
   hide(lobby);
   hide(roomInfo);
   show(inMeeting);
-  show(participantsBtn);
-  setStatus("Đang trong phòng", "badge online");
+  setStatus("Đang trong phòng");
   renderParticipants();
   log("✅ Đã vào phòng");
   toast("Đã vào phòng họp");
@@ -930,41 +637,37 @@ async function joinRoom(){
 
 /* ================== Leave ================== */
 function leaveMeeting(){
-  // Đóng tất cả calls
   peers.forEach(info => { try{info.call.close();}catch{} });
   peers.clear();
-  // Xóa tile còn lại
-  document.querySelectorAll(".video-tile:not(#localTile)").forEach(t => t.remove());
-  // Đóng data conns
+  Array.from(videosGrid.children).forEach(c => {
+    if (c.id !== "localTile") c.remove();
+  });
   guestConns.forEach(c => { try{c.close();}catch{} });
   guestConns.clear();
   if (hostDataConn) { try{hostDataConn.close();}catch{} hostDataConn = null; }
 
   hide(participantsPanel);
-  participantsPanel.classList.remove("open");
+
+  if (peer && !peer.destroyed) { try{peer.destroy();}catch{} peer = null; }
 
   if (isHost) {
-    // Host rời → đóng phòng
-    if (peer && !peer.destroyed) { try{peer.destroy();}catch{} peer = null; }
-    hide(roomInfo); hide(roomBadge); hide(participantsBtn);
+    hide(roomInfo);
+    hide(inMeeting);
     show(lobby);
     createBtn.disabled = false;
-    setStatus("Chưa sẵn sàng", "badge");
+    setStatus("Chưa sẵn sàng");
     log("🚪 Host đã đóng phòng");
   } else {
-    // Guest rời → về lobby, giữ peer để có thể vào lại? Đơn giản: destroy luôn
-    if (peer && !peer.destroyed) { try{peer.destroy();}catch{} peer = null; }
-    hide(roomBadge); hide(participantsBtn);
+    hide(inMeeting);
     show(lobby);
     hide(joinBox);
     roomInput.value = "";
     joinBtn.disabled = false;
-    setStatus("Chưa sẵn sàng", "badge");
+    setStatus("Chưa sẵn sàng");
     log("🚪 Đã rời phòng");
   }
 
-  hide(inMeeting);
-  countBadge.classList.add("hidden");
+  roomBadgeId.textContent = "—";
   renderParticipants();
 }
 
@@ -973,8 +676,6 @@ async function copyRoomCode(){
   if (!myRoomId) return;
   try {
     await navigator.clipboard.writeText(myRoomId);
-    copyBtn.textContent = "✅ Đã copy!";
-    setTimeout(() => copyBtn.textContent = "📋 Copy", 1500);
     toast("Đã copy ID phòng");
   } catch { prompt("Copy ID:", myRoomId); }
 }
@@ -985,14 +686,11 @@ async function shareRoomCode(){
   else copyRoomCode();
 }
 
-/* ================== Lock room (Host) ================== */
+/* ================== Lock room ================== */
 function toggleLock(){
   if (!isHost) return;
   roomLocked = !roomLocked;
   lockBtn.textContent = roomLocked ? "🔒 Đã khóa" : "🔓 Mở";
-  lockBtn.classList.toggle("warn", !roomLocked);
-  lockBtn.classList.toggle("danger", roomLocked);
-  // Broadcast cho các guest biết
   guestConns.forEach(c => { try{c.send({type:"room-locked", locked:roomLocked});}catch{} });
   toast(roomLocked ? "Phòng đã khóa" : "Phòng đã mở");
 }
@@ -1004,11 +702,11 @@ flipBtn.addEventListener("click", flipCamera);
 
 createBtn.addEventListener("click", createRoom);
 joinShowBtn.addEventListener("click", () => {
-  joinBox.classList.toggle("show");
-  if (joinBox.classList.contains("show")) roomInput.focus();
+  joinBox.hidden = !joinBox.hidden;
+  if (!joinBox.hidden) roomInput.focus();
 });
 joinCancel.addEventListener("click", () => {
-  joinBox.classList.remove("show");
+  joinBox.hidden = true;
   roomInput.value = "";
 });
 joinBtn.addEventListener("click", joinRoom);
@@ -1021,23 +719,14 @@ lockBtn.addEventListener("click", toggleLock);
 cancelRoomBtn.addEventListener("click", () => {
   if (confirm("Đóng phòng? Mọi người sẽ bị ngắt kết nối.")) leaveMeeting();
 });
-
 leaveBtn.addEventListener("click", () => {
   if (confirm(isHost ? "Đóng phòng?" : "Rời phòng?")) leaveMeeting();
 });
 
 participantsBtn.addEventListener("click", () => {
-  participantsPanel.classList.toggle("open");
+  participantsPanel.hidden = !participantsPanel.hidden;
 });
-sidebarClose.addEventListener("click", () => participantsPanel.classList.remove("open"));
-
-document.addEventListener("keydown", e => {
-  if (e.key === "Escape") {
-    if (participantsPanel.classList.contains("open")) {
-      participantsPanel.classList.remove("open");
-    }
-  }
-});
+sidebarClose.addEventListener("click", () => { participantsPanel.hidden = true; });
 
 window.addEventListener("beforeunload", () => {
   peers.forEach(info => { try{info.call.close();}catch{} });
@@ -1046,8 +735,8 @@ window.addEventListener("beforeunload", () => {
 
 /* ================== Boot ================== */
 (function boot(){
-  log("🚀 Meeting Room khởi động");
-  setStatus("Sẵn sàng", "badge");
+  log("🚀 Meeting Room khởi động (no CSS)");
+  setStatus("Sẵn sàng");
   updateMicBtn();
   updateCamBtn();
 })();
