@@ -1,479 +1,493 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>⚠️ WEBSITE ĐÃ BỊ DEFACE - HackerVN</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#0f172a" />
+<title>Video Call PWA</title>
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTkyIj48cmVjdCB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgcng9IjM2IiBmaWxsPSIjM2I4MmY2Ii8+PHRleHQgeD0iOTYiIHk9IjEyMCIgZm9udC1zaXplPSI5NiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+8J+SuTwvdGV4dD48L3N2Zz4=" />
 
-        body {
-            background: #0a0a0a;
-            font-family: 'Courier New', monospace;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            background-image: 
-                radial-gradient(circle at 20% 50%, rgba(255, 0, 0, 0.05) 0%, transparent 50%),
-                radial-gradient(circle at 80% 50%, rgba(255, 0, 0, 0.05) 0%, transparent 50%);
-        }
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:#0f172a; --panel:#1e293b; --accent:#3b82f6;
+    --success:#10b981; --danger:#ef4444; --warn:#f59e0b; --text:#e2e8f0;
+  }
+  body {
+    font-family: system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh; min-height: 100dvh; overflow: hidden;
+  }
+  .app { display:flex; flex-direction:column; height:100dvh; padding:12px; gap:10px; }
 
-        .container {
-            max-width: 900px;
-            width: 100%;
-            background: #111111;
-            border: 3px solid #cc0000;
-            border-radius: 12px;
-            padding: 40px 45px;
-            box-shadow: 0 0 60px rgba(204, 0, 0, 0.2), inset 0 0 60px rgba(204, 0, 0, 0.05);
-            position: relative;
-        }
+  .topbar { display:flex; justify-content:space-between; align-items:center; padding:6px 4px; }
+  .topbar h1 { font-size:1.1rem; }
+  .status { font-size:.78rem; padding:4px 10px; border-radius:999px; background:#334155; transition:.3s; }
+  .status.online  { background: var(--success); }
+  .status.calling { background: var(--warn); }
+  .status.error   { background: var(--danger); }
 
-        /* Hiệu ứng scanline nhẹ */
-        .container::before {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: repeating-linear-gradient(0deg, 
-                rgba(0,0,0,0.03) 0px, 
-                rgba(0,0,0,0.03) 2px, 
-                transparent 2px, 
-                transparent 6px);
-            pointer-events: none;
-            border-radius: 12px;
-        }
+  .videos { flex:1; display:grid; grid-template-columns:1fr; gap:8px; min-height:0; }
+  @media (min-width:700px){ .videos{ grid-template-columns:1fr 1fr; } }
+  .video-wrap { position:relative; background:#000; border-radius:12px; overflow:hidden; min-height:0; }
+  .video-wrap video { width:100%; height:100%; object-fit:cover; display:block; }
+  .label { position:absolute; bottom:8px; left:8px; background:rgba(0,0,0,.6);
+           padding:4px 10px; border-radius:999px; font-size:.72rem; }
 
-        /* Header - Logo HackerVN + KillPhandong */
-        .header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 12px;
-            padding-bottom: 20px;
-            border-bottom: 2px solid #cc0000;
-            margin-bottom: 28px;
-        }
+  .panel {
+    background: var(--panel); border-radius:12px; padding:12px;
+    display:flex; flex-direction:column; gap:10px;
+  }
+  .row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .row.center { justify-content:center; }
 
-        .brand {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-        }
+  .btn {
+    padding:10px 16px; border:none; border-radius:8px;
+    background:#475569; color:white; font-size:.9rem; font-weight:600;
+    cursor:pointer; transition: transform .1s, opacity .2s; white-space:nowrap;
+  }
+  .btn:hover:not(:disabled){ transform:translateY(-1px); }
+  .btn:disabled { opacity:.4; cursor:not-allowed; }
+  .btn.primary { background: var(--accent); }
+  .btn.success { background: var(--success); }
+  .btn.danger  { background: var(--danger); }
+  .btn.warn    { background: var(--warn); }
+  .btn.big     { padding:14px 22px; font-size:1rem; flex:1 1 160px; }
 
-        .brand .skull {
-            font-size: 36px;
-            color: #cc0000;
-            text-shadow: 0 0 20px rgba(204, 0, 0, 0.5);
-        }
+  input[type=text] {
+    padding:10px 14px; border-radius:8px; border:1px solid #475569;
+    background:#0f172a; color:var(--text); font-size:.95rem;
+    flex:1 1 180px; font-family: ui-monospace, monospace;
+  }
+  input[type=text]:focus { outline:2px solid var(--accent); }
 
-        .brand-text {
-            font-size: 24px;
-            font-weight: 700;
-            color: #cc0000;
-            letter-spacing: 2px;
-            text-shadow: 0 0 20px rgba(204, 0, 0, 0.3);
-        }
+  .room-box {
+    display:none; flex-direction:column; gap:8px;
+    background:#0b1220; border:1px dashed #475569; border-radius:10px; padding:12px;
+  }
+  .room-box.show { display:flex; }
+  .room-box .code {
+    font-family: ui-monospace, monospace; font-size:1.35rem; font-weight:700;
+    letter-spacing:.05em; color:#7dd3fc; word-break:break-all;
+    text-align:center; padding:10px; background:#020617; border-radius:8px;
+    cursor:pointer;
+  }
+  .room-box .tip { font-size:.72rem; opacity:.65; text-align:center; }
 
-        .brand-text span {
-            color: #ffffff;
-        }
+  .log {
+    max-height:80px; overflow-y:auto; font-size:.7rem;
+    font-family: ui-monospace, monospace; background:#0b1220;
+    padding:6px 10px; border-radius:8px; opacity:.75; line-height:1.4;
+  }
 
-        .kill-badge {
-            background: #cc0000;
-            color: #ffffff;
-            font-weight: 700;
-            font-size: 14px;
-            padding: 6px 18px;
-            border-radius: 4px;
-            letter-spacing: 1px;
-            animation: blink 1.2s infinite;
-        }
-
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
-        }
-
-        /* Nội dung chính - Deface */
-        .deface-title {
-            font-size: 42px;
-            font-weight: 700;
-            color: #cc0000;
-            text-transform: uppercase;
-            letter-spacing: 4px;
-            text-shadow: 0 0 30px rgba(204, 0, 0, 0.4);
-            margin-bottom: 8px;
-        }
-
-        .deface-sub {
-            font-size: 18px;
-            color: #888888;
-            margin-bottom: 20px;
-        }
-
-        .deface-sub strong {
-            color: #cc0000;
-        }
-
-        .deface-msg {
-            background: #1a1a1a;
-            border-left: 4px solid #cc0000;
-            padding: 16px 20px;
-            margin: 18px 0 22px 0;
-            color: #cccccc;
-            font-size: 15px;
-            line-height: 1.7;
-        }
-
-        .deface-msg .hackervn {
-            color: #cc0000;
-            font-weight: 700;
-            font-size: 17px;
-        }
-
-        .deface-msg .communist {
-            color: #ffd700;
-            font-weight: 700;
-            font-size: 17px;
-            text-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
-        }
-
-        /* KillPhandong - QR + Unlock */
-        .kill-section {
-            margin-top: 28px;
-            padding: 24px 28px;
-            background: #0d0d0d;
-            border: 2px solid #cc0000;
-            border-radius: 8px;
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 30px;
-        }
-
-        .qr-area {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-            flex-shrink: 0;
-        }
-
-        .qr-box {
-            width: 140px;
-            height: 140px;
-            background: #ffffff;
-            padding: 8px;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 2px solid #cc0000;
-        }
-
-        .qr-box svg {
-            width: 100%;
-            height: 100%;
-        }
-
-        .qr-label {
-            color: #aaaaaa;
-            font-size: 13px;
-            letter-spacing: 1px;
-        }
-
-        .qr-label strong {
-            color: #cc0000;
-        }
-
-        .unlock-info {
-            flex: 1;
-            min-width: 200px;
-        }
-
-        .unlock-info h3 {
-            color: #cc0000;
-            font-size: 20px;
-            margin-bottom: 8px;
-            letter-spacing: 1px;
-        }
-
-        .unlock-info p {
-            color: #aaaaaa;
-            font-size: 14px;
-            line-height: 1.6;
-            margin-bottom: 12px;
-        }
-
-        .unlock-code {
-            background: #1a1a1a;
-            padding: 10px 16px;
-            border: 1px dashed #cc0000;
-            border-radius: 4px;
-            color: #00ff41;
-            font-family: 'Courier New', monospace;
-            font-size: 22px;
-            font-weight: 700;
-            letter-spacing: 4px;
-            text-align: center;
-            text-shadow: 0 0 20px rgba(0, 255, 65, 0.2);
-        }
-
-        .unlock-hint {
-            color: #666;
-            font-size: 12px;
-            margin-top: 6px;
-            font-style: italic;
-        }
-
-        /* Footer */
-        .footer {
-            margin-top: 30px;
-            padding-top: 18px;
-            border-top: 1px solid #222222;
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            align-items: center;
-            gap: 10px;
-            font-size: 13px;
-            color: #555555;
-        }
-
-        .footer .hackervn-tag {
-            color: #cc0000;
-            font-weight: 700;
-            letter-spacing: 1px;
-        }
-
-        .footer .status {
-            color: #00ff41;
-            font-weight: 600;
-        }
-
-        .footer .status i {
-            display: inline-block;
-            animation: blink 1s infinite;
-        }
-
-        .footer .victim {
-            color: #ff6b6b;
-            font-weight: 600;
-            font-family: 'Courier New', monospace;
-            background: #1a1a1a;
-            padding: 2px 12px;
-            border-radius: 4px;
-            border: 1px solid #333;
-        }
-
-        /* Đảng Cộng Sản Việt Nam Muôn năm - dòng đặc biệt */
-        .party-line {
-            margin-top: 18px;
-            padding: 12px 20px;
-            background: linear-gradient(90deg, #cc0000 0%, #cc0000 30%, #ffd700 30%, #ffd700 70%, #cc0000 70%, #cc0000 100%);
-            color: #ffffff;
-            font-weight: 700;
-            font-size: 18px;
-            text-align: center;
-            letter-spacing: 3px;
-            text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
-            border-radius: 6px;
-            font-family: 'Arial', sans-serif;
-            text-transform: uppercase;
-        }
-
-        .party-line span {
-            background: rgba(0,0,0,0.7);
-            padding: 4px 20px;
-            border-radius: 4px;
-            display: inline-block;
-        }
-
-        /* Responsive */
-        @media (max-width: 650px) {
-            .container {
-                padding: 24px 18px;
-            }
-            .deface-title {
-                font-size: 28px;
-            }
-            .kill-section {
-                flex-direction: column;
-                align-items: center;
-                text-align: center;
-                padding: 20px;
-            }
-            .brand-text {
-                font-size: 18px;
-            }
-            .qr-box {
-                width: 120px;
-                height: 120px;
-            }
-            .unlock-code {
-                font-size: 18px;
-            }
-            .party-line {
-                font-size: 14px;
-                padding: 10px 14px;
-            }
-            .party-line span {
-                padding: 2px 12px;
-            }
-        }
-    </style>
+  .hidden { display:none !important; }
+</style>
 </head>
 <body>
+<div class="app">
+  <header class="topbar">
+    <h1>📹 Video Call</h1>
+    <span id="status" class="status">Đang khởi tạo…</span>
+  </header>
 
-<div class="container">
+  <main class="videos">
+    <div class="video-wrap">
+      <video id="localVideo" autoplay muted playsinline></video>
+      <span class="label">Bạn</span>
+    </div>
+    <div class="video-wrap">
+      <video id="remoteVideo" autoplay playsinline></video>
+      <span class="label" id="remoteLabel">Đối phương</span>
+    </div>
+  </main>
 
-    <!-- Header -->
-    <div class="header">
-        <div class="brand">
-            <span class="skull">☠️</span>
-            <span class="brand-text">Hacker<span>VN</span></span>
-        </div>
-        <div class="kill-badge">
-            ⚠️ KillPhandong ACTIVE
-        </div>
+  <!-- ===== LOBBY: chọn Tạo phòng hoặc Vào phòng ===== -->
+  <section id="lobby" class="panel">
+    <div class="row center">
+      <button id="createBtn" class="btn success big">➕ Tạo phòng (Host)</button>
+      <button id="joinShowBtn" class="btn primary big">🔗 Vào phòng (Nhập ID)</button>
     </div>
 
-    <!-- Nội dung Deface -->
-    <div class="deface-title">
-        🔓 WEBSITE ĐÃ BỊ DEFACE
+    <div id="joinBox" class="room-box">
+      <input id="roomInput" type="text" placeholder="Dán ID phòng của Host vào đây (vd: vc-a1b2c3d4)" />
+      <div class="row">
+        <button id="joinBtn" class="btn success" style="flex:1">📞 Vào & Gọi</button>
+        <button id="joinCancel" class="btn">Hủy</button>
+      </div>
     </div>
-    <div class="deface-sub">
-        Bởi <strong>HackerVN</strong> · Tấn công thành công vào hệ thống
+  </section>
+
+  <!-- ===== ROOM INFO: hiện ID phòng sau khi tạo ===== -->
+  <section id="roomInfo" class="panel hidden">
+    <div style="text-align:center; font-weight:600;">🔑 ID phòng của bạn — gửi cho người kia:</div>
+    <div class="room-box show" style="display:flex;">
+      <div class="code" id="roomCode" title="Nhấn để copy">…</div>
+      <div class="tip">👆 Nhấn vào ID để copy • Chờ đối phương gọi tới</div>
+      <div class="row">
+        <button id="copyBtn" class="btn primary" style="flex:1">📋 Copy ID</button>
+        <button id="shareBtn" class="btn" style="flex:1">📤 Chia sẻ</button>
+      </div>
     </div>
+  </section>
 
-    <div class="deface-msg">
-        <strong style="color:#cc0000;">[!]</strong> Hệ thống của bạn đã bị xâm nhập và mã hóa dữ liệu bởi 
-        <span class="hackervn">HackerVN</span>.<br>
-        Toàn bộ cơ sở dữ liệu, file cấu hình và backup đã bị khóa bằng thuật toán RSA-2048.<br>
-        <span style="color:#888; font-size:14px;">Để khôi phục, bạn cần thực hiện <strong style="color:#cc0000;">mở khóa</strong> bằng mã QR bên dưới.</span>
+  <!-- ===== IN-CALL controls ===== -->
+  <section id="inCall" class="panel hidden">
+    <div class="row center">
+      <button id="muteBtn" class="btn">🎤 Mic</button>
+      <button id="camBtn" class="btn">📷 Cam</button>
+      <button id="hangupBtn" class="btn danger">❌ Kết thúc</button>
     </div>
+  </section>
 
-    <!-- KillPhandong + QR -->
-    <div class="kill-section">
-        <div class="qr-area">
-            <div class="qr-box">
-                <!-- QR Code đơn giản (mã QR random) -->
-                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                    <rect width="100" height="100" fill="white"/>
-                    <!-- Mô phỏng QR code ngẫu nhiên -->
-                    <g fill="black">
-                        <!-- 3 góc -->
-                        <rect x="5" y="5" width="20" height="20" />
-                        <rect x="5" y="5" width="8" height="8" fill="white"/>
-                        <rect x="17" y="5" width="8" height="8" fill="white"/>
-                        <rect x="5" y="17" width="8" height="8" fill="white"/>
-
-                        <rect x="75" y="5" width="20" height="20" />
-                        <rect x="75" y="5" width="8" height="8" fill="white"/>
-                        <rect x="87" y="5" width="8" height="8" fill="white"/>
-                        <rect x="75" y="17" width="8" height="8" fill="white"/>
-
-                        <rect x="5" y="75" width="20" height="20" />
-                        <rect x="5" y="75" width="8" height="8" fill="white"/>
-                        <rect x="17" y="75" width="8" height="8" fill="white"/>
-                        <rect x="5" y="87" width="8" height="8" fill="white"/>
-
-                        <!-- Dữ liệu random -->
-                        <rect x="30" y="10" width="6" height="6" />
-                        <rect x="40" y="10" width="6" height="6" />
-                        <rect x="50" y="10" width="6" height="6" />
-                        <rect x="60" y="10" width="6" height="6" />
-                        <rect x="30" y="20" width="6" height="6" />
-                        <rect x="50" y="20" width="6" height="6" />
-                        <rect x="60" y="20" width="6" height="6" />
-                        <rect x="30" y="30" width="6" height="6" />
-                        <rect x="40" y="30" width="6" height="6" />
-                        <rect x="60" y="30" width="6" height="6" />
-                        <rect x="30" y="40" width="6" height="6" />
-                        <rect x="50" y="40" width="6" height="6" />
-                        <rect x="60" y="40" width="6" height="6" />
-                        <rect x="70" y="40" width="6" height="6" />
-                        <rect x="30" y="50" width="6" height="6" />
-                        <rect x="40" y="50" width="6" height="6" />
-                        <rect x="60" y="50" width="6" height="6" />
-                        <rect x="70" y="50" width="6" height="6" />
-                        <rect x="40" y="60" width="6" height="6" />
-                        <rect x="50" y="60" width="6" height="6" />
-                        <rect x="60" y="60" width="6" height="6" />
-                        <rect x="30" y="70" width="6" height="6" />
-                        <rect x="40" y="70" width="6" height="6" />
-                        <rect x="60" y="70" width="6" height="6" />
-                        <rect x="70" y="70" width="6" height="6" />
-                        <rect x="30" y="80" width="6" height="6" />
-                        <rect x="50" y="80" width="6" height="6" />
-                        <rect x="60" y="80" width="6" height="6" />
-                        <rect x="70" y="80" width="6" height="6" />
-                        <rect x="40" y="90" width="6" height="6" />
-                        <rect x="50" y="90" width="6" height="6" />
-                        <rect x="70" y="90" width="6" height="6" />
-                    </g>
-                </svg>
-            </div>
-            <div class="qr-label">
-                <strong>🔐</strong> Mã QR · Quét để unlock
-            </div>
-        </div>
-
-        <div class="unlock-info">
-            <h3>🛡️ UNLOCK WEBSITE</h3>
-            <p>
-                Quét mã QR hoặc nhập mã xác nhận bên dưới để <strong style="color:#cc0000;">mở khóa</strong> website.
-                Mã sẽ thay đổi sau mỗi 60 giây.
-            </p>
-            <div class="unlock-code">
-                X7K-9M2-P4R
-            </div>
-            <div class="unlock-hint">
-                ⏱️ Mã hiện tại · Hết hạn sau 48 giây
-            </div>
-            <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
-                <span style="background:#1a1a1a; color:#888; padding:4px 12px; border-radius:4px; font-size:12px; border:1px solid #333;">
-                    🔑 Key: 0x7F3A9C
-                </span>
-                <span style="background:#1a1a1a; color:#ff6b6b; padding:4px 12px; border-radius:4px; font-size:12px; border:1px solid #ff6b6b; font-family:'Courier New',monospace;">
-                    🖥️ Victim: 0x0000_DEAD_BEEF
-                </span>
-            </div>
-        </div>
-    </div>
-
-    <!-- Dòng Đảng Cộng Sản Việt Nam Muôn năm -->
-    <div class="party-line">
-        <span>🇻🇳 ĐẢNG CỘNG SẢN VIỆT NAM MUÔN NĂM 🇻🇳</span>
-    </div>
-
-    <!-- Footer -->
-    <div class="footer">
-        <div>
-            <span class="hackervn-tag">☠️ HackerVN</span>
-            <span style="color:#444;">·</span>
-            <span>Deface #2026</span>
-            <span style="color:#444;">·</span>
-            <span class="status"><i>●</i> KillPhandong Encrypted</span>
-        </div>
-        <div>
-            <span style="color:#666;">⚡</span>
-            <span style="color:#444;">Contact:</span>
-            <span style="color:#cc0000;">@hackervn_off</span>
-        </div>
-    </div>
-
+  <div class="log" id="log"></div>
 </div>
 
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+
+<script>
+/* ================== PWA: manifest + service worker inline ================== */
+(function setupPWA(){
+  const manifest = {
+    name:"Video Call PWA", short_name:"VideoCall", start_url:".",
+    display:"standalone", background_color:"#0f172a", theme_color:"#0f172a",
+    orientation:"any",
+    icons:[
+      { src:"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTkyIj48cmVjdCB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgcng9IjM2IiBmaWxsPSIjM2I4MmY2Ii8+PHRleHQgeD0iOTYiIHk9IjEyMCIgZm9udC1zaXplPSI5NiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+8J+SuTwvdGV4dD48L3N2Zz4=",
+        sizes:"192x192", type:"image/svg+xml", purpose:"any maskable" },
+      { src:"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9Ijk2IiBmaWxsPSIjM2I4MmY2Ii8+PHRleHQgeD0iMjU2IiB5PSIzMjAiIGZvbnQtc2l6ZT0iMjU2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7wn5K5PC90ZXh0Pjwvc3ZnPg==",
+        sizes:"512x512", type:"image/svg+xml", purpose:"any maskable" }
+    ]
+  };
+  const link = document.createElement("link");
+  link.rel = "manifest";
+  link.href = URL.createObjectURL(new Blob([JSON.stringify(manifest)], {type:"application/manifest+json"}));
+  document.head.appendChild(link);
+
+  if ("serviceWorker" in navigator) {
+    const swCode = `
+      const CACHE='videocall-v1';
+      self.addEventListener('install',e=>self.skipWaiting());
+      self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));
+      self.addEventListener('fetch',e=>{
+        if(e.request.method!=='GET') return;
+        e.respondWith(caches.open(CACHE).then(c=>fetch(e.request).then(r=>{
+          if(r&&r.status===200) c.put(e.request,r.clone()); return r;
+        }).catch(()=>c.match(e.request))));
+      });
+    `;
+    const swURL = URL.createObjectURL(new Blob([swCode], {type:"application/javascript"}));
+    navigator.serviceWorker.register(swURL).catch(err => console.warn("SW:", err));
+  }
+})();
+
+/* ================== DOM refs ================== */
+const $ = id => document.getElementById(id);
+const localVideo  = $("localVideo");
+const remoteVideo = $("remoteVideo");
+const statusEl    = $("status");
+const logEl       = $("log");
+
+const lobby       = $("lobby");
+const createBtn   = $("createBtn");
+const joinShowBtn = $("joinShowBtn");
+const joinBox     = $("joinBox");
+const roomInput   = $("roomInput");
+const joinBtn     = $("joinBtn");
+const joinCancel  = $("joinCancel");
+
+const roomInfo    = $("roomInfo");
+const roomCode    = $("roomCode");
+const copyBtn     = $("copyBtn");
+const shareBtn    = $("shareBtn");
+
+const inCall      = $("inCall");
+const muteBtn     = $("muteBtn");
+const camBtn      = $("camBtn");
+const hangupBtn   = $("hangupBtn");
+const remoteLabel = $("remoteLabel");
+
+/* ================== State ================== */
+let peer = null;
+let localStream = null;
+let currentCall = null;
+let myRoomId = null;
+let isHost = false;
+let micOn = true, camOn = true;
+
+/* ================== Utils ================== */
+function log(msg){
+  const t = new Date().toLocaleTimeString();
+  logEl.innerHTML += `[${t}] ${msg}<br>`;
+  logEl.scrollTop = logEl.scrollHeight;
+}
+function setStatus(text, cls=""){ statusEl.textContent = text; statusEl.className = "status "+cls; }
+
+// Tạo ID phòng dễ đọc: vc-xxxx-xxxx
+function generateRoomId(){
+  const s = () => Math.random().toString(36).slice(2,6);
+  return `vc-${s()}-${s()}`;
+}
+function show(el){ el.classList.remove("hidden"); }
+function hide(el){ el.classList.add("hidden"); }
+
+/* ================== 1. Lấy media ================== */
+async function initLocalStream(){
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia({
+      video:{ width:{ideal:1280}, height:{ideal:720} },
+      audio:{ echoCancellation:true, noiseSuppression:true }
+    });
+    localVideo.srcObject = localStream;
+    log("✅ Đã lấy camera + mic");
+    return true;
+  } catch(err){
+    log("❌ Media lỗi: " + err.message);
+    setStatus("Không có quyền camera/mic", "error");
+    alert("Cần quyền camera và mic để thực hiện cuộc gọi.");
+    return false;
+  }
+}
+
+/* ================== 2. Khởi tạo Peer với ID chỉ định ================== */
+function initPeer(roomId){
+  return new Promise((resolve, reject) => {
+    setStatus("Đang kết nối signaling…");
+    log("🔌 Đăng ký Peer ID: " + roomId);
+
+    peer = new Peer(roomId, {
+      debug: 2,
+      config: {
+        // Google STUN + fallback
+        iceServers: [
+          { urls: "stun:stun.l.google.com:19302" },
+          { urls: "stun:stun1.l.google.com:19302" },
+          { urls: "stun:stun2.l.google.com:19302" },
+          { urls: "stun:stun3.l.google.com:19302" },
+          { urls: "stun:stun4.l.google.com:19302" }
+          // Thêm TURN nếu cần xuyên NAT đối xứng:
+          // { urls:"turn:openrelay.metered.ca:80", username:"openrelayproject", credential:"openrelayproject" }
+        ],
+        iceCandidatePoolSize: 10
+      }
+    });
+
+    peer.on("open", id => {
+      log("🟢 Peer online: " + id);
+      setStatus("Sẵn sàng", "online");
+      resolve(id);
+    });
+
+    peer.on("error", err => {
+      log("⚠️ Peer error: " + err.type + " – " + err.message);
+      if (err.type === "unavailable-id") {
+        setStatus("ID phòng đã tồn tại", "error");
+        reject(err);
+      } else if (err.type === "peer-unavailable") {
+        setStatus("Không tìm thấy phòng", "error");
+        log("❌ Không tìm thấy Peer ID này — kiểm tra lại ID.");
+      } else {
+        setStatus("Lỗi: " + err.type, "error");
+      }
+    });
+
+    peer.on("disconnected", () => {
+      log("🔌 Mất kết nối signaling, reconnect…");
+      peer.reconnect();
+    });
+
+    // Nhận cuộc gọi đến (Host chờ)
+    peer.on("call", call => {
+      log("📞 Có cuộc gọi đến từ: " + call.peer);
+      setStatus("Đang kết nối…", "calling");
+      call.answer(localStream);
+      handleCall(call);
+    });
+  });
+}
+
+/* ================== 3. Xử lý cuộc gọi ================== */
+function handleCall(call){
+  currentCall = call;
+
+  call.on("stream", remoteStream => {
+    log("🎥 Đã nhận stream đối phương");
+    remoteVideo.srcObject = remoteStream;
+    setStatus("Đang trò chuyện", "online");
+    remoteLabel.textContent = "Đối phương (" + call.peer + ")";
+
+    // UI: ẩn lobby + roomInfo, hiện điều khiển
+    hide(lobby); hide(roomInfo); show(inCall);
+  });
+
+  call.on("close", () => {
+    log("📴 Cuộc gọi kết thúc");
+    endCallCleanup();
+  });
+
+  call.on("error", err => {
+    log("❌ Call error: " + err.message);
+    setStatus("Lỗi cuộc gọi", "error");
+  });
+}
+
+function endCallCleanup(){
+  remoteVideo.srcObject = null;
+  currentCall = null;
+  setStatus("Sẵn sàng", "online");
+  hide(inCall);
+  if (isHost && myRoomId) {
+    // Host quay về màn hình phòng để chờ cuộc gọi mới
+    show(roomInfo);
+  } else {
+    // Guest quay về lobby
+    show(lobby);
+    hide(joinBox);
+    roomInput.value = "";
+  }
+}
+
+/* ================== 4. Host: Tạo phòng ================== */
+async function createRoom(){
+  createBtn.disabled = true;
+  isHost = true;
+  myRoomId = generateRoomId();
+
+  try {
+    await initPeer(myRoomId);
+  } catch(e) {
+    createBtn.disabled = false;
+    isHost = false;
+    return;
+  }
+
+  // Hiện màn hình ID phòng
+  roomCode.textContent = myRoomId;
+  hide(lobby);
+  show(roomInfo);
+  setStatus("Phòng đã tạo — chờ gọi", "online");
+  log("🏠 Đã tạo phòng: " + myRoomId);
+}
+
+/* ================== 5. Guest: Vào phòng ================== */
+async function joinRoom(){
+  const targetId = roomInput.value.trim();
+  if (!targetId) return alert("Vui lòng dán ID phòng của Host");
+  if (!targetId.startsWith("vc-")) {
+    if (!confirm("ID không đúng định dạng 'vc-xxxx-xxxx'. Vẫn tiếp tục?")) return;
+  }
+
+  joinBtn.disabled = true;
+  isHost = false;
+
+  // Guest dùng ID ngẫu nhiên cho chính mình
+  const guestId = "vc-" + Math.random().toString(36).slice(2,10);
+
+  try {
+    await initPeer(guestId);
+  } catch(e){
+    joinBtn.disabled = false;
+    return;
+  }
+
+  log("📞 Đang gọi tới phòng: " + targetId);
+  setStatus("Đang gọi…", "calling");
+
+  const call = peer.call(targetId, localStream);
+  if (!call) {
+    setStatus("Không gọi được", "error");
+    joinBtn.disabled = false;
+    return;
+  }
+  handleCall(call);
+}
+
+/* ================== 6. Toggle mic/cam ================== */
+function toggleMic(){
+  if (!localStream) return;
+  micOn = !micOn;
+  localStream.getAudioTracks().forEach(t => t.enabled = micOn);
+  muteBtn.textContent = micOn ? "🎤 Mic" : "🔇 Mic (off)";
+}
+function toggleCam(){
+  if (!localStream) return;
+  camOn = !camOn;
+  localStream.getVideoTracks().forEach(t => t.enabled = camOn);
+  camBtn.textContent = camOn ? "📷 Cam" : "🚫 Cam (off)";
+}
+
+/* ================== 7. Hangup ================== */
+function hangup(){
+  if (currentCall) { currentCall.close(); currentCall = null; }
+  log("📴 Bạn đã kết thúc cuộc gọi");
+  endCallCleanup();
+}
+
+/* ================== 8. Copy & Share ================== */
+async function copyRoomCode(){
+  if (!myRoomId) return;
+  try {
+    await navigator.clipboard.writeText(myRoomId);
+    copyBtn.textContent = "✅ Đã copy!";
+    setTimeout(() => copyBtn.textContent = "📋 Copy ID", 1500);
+    log("📋 Đã copy ID phòng");
+  } catch {
+    prompt("Copy ID phòng của bạn:", myRoomId);
+  }
+}
+async function shareRoomCode(){
+  if (!myRoomId) return;
+  const shareData = {
+    title: "Tham gia cuộc gọi video",
+    text: `Vào room này để gọi video với tôi: ${myRoomId}`,
+    url: location.href
+  };
+  if (navigator.share) {
+    try { await navigator.share(shareData); } catch {}
+  } else {
+    copyRoomCode();
+    alert("Đã copy ID phòng — hãy dán vào tin nhắn gửi cho bạn bè!");
+  }
+}
+
+/* ================== 9. Gắn sự kiện ================== */
+createBtn.addEventListener("click", createRoom);
+
+joinShowBtn.addEventListener("click", () => {
+  joinBox.classList.toggle("show");
+  if (joinBox.classList.contains("show")) roomInput.focus();
+});
+
+joinCancel.addEventListener("click", () => {
+  joinBox.classList.remove("show");
+  roomInput.value = "";
+});
+
+joinBtn.addEventListener("click", joinRoom);
+roomInput.addEventListener("keydown", e => { if (e.key === "Enter") joinRoom(); });
+
+roomCode.addEventListener("click", copyRoomCode);
+copyBtn.addEventListener("click", copyRoomCode);
+shareBtn.addEventListener("click", shareRoomCode);
+
+muteBtn.addEventListener("click", toggleMic);
+camBtn.addEventListener("click", toggleCam);
+hangupBtn.addEventListener("click", hangup);
+
+window.addEventListener("beforeunload", () => {
+  if (currentCall) currentCall.close();
+  if (peer) peer.destroy();
+});
+
+/* ================== 10. Boot ================== */
+(async function boot(){
+  log("🚀 Khởi động");
+  const ok = await initLocalStream();
+  if (!ok) return;
+  setStatus("Chọn Tạo hoặc Vào phòng");
+  log("👉 Bấm 'Tạo phòng' (Host) hoặc 'Vào phòng' (Guest)");
+})();
+</script>
 </body>
 </html>
