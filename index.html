@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
 <meta name="theme-color" content="#0f172a" />
-<title>🏓 Ping Pong Online — QR Room</title>
+<title>🏓 Ping Pong QR</title>
 <link rel="manifest" href='data:application/manifest+json,{"name":"Ping Pong QR","short_name":"PingPong","start_url":".","display":"standalone","background_color":"%230f172a","theme_color":"%230f172a","icons":[{"src":"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTkyIj48cmVjdCB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgcng9IjMyIiBmaWxsPSIjMGYxNzJhIi8+PHRleHQgeD0iOTYiIHk9IjEyMCIgZm9udC1zaXplPSI5NiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+8J+SjzwvdGV4dD48L3N2Zz4=","sizes":"192x192","type":"image/svg+xml"}]}' />
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -39,32 +39,34 @@
     background: linear-gradient(135deg, #38bdf8, #6366f1);
     box-shadow: 0 8px 20px rgba(56,189,248,.3);
   }
-  .btn.danger { background: #dc2626; }
   .btn.ghost { background: transparent; border: 1px solid #334155; }
 
   .card {
     width: 100%; background: #0b1220; border: 1px solid #1e293b;
-    border-radius: 14px; padding: 16px; display: flex;
-    flex-direction: column; gap: 10px; align-items: center;
+    border-radius: 14px; padding: 18px; display: flex;
+    flex-direction: column; gap: 12px; align-items: center;
     animation: fade .3s ease;
   }
   @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
   .qr-wrap {
-    background: #fff; padding: 10px; border-radius: 12px;
+    background: #fff; padding: 12px; border-radius: 12px;
     display: inline-block; box-shadow: 0 0 30px rgba(56,189,248,.25);
   }
-  .qr-wrap img, .qr-wrap canvas { display: block; width: 240px; height: 240px; }
+  .qr-wrap canvas { display: block; width: 260px; height: 260px; }
 
-  .label { font-size: .82rem; color: #94a3b8; text-align: center; line-height: 1.4; }
-  .label b { color: #38bdf8; }
-  .hint { font-size: .78rem; color: #94a3b8; text-align: center; line-height: 1.5; }
+  .room-code {
+    font-family: ui-monospace, monospace; font-size: 2rem;
+    font-weight: 800; letter-spacing: 6px; color: #38bdf8;
+    text-shadow: 0 0 20px rgba(56,189,248,.5);
+  }
+  .label { font-size: .85rem; color: #94a3b8; text-align: center; line-height: 1.5; }
+  .hint { font-size: .78rem; color: #64748b; text-align: center; line-height: 1.5; }
   .badge {
-    display: inline-block; padding: 4px 10px; border-radius: 999px;
-    background: #1e293b; color: #38bdf8; font-size: .75rem; font-weight: 600;
+    display: inline-block; padding: 5px 12px; border-radius: 999px;
+    background: #1e293b; color: #38bdf8; font-size: .78rem; font-weight: 600;
   }
 
-  /* GAME */
   #game { max-width: 100%; }
   canvas#canvas {
     width: 100%; max-width: 800px; height: auto;
@@ -75,101 +77,105 @@
   #status { text-align: center; color: #94a3b8; font-size: .9rem; margin-top: 8px; }
   #scoreboard {
     display: flex; justify-content: space-between; width: 100%;
-    max-width: 800px; font-size: 1.5rem; font-weight: 700;
-    padding: 0 12px;
+    max-width: 800px; font-size: 1.5rem; font-weight: 700; padding: 0 12px;
   }
   #scoreboard span:first-child { color: #38bdf8; }
   #scoreboard span:last-child { color: #a78bfa; }
 
-  #qrReader { width: 100%; max-width: 320px; border-radius: 12px; border: 2px solid #334155; }
-  #readerWrap { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  /* Loading dots */
+  .dots::after { content: ''; animation: dots 1.5s infinite; }
+  @keyframes dots { 0%,20%{content:'';} 40%{content:'.';} 60%{content:'..';} 80%,100%{content:'...';} }
 
   @media (max-width: 600px) {
     h1 { font-size: 1.25rem; }
-    .qr-wrap img, .qr-wrap canvas { width: 200px; height: 200px; }
+    .qr-wrap canvas { width: 220px; height: 220px; }
+    .room-code { font-size: 1.6rem; letter-spacing: 4px; }
   }
 </style>
 </head>
 <body>
 <div id="app">
-  <h1>🏓 Ping Pong Online</h1>
+  <h1>🏓 Ping Pong QR</h1>
 
-  <!-- ================= MENU ================= -->
+  <!-- ============ MENU ============ -->
   <div id="menu" class="screen">
-    <button id="btnCreate" class="btn primary">🎮 Tạo phòng (QR)</button>
-    <button id="btnScan" class="btn">📷 Quét QR để vào phòng</button>
-    <p class="hint">Host tạo phòng → hiện QR → Guest quét là vào chơi ngay</p>
+    <button id="btnCreate" class="btn primary">🎮 Tạo phòng</button>
+    <button id="btnJoin" class="btn">🔑 Nhập mã phòng</button>
+    <div id="joinBox" class="hidden" style="width:100%;display:flex;flex-direction:column;gap:8px;align-items:center;">
+      <input id="roomInput" maxlength="4" placeholder="MÃ 4 KÝ TỰ"
+        style="width:100%;max-width:340px;padding:14px;border-radius:10px;
+        border:1px solid #334155;background:#1e293b;color:#38bdf8;
+        font-size:1.5rem;text-align:center;letter-spacing:8px;
+        font-weight:700;text-transform:uppercase;outline:none;" />
+      <button id="btnJoinGo" class="btn primary">Vào phòng</button>
+    </div>
+    <p class="hint">Host tạo phòng → hiện QR → Guest quét là chơi luôn<br>
+    Không cần copy code, không cần quét QR lần 2</p>
   </div>
 
-  <!-- ================= HOST ================= -->
+  <!-- ============ HOST ============ -->
   <div id="hostScreen" class="screen hidden">
-    <span class="badge">🎮 HOST — Bạn là PADDLE TRÁI</span>
+    <span class="badge">🎮 HOST — PADDLE TRÁI</span>
     <div class="card">
-      <div class="label">1️⃣ Mời bạn bè quét QR này để vào phòng:</div>
-      <div class="qr-wrap"><div id="offerQR"></div></div>
+      <div class="label">📱 Quét QR để vào phòng:</div>
+      <div class="qr-wrap"><canvas id="qrCanvas"></canvas></div>
+      <div class="label">hoặc nhập mã phòng:</div>
+      <div class="room-code" id="roomCodeEl">----</div>
       <button id="btnCopyLink" class="btn ghost">📋 Copy link phòng</button>
     </div>
-
     <div class="card">
-      <div class="label">2️⃣ Quét QR <b>Answer</b> mà Guest hiện trên màn hình:</div>
-      <button id="btnScanAnswer" class="btn primary">📷 Quét QR Answer</button>
-      <div id="readerWrap" class="hidden">
-        <video id="qrReader"></video>
-        <button id="btnStopScan" class="btn danger">✕ Dừng quét</button>
-      </div>
+      <div class="label dots" id="hostStatus">Đang chờ người chơi</div>
     </div>
   </div>
 
-  <!-- ================= GUEST ================= -->
+  <!-- ============ GUEST ============ -->
   <div id="guestScreen" class="screen hidden">
-    <span class="badge">🎮 GUEST — Bạn là PADDLE PHẢI</span>
+    <span class="badge">🎮 GUEST — PADDLE PHẢI</span>
     <div class="card">
-      <div class="label">Gửi QR <b>Answer</b> này lại cho Host quét:</div>
-      <div class="qr-wrap"><div id="answerQR"></div></div>
-      <button id="btnCopyAnswerLink" class="btn ghost">📋 Copy Answer link</button>
-      <p class="hint">Đang chờ Host kết nối...</p>
+      <div class="label dots" id="guestStatus">Đang kết nối tới phòng...</div>
     </div>
   </div>
 
-  <!-- ================= GAME ================= -->
+  <!-- ============ GAME ============ -->
   <div id="game" class="screen hidden">
     <div id="scoreboard">
       <span id="scoreLeft">0</span>
       <span id="scoreRight">0</span>
     </div>
     <canvas id="canvas" width="800" height="500"></canvas>
-    <div id="status">Đang kết nối...</div>
+    <div id="status">Đang chơi...</div>
   </div>
 </div>
 
-<!-- ============ Thư viện QR (tự chứa, không cần server) ============ -->
+<!-- PeerJS (signaling server công cộng miễn phí) + QR generator -->
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 
 <script>
 /* =========================================================
-   PWA Service Worker inline
+   PWA Service Worker
 ========================================================= */
 if ("serviceWorker" in navigator) {
-  const swCode = `
-    self.addEventListener('install', e => self.skipWaiting());
-    self.addEventListener('activate', e => self.clients.claim());
-  `;
-  const blob = new Blob([swCode], { type: "text/javascript" });
-  navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(()=>{});
+  const sw = `self.addEventListener('install',e=>self.skipWaiting());
+              self.addEventListener('activate',e=>self.clients.claim());`;
+  navigator.serviceWorker.register(URL.createObjectURL(new Blob([sw], {type:"text/javascript"}))).catch(()=>{});
 }
 
 /* =========================================================
-   WEBRTC + Google STUN
+   GOOGLE STUN — chỉ định rõ cho PeerJS dùng
 ========================================================= */
-const RTC_CONFIG = {
-  iceServers: [
-    { urls: "stun:stun.l.google.com:19302" },
-    { urls: "stun:stun1.l.google.com:19302" },
-    { urls: "stun:stun2.l.google.com:19302" },
-    { urls: "stun:stun3.l.google.com:19302" },
-    { urls: "stun:stun4.l.google.com:19302" }
-  ]
+const PEER_CONFIG = {
+  debug: 1,
+  config: {
+    iceServers: [
+      { urls: "stun:stun.l.google.com:19302" },
+      { urls: "stun:stun1.l.google.com:19302" },
+      { urls: "stun:stun2.l.google.com:19302" },
+      { urls: "stun:stun3.l.google.com:19302" },
+      { urls: "stun:stun4.l.google.com:19302" }
+    ],
+    iceCandidatePoolSize: 10
+  }
 };
 
 /* =========================================================
@@ -182,254 +188,183 @@ const canvas = $("canvas"), ctx = canvas.getContext("2d");
 const scoreLeftEl = $("scoreLeft"), scoreRightEl = $("scoreRight");
 
 /* =========================================================
-   NÉN SDP (giảm kích thước cho QR)
+   Sinh mã phòng 4 ký tự (A-Z, không trùng lặp khó đọc)
 ========================================================= */
-function encodeSDP(sdp) {
-  // Loại bỏ các dòng không cần thiết để QR gọn hơn
-  const cleaned = sdp
-    .split("\r\n")
-    .filter(line =>
-      !line.startsWith("a=extmap") &&
-      !line.startsWith("a=rtcp-fb") &&
-      !line.startsWith("a=fmtp") &&
-      !line.startsWith("a=rtpmap") &&
-      !line.startsWith("a=ssrc") &&
-      !line.startsWith("a=msid") &&
-      !line.startsWith("a=mid") &&
-      !line.startsWith("a=rtcp-mux")
-    )
-    .join("\r\n");
-  return btoa(unescape(encodeURIComponent(cleaned)))
-    .replace(/=+$/, "")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_");
+const CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+function newRoomCode() {
+  let s = "";
+  for (let i = 0; i < 4; i++) s += CHARS[Math.floor(Math.random() * CHARS.length)];
+  return s;
 }
-function decodeSDP(str) {
-  let s = str.replace(/-/g, "+").replace(/_/g, "/");
-  while (s.length % 4) s += "=";
-  return decodeURIComponent(escape(atob(s)));
-}
+function peerIdFromCode(code) { return "ppong-" + code.toUpperCase(); }
 
 /* =========================================================
-   TẠO QR CODE
+   QR generator (vẽ vào canvas)
 ========================================================= */
-async function makeQR(el, text) {
-  el.innerHTML = "";
-  const canvasQR = document.createElement("canvas");
-  await QRCode.toCanvas(canvasQR, text, {
-    width: 240, margin: 1,
-    errorCorrectionLevel: "L",
+async function drawQR(text) {
+  await QRCode.toCanvas($("qrCanvas"), text, {
+    width: 260, margin: 1, errorCorrectionLevel: "M",
     color: { dark: "#0f172a", light: "#ffffff" }
   });
-  el.appendChild(canvasQR);
 }
 
 /* =========================================================
    WEBRTC STATE
 ========================================================= */
-let pc = null, dc = null;
-let role = null;              // "host" | "guest"
-let iceTimer = null;
-
-function createPeer(isHost) {
-  pc = new RTCPeerConnection(RTC_CONFIG);
-
-  pc.onconnectionstatechange = () => {
-    log("Trạng thái: " + pc.connectionState);
-    if (pc.connectionState === "connected") startGame();
-    if (["failed","disconnected","closed"].includes(pc.connectionState)) {
-      statusEl.textContent = "❌ Mất kết nối";
-      game.running = false;
-    }
-  };
-
-  if (isHost) {
-    dc = pc.createDataChannel("game", { ordered: false, maxRetransmits: 0 });
-    setupDC();
-  } else {
-    pc.ondatachannel = e => { dc = e.channel; setupDC(); };
-  }
-  return pc;
-}
-
-function setupDC() {
-  dc.onopen = () => log("✅ Kết nối P2P thành công!");
-  dc.onmessage = e => { try { onNet(JSON.parse(e.data)); } catch(_){} };
-  dc.onclose = () => { statusEl.textContent = "🔌 Đã ngắt kết nối"; game.running = false; };
-}
-function send(o) { if (dc && dc.readyState === "open") dc.send(JSON.stringify(o)); }
-
-function waitICE(pc) {
-  return new Promise(res => {
-    if (pc.iceGatheringState === "complete") return res();
-    const t = setTimeout(res, 2500);
-    pc.onicegatheringstatechange = () => {
-      if (pc.iceGatheringState === "complete") { clearTimeout(t); res(); }
-    };
-  });
-}
+let peer = null, conn = null;
+let role = null;   // "host" | "guest"
 
 /* =========================================================
    HOST: tạo phòng
 ========================================================= */
-$("btnCreate").onclick = async () => {
+$("btnCreate").onclick = () => {
   role = "host";
+  const code = newRoomCode();
+  const peerId = peerIdFromCode(code);
+
+  $("roomCodeEl").textContent = code;
+  const url = location.origin + location.pathname + "?r=" + code;
+  window._roomURL = url;
+  window._roomCode = code;
+
   menuEl.classList.add("hidden");
   hostEl.classList.remove("hidden");
 
-  createPeer(true);
-  const offer = await pc.createOffer();
-  await pc.setLocalDescription(offer);
-  await waitICE(pc);
+  $("hostStatus").textContent = "Đang kết nối tới signaling server";
 
-  const encoded = encodeSDP(pc.localDescription.sdp);
-  const baseURL = location.origin + location.pathname;
-  const roomURL = baseURL + "#o=" + encoded;
+  peer = new Peer(peerId, PEER_CONFIG);
 
-  await makeQR($("offerQR"), roomURL);
-  window._roomURL = roomURL;
+  peer.on("open", async () => {
+    $("hostStatus").textContent = "Đang chờ người chơi";
+    await drawQR(url);
+  });
 
-  log("QR phòng sẵn sàng — chờ Guest quét");
+  peer.on("error", (err) => {
+    console.error("Peer error:", err);
+    if (err.type === "unavailable-id") {
+      // Trùng mã → thử mã khác
+      $("hostStatus").textContent = "Mã trùng, đang tạo mã mới...";
+      setTimeout(() => $("btnCreate").click(), 300);
+    } else {
+      $("hostStatus").textContent = "❌ Lỗi: " + err.type;
+    }
+  });
+
+  peer.on("connection", (c) => {
+    conn = c;
+    $("hostStatus").textContent = "Có người kết nối, đang thiết lập";
+    setupConnection();
+  });
 };
 
 $("btnCopyLink").onclick = (e) => {
   if (!window._roomURL) return;
   navigator.clipboard.writeText(window._roomURL).then(() => {
+    const old = e.target.textContent;
     e.target.textContent = "✅ Đã copy!";
-    setTimeout(() => e.target.textContent = "📋 Copy link phòng", 1200);
+    setTimeout(() => e.target.textContent = old, 1200);
   });
 };
 
 /* =========================================================
-   HOST: quét QR Answer
+   GUEST: nhập mã thủ công
 ========================================================= */
-$("btnScanAnswer").onclick = () => startScanner(async (text) => {
-  stopScanner();
-  try {
-    const sdp = decodeSDP(text.replace(/^.*#a=/, ""));
-    await pc.setRemoteDescription({ type: "answer", sdp });
-    log("Đã nhận Answer — đang kết nối...");
-  } catch (e) {
-    alert("QR Answer không hợp lệ: " + e.message);
-  }
+$("btnJoin").onclick = () => {
+  $("joinBox").classList.toggle("hidden");
+  if (!$("joinBox").classList.contains("hidden")) $("roomInput").focus();
+};
+
+$("btnJoinGo").onclick = () => {
+  const code = $("roomInput").value.trim().toUpperCase();
+  if (code.length !== 4) return alert("Nhập đủ 4 ký tự!");
+  joinRoom(code);
+};
+
+$("roomInput").addEventListener("keypress", (e) => {
+  if (e.key === "Enter") $("btnJoinGo").click();
+});
+// Tự uppercase khi gõ
+$("roomInput").addEventListener("input", (e) => {
+  e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
 });
 
-$("btnStopScan").onclick = stopScanner;
-
 /* =========================================================
-   GUEST: đọc hash khi mở URL
+   GUEST: auto-join từ URL ?r=XXXX
 ========================================================= */
-window.addEventListener("load", autoJoinFromURL);
-window.addEventListener("hashchange", autoJoinFromURL);
-let joined = false;
+const params = new URLSearchParams(location.search);
+const autoRoom = params.get("r");
+if (autoRoom) {
+  setTimeout(() => joinRoom(autoRoom.toUpperCase()), 100);
+}
 
-async function autoJoinFromURL() {
-  if (joined) return;
-  const h = location.hash || "";
-  const m = h.match(/#o=(.+)/);
-  if (!m) return;
-  joined = true;
-
+function joinRoom(code) {
   role = "guest";
   menuEl.classList.add("hidden");
   guestEl.classList.remove("hidden");
+  $("guestStatus").textContent = "Đang kết nối tới phòng " + code;
 
-  try {
-    createPeer(false);
-    const sdp = decodeSDP(m[1]);
-    await pc.setRemoteDescription({ type: "offer", sdp });
+  peer = new Peer(PEER_CONFIG);   // Guest dùng ID random
 
-    const ans = await pc.createAnswer();
-    await pc.setLocalDescription(ans);
-    await waitICE(pc);
-
-    const encoded = encodeSDP(pc.localDescription.sdp);
-    const baseURL = location.origin + location.pathname;
-    const answerURL = baseURL + "#a=" + encoded;
-    window._answerURL = answerURL;
-
-    await makeQR($("answerQR"), answerURL);
-    log("QR Answer sẵn sàng — đưa Host quét");
-  } catch (e) {
-    alert("Không đọc được Offer: " + e.message);
-  }
-}
-
-$("btnCopyAnswerLink").onclick = (e) => {
-  if (!window._answerURL) return;
-  navigator.clipboard.writeText(window._answerURL).then(() => {
-    e.target.textContent = "✅ Đã copy!";
-    setTimeout(() => e.target.textContent = "📋 Copy Answer link", 1200);
-  });
-};
-
-/* =========================================================
-   SCANNER dùng camera + jsQR
-========================================================= */
-let scanStream = null, scanRAF = null;
-async function startScanner(onResult) {
-  const video = $("qrReader");
-  $("readerWrap").classList.remove("hidden");
-  try {
-    scanStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "environment" }, audio: false
+  peer.on("open", () => {
+    $("guestStatus").textContent = "Đang tìm Host";
+    conn = peer.connect(peerIdFromCode(code), {
+      reliable: false,          // UDP-like cho game realtime
+      serialization: "json"
     });
-    video.srcObject = scanStream;
-    video.setAttribute("playsinline", true);
-    await video.play();
+    setupConnection();
+  });
 
-    const tmp = document.createElement("canvas");
-    const tctx = tmp.getContext("2d", { willReadFrequently: true });
-
-    const tick = () => {
-      if (video.readyState === video.HAVE_ENOUGH_DATA) {
-        tmp.width = video.videoWidth;
-        tmp.height = video.videoHeight;
-        tctx.drawImage(video, 0, 0, tmp.width, tmp.height);
-        const img = tctx.getImageData(0, 0, tmp.width, tmp.height);
-        const code = jsQR(img.data, img.width, img.height, { inversionAttempts: "dontInvert" });
-        if (code && code.data) { onResult(code.data); return; }
-      }
-      scanRAF = requestAnimationFrame(tick);
-    };
-    scanRAF = requestAnimationFrame(tick);
-  } catch (e) {
-    alert("Không mở được camera: " + e.message);
-    stopScanner();
-  }
-}
-function stopScanner() {
-  if (scanRAF) cancelAnimationFrame(scanRAF);
-  scanRAF = null;
-  if (scanStream) { scanStream.getTracks().forEach(t => t.stop()); scanStream = null; }
-  $("readerWrap").classList.add("hidden");
-}
-
-/* Nút "Quét QR để vào phòng" ở menu → chuyển hướng nếu đã có hash, ngược lại mở camera */
-$("btnScan").onclick = () => {
-  startScanner((text) => {
-    stopScanner();
-    // Nếu QR chứa URL có #o=... → chuyển hướng
-    try {
-      const url = new URL(text);
-      if (url.hash.startsWith("#o=") || url.hash.startsWith("#a=")) {
-        location.href = url.href;
-        location.reload();
-        return;
-      }
-    } catch(_) {}
-    // Nếu QR chỉ chứa chuỗi SDP đã encode
-    if (text.length > 50) {
-      location.hash = "#o=" + text;
-      location.reload();
+  peer.on("error", (err) => {
+    console.error("Peer error:", err);
+    if (err.type === "peer-unavailable") {
+      $("guestStatus").textContent = "❌ Không tìm thấy phòng " + code;
     } else {
-      alert("QR không hợp lệ");
+      $("guestStatus").textContent = "❌ Lỗi: " + err.type;
     }
   });
-};
+
+  // Nếu không kết nối được sau 10s, báo lỗi
+  setTimeout(() => {
+    if (!game.running && role === "guest") {
+      $("guestStatus").textContent = "❌ Hết thời gian kết nối. Kiểm tra lại mã phòng.";
+    }
+  }, 10000);
+}
 
 /* =========================================================
-   GAME LOGIC (giữ nguyên như bản trước, tinh gọn)
+   SETUP CONNECTION (dùng chung cho cả 2)
+========================================================= */
+function setupConnection() {
+  conn.on("open", () => {
+    log("✅ Đã kết nối P2P!");
+    startGame();
+  });
+
+  conn.on("data", (data) => {
+    try { onNet(data); } catch(_) {}
+  });
+
+  conn.on("close", () => {
+    statusEl.textContent = "🔌 Đã ngắt kết nối";
+    game.running = false;
+  });
+
+  conn.on("error", (err) => {
+    console.error("Conn error:", err);
+    statusEl.textContent = "❌ Lỗi kết nối";
+  });
+}
+
+function send(obj) {
+  if (conn && conn.open) {
+    try { conn.send(obj); } catch(_) {}
+  }
+}
+
+function log(msg) { statusEl.textContent = msg; console.log("[PP]", msg); }
+
+/* =========================================================
+   GAME LOGIC
 ========================================================= */
 const W = canvas.width, H = canvas.height;
 const PADDLE_W = 12, PADDLE_H = 90, BALL_R = 9;
@@ -445,8 +380,6 @@ const game = {
   scoreL: 0, scoreR: 0
 };
 
-function log(msg) { statusEl.textContent = msg; console.log("[PP]", msg); }
-
 function startGame() {
   if (game.running) return;
   game.running = true;
@@ -458,8 +391,8 @@ function startGame() {
   if (role === "host") resetBall(Math.random() < 0.5 ? -1 : 1);
 
   statusEl.textContent = role === "host"
-    ? "Bạn là PADDLE TRÁI 👈 (W/S hoặc ↑/↓)"
-    : "Bạn là PADDLE PHẢI 👉 (W/S hoặc ↑/↓)";
+    ? "Bạn là PADDLE TRÁI 👈 (W/S hoặc ↑/↓ hoặc chạm)"
+    : "Bạn là PADDLE PHẢI 👉 (W/S hoặc ↑/↓ hoặc chạm)";
 
   lastTime = performance.now();
   requestAnimationFrame(loop);
@@ -520,8 +453,9 @@ function sendInput() {
 
 /* ---- NET ---- */
 function onNet(m) {
-  if (m.t === "i" && role === "host") game.right.dy = m.d * PADDLE_SPEED;
-  else if (m.t === "s" && role === "guest") {
+  if (m.t === "i" && role === "host") {
+    game.right.dy = m.d * PADDLE_SPEED;
+  } else if (m.t === "s" && role === "guest") {
     game.ball.x = m.bx; game.ball.y = m.by;
     game.left.y = m.ly; game.left.dy = m.ldy;
     game.right.y = m.ry;
