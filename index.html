@@ -1,1363 +1,815 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-<meta name="theme-color" content="#1a0f0a" />
-<title>🤠 Wild West Co-op</title>
-<link rel="manifest" href='data:application/manifest+json,{"name":"Wild West Co-op","short_name":"WildWest","start_url":".","display":"standalone","background_color":"%231a0f0a","theme_color":"%231a0f0a","icons":[{"src":"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTkyIj48cmVjdCB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgcng9IjMyIiBmaWxsPSIjMWEwZjBhIi8+PHRleHQgeD0iOTYiIHk9IjEyMCIgZm9udC1zaXplPSI5NiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+8J+ggDwvdGV4dD48L3N2Zz4=","sizes":"192x192","type":"image/svg+xml"}]}' />
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body {
-    height: 100%; font-family: "Courier New", ui-monospace, monospace;
-    background: radial-gradient(circle at top, #3d2418, #1a0f0a 60%);
-    color: #f5deb3; overflow-x: hidden; touch-action: manipulation;
-  }
-  #app {
-    display: flex; flex-direction: column; align-items: center;
-    min-height: 100vh; padding: 16px; gap: 14px;
-  }
-  h1 {
-    font-size: 1.5rem; letter-spacing: 2px; text-transform: uppercase;
-    background: linear-gradient(90deg, #d97706, #f59e0b, #d97706);
-    -webkit-background-clip: text; background-clip: text; color: transparent;
-    text-shadow: 0 0 30px rgba(217,119,6,.4);
-  }
-  .tabs {
-    display: flex; gap: 8px; background: #0b0605; padding: 4px;
-    border-radius: 12px; border: 1px solid #3d2418;
-  }
-  .tab {
-    padding: 8px 18px; border-radius: 8px; cursor: pointer;
-    font-size: .85rem; font-weight: 700; color: #a16207;
-    background: transparent; border: none; text-transform: uppercase;
-    letter-spacing: 1px; transition: all .2s;
-  }
-  .tab.active { background: linear-gradient(135deg, #d97706, #92400e); color: #fff; }
-  .screen {
-    display: flex; flex-direction: column; gap: 12px;
-    width: 100%; max-width: 520px; align-items: center;
-  }
-  .hidden { display: none !important; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vòng Quay May Mắn</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        html, body {
+            height: 100%;
+        }
+        body {
+            background: #0d0d0f;
+            background-image:
+                radial-gradient(ellipse 80% 50% at 50% -20%, rgba(120, 90, 40, 0.15), transparent),
+                radial-gradient(ellipse 60% 40% at 50% 120%, rgba(60, 40, 90, 0.12), transparent);
+            color: #e8e6e3;
+            font-family: 'Inter', -apple-system, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 24px;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
 
-  .btn {
-    padding: 12px 22px; border: 2px solid #d97706; border-radius: 8px;
-    background: #1a0f0a; color: #f59e0b; font-size: 1rem;
-    font-weight: 700; cursor: pointer; width: 100%; max-width: 340px;
-    text-transform: uppercase; letter-spacing: 1px;
-    transition: transform .15s, background .2s;
-    font-family: inherit;
-  }
-  .btn:hover { background: #2a1810; transform: translateY(-2px); }
-  .btn.primary {
-    background: linear-gradient(135deg, #d97706, #92400e);
-    color: #fff; border-color: #f59e0b;
-    box-shadow: 0 8px 20px rgba(217,119,6,.35);
-  }
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.5) 100%);
+            pointer-events: none;
+            z-index: 1;
+        }
 
-  .card {
-    width: 100%; background: #0b0605; border: 2px solid #3d2418;
-    border-radius: 12px; padding: 18px; display: flex;
-    flex-direction: column; gap: 12px; align-items: center;
-    animation: fade .3s ease;
-  }
-  @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+        .game-container {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            max-width: 440px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
 
-  .qr-wrap {
-    background: #fff; padding: 12px; border-radius: 8px;
-    display: inline-block; box-shadow: 0 0 30px rgba(217,119,6,.35);
-  }
-  .qr-wrap canvas { display: block; width: 260px; height: 260px; }
+        .header {
+            text-align: center;
+            margin-bottom: 36px;
+        }
+        .header .eyebrow {
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: #8a7d5c;
+            margin-bottom: 12px;
+        }
+        .header h1 {
+            font-family: 'Playfair Display', serif;
+            font-weight: 700;
+            font-size: 2.4rem;
+            letter-spacing: -0.5px;
+            line-height: 1.1;
+            color: #f5f2ea;
+            margin-bottom: 8px;
+        }
+        .header h1 em {
+            font-style: italic;
+            font-weight: 500;
+            color: #c9a961;
+        }
+        .header .subtitle {
+            font-size: 13px;
+            font-weight: 400;
+            color: #6b6b6b;
+            letter-spacing: 0.3px;
+        }
 
-  .room-code {
-    font-size: 2rem; font-weight: 800; letter-spacing: 6px;
-    color: #f59e0b; text-shadow: 0 0 20px rgba(245,158,11,.6);
-  }
-  .label { font-size: .85rem; color: #a16207; text-align: center; line-height: 1.5; }
-  .hint { font-size: .78rem; color: #78350f; text-align: center; line-height: 1.5; }
-  .badge {
-    display: inline-block; padding: 5px 12px; border-radius: 999px;
-    background: #2a1810; color: #f59e0b; font-size: .78rem; font-weight: 700;
-    border: 1px solid #d97706; letter-spacing: 1px;
-  }
+        .wheel-wrapper {
+            position: relative;
+            width: 340px;
+            height: 340px;
+            margin-bottom: 32px;
+        }
 
-  #game { max-width: 100%; position: relative; }
-  canvas#gameCanvas {
-    width: 100%; max-width: 900px; height: auto;
-    background: #1a0f0a; border-radius: 12px;
-    box-shadow: 0 0 40px rgba(217,119,6,.25);
-    border: 2px solid #3d2418; display: block;
-  }
-  #status { text-align: center; color: #a16207; font-size: .9rem; margin-top: 8px; }
-  #hud {
-    display: flex; justify-content: space-between; width: 100%;
-    max-width: 900px; font-size: .9rem; font-weight: 700;
-    padding: 8px 12px; background: #0b0605; border: 1px solid #3d2418;
-    border-radius: 8px; color: #f59e0b; letter-spacing: 1px;
-  }
-  #hud .hud-item { display: flex; gap: 6px; align-items: center; }
-  #hud .hp-bar {
-    display: inline-block; width: 60px; height: 8px; background: #3d2418;
-    border-radius: 4px; overflow: hidden;
-  }
-  #hud .hp-fill { height: 100%; background: #dc2626; transition: width .2s; }
-  #hud .hp-fill.full { background: #22c55e; }
+        .wheel-wrapper::before {
+            content: '';
+            position: absolute;
+            inset: -18px;
+            border-radius: 50%;
+            border: 1px solid rgba(201, 169, 97, 0.15);
+            pointer-events: none;
+        }
+        .wheel-wrapper::after {
+            content: '';
+            position: absolute;
+            inset: -32px;
+            border-radius: 50%;
+            border: 1px solid rgba(201, 169, 97, 0.06);
+            pointer-events: none;
+        }
 
-  /* Touch controls */
-  .touch-ctrl {
-    position: fixed; bottom: 20px; left: 0; right: 0;
-    display: flex; justify-content: space-between; padding: 0 20px;
-    pointer-events: none; z-index: 100; user-select: none;
-  }
-  .stick {
-    width: 120px; height: 120px; border-radius: 50%;
-    background: rgba(217,119,6,.15); border: 2px solid rgba(217,119,6,.5);
-    position: relative; pointer-events: auto; touch-action: none;
-  }
-  .stick-knob {
-    position: absolute; width: 50px; height: 50px; border-radius: 50%;
-    background: radial-gradient(circle, #f59e0b, #92400e);
-    left: 50%; top: 50%; transform: translate(-50%,-50%);
-    box-shadow: 0 0 20px rgba(245,158,11,.6);
-    pointer-events: none;
-  }
-  .shoot-btn {
-    width: 90px; height: 90px; border-radius: 50%;
-    background: radial-gradient(circle, #dc2626, #7f1d1d);
-    border: 3px solid #fbbf24; color: #fff;
-    font-size: .8rem; font-weight: 900; text-transform: uppercase;
-    pointer-events: auto; touch-action: none;
-    box-shadow: 0 0 30px rgba(220,38,38,.5);
-    font-family: inherit; letter-spacing: 1px;
-    align-self: center;
-  }
-  .shoot-btn:active { transform: scale(.92); }
-  .reload-btn {
-    width: 60px; height: 60px; border-radius: 50%;
-    background: radial-gradient(circle, #1e40af, #1e3a8a);
-    border: 3px solid #60a5fa; color: #fff;
-    font-size: .7rem; font-weight: 900;
-    pointer-events: auto; touch-action: none;
-    align-self: flex-end; margin-right: 12px;
-    font-family: inherit;
-  }
+        canvas#wheelCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border-radius: 50%;
+            box-shadow:
+                0 0 0 1px rgba(201, 169, 97, 0.3),
+                0 20px 60px rgba(0,0,0,0.6),
+                0 0 100px rgba(201, 169, 97, 0.08);
+            will-change: transform;
+        }
 
-  @media (max-width: 600px) {
-    h1 { font-size: 1.15rem; }
-    .qr-wrap canvas { width: 220px; height: 220px; }
-    .room-code { font-size: 1.6rem; }
-    .stick { width: 100px; height: 100px; }
-    .stick-knob { width: 42px; height: 42px; }
-    .shoot-btn { width: 80px; height: 80px; }
-  }
-  /* Ẩn touch controls nếu là desktop (có chuột) */
-  @media (hover: hover) and (pointer: fine) {
-    .touch-ctrl { display: none; }
-  }
-</style>
+        .pointer {
+            position: absolute;
+            top: -14px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 26px;
+            height: 26px;
+            z-index: 10;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.8));
+        }
+        .pointer svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .spin-btn {
+            width: 100%;
+            max-width: 320px;
+            padding: 20px 32px;
+            background: #f5f2ea;
+            color: #0d0d0f;
+            border: none;
+            border-radius: 100px;
+            font-family: 'Inter', sans-serif;
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.2s;
+            margin-bottom: 28px;
+        }
+        .spin-btn:hover:not(:disabled) {
+            background: #ffffff;
+            transform: translateY(-1px);
+        }
+        .spin-btn:active:not(:disabled) {
+            transform: translateY(0);
+        }
+        .spin-btn:disabled {
+            background: #2a2a2e;
+            color: #555558;
+            cursor: not-allowed;
+        }
+
+        .result-area {
+            width: 100%;
+            max-width: 320px;
+            padding: 20px 24px;
+            background: rgba(20, 20, 24, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 20px;
+            text-align: center;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .result-label {
+            font-size: 10px;
+            font-weight: 500;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: #6b6b6b;
+            margin-bottom: 10px;
+        }
+        .result-number {
+            font-family: 'Playfair Display', serif;
+            font-weight: 700;
+            font-size: 3.6rem;
+            line-height: 1;
+            color: #f5f2ea;
+            letter-spacing: -1px;
+            transition: color 0.3s, font-size 0.3s;
+        }
+        .result-number.jackpot-text {
+            font-family: 'Inter', sans-serif;
+            font-size: 1.3rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            color: #c9a961;
+            line-height: 1.3;
+        }
+        .message {
+            font-size: 12px;
+            color: #6b6b6b;
+            margin-top: 12px;
+            font-weight: 400;
+            letter-spacing: 0.3px;
+            min-height: 1.5em;
+            transition: color 0.3s;
+        }
+
+        .note {
+            margin-top: 20px;
+            font-size: 11px;
+            color: #4a4a50;
+            letter-spacing: 0.5px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .note .dot {
+            width: 3px;
+            height: 3px;
+            border-radius: 50%;
+            background: #c9a961;
+            opacity: 0.5;
+        }
+        .note .pity {
+            color: #c9a961;
+            font-weight: 500;
+        }
+
+        #confettiCanvas {
+            position: fixed;
+            inset: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .flash {
+            position: fixed;
+            inset: 0;
+            background: #c9a961;
+            pointer-events: none;
+            z-index: 50;
+            opacity: 0;
+            mix-blend-mode: overlay;
+        }
+        .flash.active {
+            animation: flashAnim 0.5s ease-out;
+        }
+        @keyframes flashAnim {
+            0% { opacity: 0; }
+            20% { opacity: 0.4; }
+            100% { opacity: 0; }
+        }
+
+        @media (max-width: 400px) {
+            .wheel-wrapper {
+                width: 300px;
+                height: 300px;
+            }
+            .header h1 {
+                font-size: 2rem;
+            }
+            .result-number {
+                font-size: 3rem;
+            }
+        }
+    </style>
 </head>
 <body>
-<div id="app">
-  <h1 id="title">🤠 Wild West Co-op</h1>
+    <canvas id="confettiCanvas"></canvas>
+    <div class="flash" id="flash"></div>
 
-  <div class="tabs">
-    <button class="tab active" data-game="shooter">🔫 Bắn súng</button>
-    <button class="tab" data-game="pong">🏓 Pong</button>
-  </div>
+    <div class="game-container">
+        <div class="header">
+            <div class="eyebrow">Giải thưởng đặc biệt</div>
+            <h1>Vòng Quay <em>May Mắn</em></h1>
+            <div class="subtitle">Quay để nhận phần thưởng của bạn</div>
+        </div>
 
-  <!-- ============ MENU ============ -->
-  <div id="menu" class="screen">
-    <button id="btnCreate" class="btn primary">🎮 Tạo phòng</button>
-    <button id="btnJoin" class="btn">🔑 Nhập mã phòng</button>
-    <div id="joinBox" class="hidden" style="width:100%;display:flex;flex-direction:column;gap:8px;align-items:center;">
-      <input id="roomInput" maxlength="4" placeholder="MÃ 4 KÝ TỰ"
-        style="width:100%;max-width:340px;padding:14px;border-radius:10px;
-        border:2px solid #d97706;background:#1a0f0a;color:#f59e0b;
-        font-size:1.5rem;text-align:center;letter-spacing:8px;
-        font-weight:700;text-transform:uppercase;outline:none;
-        font-family:inherit;" />
-      <button id="btnJoinGo" class="btn primary">Vào phòng</button>
+        <div class="wheel-wrapper">
+            <div class="pointer">
+                <svg viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M13 24 L2 4 Q13 0 24 4 Z" fill="#f5f2ea" stroke="#0d0d0f" stroke-width="1"/>
+                    <circle cx="13" cy="6" r="2.5" fill="#c9a961"/>
+                </svg>
+            </div>
+            <canvas id="wheelCanvas" width="500" height="500"></canvas>
+        </div>
+
+        <button class="spin-btn" id="spinButton">Quay</button>
+
+        <div class="result-area">
+            <div class="result-label">Kết quả</div>
+            <div class="result-number" id="resultDisplay">0</div>
+            <div class="message" id="message">Nhấn Quay để bắt đầu</div>
+        </div>
+
+        <div class="note">
+            <span>Ô JACKPOT</span>
+            <span class="dot"></span>
+            <span>Phần thưởng: 1 bé femboy</span>
+            <span class="dot"></span>
+            <span class="pity" id="pityCounter">Pity: 0/3</span>
+        </div>
     </div>
-    <p class="hint">Host tạo phòng → hiện QR → Guest quét là chơi luôn<br>
-    STUN: Google · Signaling: PeerJS cloud</p>
-  </div>
-
-  <!-- ============ HOST ============ -->
-  <div id="hostScreen" class="screen hidden">
-    <span class="badge" id="hostBadge">🎮 HOST</span>
-    <div class="card">
-      <div class="label">📱 Quét QR để vào phòng:</div>
-      <div class="qr-wrap"><canvas id="qrCanvas"></canvas></div>
-      <div class="label">hoặc nhập mã phòng:</div>
-      <div class="room-code" id="roomCodeEl">----</div>
-      <button id="btnCopyLink" class="btn">📋 Copy link</button>
-    </div>
-    <div class="card">
-      <div class="label dots" id="hostStatus">Đang chờ người chơi</div>
-    </div>
-  </div>
-
-  <!-- ============ GUEST ============ -->
-  <div id="guestScreen" class="screen hidden">
-    <span class="badge" id="guestBadge">🎮 GUEST</span>
-    <div class="card">
-      <div class="label dots" id="guestStatus">Đang kết nối tới phòng...</div>
-    </div>
-  </div>
-
-  <!-- ============ GAME ============ -->
-  <div id="game" class="screen hidden">
-    <div id="hud">
-      <div class="hud-item">❤️ <span class="hp-bar"><span class="hp-fill full" id="hpFill" style="width:100%"></span></span> <span id="hpText">100</span></div>
-      <div class="hud-item">🌊 Wave <span id="waveText">1</span></div>
-      <div class="hud-item">💀 <span id="killText">0</span></div>
-      <div class="hud-item">🔫 <span id="ammoText">6/6</span></div>
-    </div>
-    <div id="game" style="max-width:100%;position:relative;">
-      <canvas id="gameCanvas" width="900" height="500"></canvas>
-    </div>
-    <div id="status">Đang chơi...</div>
-  </div>
-</div>
-
-<!-- Touch controls (chỉ hiện trên mobile) -->
-<div class="touch-ctrl hidden" id="touchCtrl">
-  <div class="stick" id="moveStick">
-    <div class="stick-knob" id="moveKnob"></div>
-  </div>
-  <div style="display:flex;flex-direction:column;gap:12px;align-items:center;">
-    <button class="reload-btn" id="reloadBtn">R</button>
-    <button class="shoot-btn" id="shootBtn">FIRE</button>
-  </div>
-</div>
-
-<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 
 <script>
-/* =========================================================
-   PWA Service Worker
-========================================================= */
-if ("serviceWorker" in navigator) {
-  const sw = `self.addEventListener('install',e=>self.skipWaiting());
-              self.addEventListener('activate',e=>self.clients.claim());`;
-  navigator.serviceWorker.register(URL.createObjectURL(new Blob([sw], {type:"text/javascript"}))).catch(()=>{});
-}
+    (function() {
+        const canvas = document.getElementById('wheelCanvas');
+        const ctx = canvas.getContext('2d');
+        const spinBtn = document.getElementById('spinButton');
+        const resultDisplay = document.getElementById('resultDisplay');
+        const messageEl = document.getElementById('message');
+        const flash = document.getElementById('flash');
+        const pityCounter = document.getElementById('pityCounter');
 
-/* =========================================================
-   PEER CONFIG — Google STUN
-========================================================= */
-const PEER_CONFIG = {
-  debug: 1,
-  config: {
-    iceServers: [
-      { urls: "stun:stun.l.google.com:19302" },
-      { urls: "stun:stun1.l.google.com:19302" },
-      { urls: "stun:stun2.l.google.com:19302" },
-      { urls: "stun:stun3.l.google.com:19302" },
-      { urls: "stun:stun4.l.google.com:19302" }
-    ],
-    iceCandidatePoolSize: 10
-  }
-};
+        const NUM_SECTORS = 10;
+        const SECTOR_ANGLE = (Math.PI * 2) / NUM_SECTORS;
+        const RADIUS = 235;
+        const CENTER = 250;
+        const JACKPOT_INDEX = 9;
+        const JACKPOT_CHANCE = 0.30; // 30%
+        const PITY_THRESHOLD = 3;    // Sau 3 lần không trúng → lần 4 chắc chắn trúng
 
-/* =========================================================
-   DOM
-========================================================= */
-const $ = id => document.getElementById(id);
-const menuEl = $("menu"), hostEl = $("hostScreen"), guestEl = $("guestScreen");
-const gameEl = $("game"), statusEl = $("status");
-const canvas = $("gameCanvas"), ctx = canvas.getContext("2d");
-const W = canvas.width, H = canvas.height;
+        const COLORS = [
+            '#1f1f24', '#26262c', '#2d2d34', '#34343c', '#3b3b44',
+            '#42424c', '#494954', '#50505c', '#575764', '#8b1e3f'
+        ];
 
-/* =========================================================
-   STATE TOÀN CỤC
-========================================================= */
-let currentGame = "shooter";   // "shooter" | "pong"
-let peer = null, conn = null;
-let role = null;               // "host" | "guest"
+        const TEXT_COLORS = [
+            '#c9a961', '#c9a961', '#c9a961', '#c9a961', '#c9a961',
+            '#c9a961', '#c9a961', '#c9a961', '#c9a961', '#f5f2ea'
+        ];
 
-/* =========================================================
-   TAB SWITCHING
-========================================================= */
-document.querySelectorAll(".tab").forEach(tab => {
-  tab.onclick = () => {
-    if (conn || peer) return; // không cho đổi khi đang chơi
-    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-    tab.classList.add("active");
-    currentGame = tab.dataset.game;
-    $("title").textContent = currentGame === "shooter"
-      ? "🤠 Wild West Co-op"
-      : "🏓 Ping Pong Online";
-    $("hostBadge").textContent = currentGame === "shooter"
-      ? "🎮 HOST — Cao bồi 1"
-      : "🎮 HOST — Paddle trái";
-    $("guestBadge").textContent = currentGame === "shooter"
-      ? "🎮 GUEST — Cao bồi 2"
-      : "🎮 GUEST — Paddle phải";
-  };
-});
+        let currentAngle = 0;
+        let isSpinning = false;
+        let spinPhase = 'idle';
+        let animationFrameId = null;
+        let lastDrawTime = 0;
 
-/* =========================================================
-   MÃ PHÒNG
-========================================================= */
-const CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-function newRoomCode() {
-  let s = "";
-  for (let i = 0; i < 4; i++) s += CHARS[Math.floor(Math.random() * CHARS.length)];
-  return s;
-}
-function peerIdFromCode(code) {
-  return (currentGame === "shooter" ? "ww-" : "ppong-") + code.toUpperCase();
-}
+        let animStartTime = 0;
+        let animStartAngle = 0;
+        let animTotalRotation = 0;
+        let animDuration = 0;
 
-async function drawQR(text) {
-  await QRCode.toCanvas($("qrCanvas"), text, {
-    width: 260, margin: 1, errorCorrectionLevel: "M",
-    color: { dark: "#1a0f0a", light: "#ffffff" }
-  });
-}
+        // Pity system
+        let pityCounterValue = 0;
 
-/* =========================================================
-   HOST
-========================================================= */
-$("btnCreate").onclick = () => {
-  role = "host";
-  const code = newRoomCode();
-  const peerId = peerIdFromCode(code);
+        // Lưu trữ các sector đã vẽ để tránh tính toán lại
+        let wheelDirty = true;
 
-  $("roomCodeEl").textContent = code;
-  const url = location.origin + location.pathname + "?r=" + code + "&g=" + currentGame;
-  window._roomURL = url;
+        // ---------- VẼ ----------
+        function drawWheel(angle) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  menuEl.classList.add("hidden");
-  hostEl.classList.remove("hidden");
-  $("hostStatus").textContent = "Đang kết nối signaling server";
+            for (let i = 0; i < NUM_SECTORS; i++) {
+                const startAngle = i * SECTOR_ANGLE + angle;
+                const endAngle = startAngle + SECTOR_ANGLE;
 
-  peer = new Peer(peerId, PEER_CONFIG);
+                ctx.beginPath();
+                ctx.moveTo(CENTER, CENTER);
+                ctx.arc(CENTER, CENTER, RADIUS, startAngle, endAngle);
+                ctx.closePath();
 
-  peer.on("open", async () => {
-    $("hostStatus").textContent = "Đang chờ người chơi";
-    await drawQR(url);
-  });
+                ctx.fillStyle = COLORS[i];
+                ctx.fill();
 
-  peer.on("error", (err) => {
-    console.error("Peer error:", err);
-    if (err.type === "unavailable-id") {
-      $("hostStatus").textContent = "Mã trùng, tạo mã mới...";
-      setTimeout(() => $("btnCreate").click(), 300);
-    } else {
-      $("hostStatus").textContent = "❌ Lỗi: " + err.type;
-    }
-  });
+                ctx.strokeStyle = 'rgba(201, 169, 97, 0.15)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
 
-  peer.on("connection", (c) => {
-    conn = c;
-    $("hostStatus").textContent = "Có người kết nối, đang thiết lập";
-    setupConnection();
-  });
-};
+                ctx.save();
+                ctx.translate(CENTER, CENTER);
+                ctx.rotate(startAngle + SECTOR_ANGLE / 2);
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
 
-$("btnCopyLink").onclick = (e) => {
-  if (!window._roomURL) return;
-  navigator.clipboard.writeText(window._roomURL).then(() => {
-    const old = e.target.textContent;
-    e.target.textContent = "✅ Đã copy!";
-    setTimeout(() => e.target.textContent = old, 1200);
-  });
-};
+                if (i === JACKPOT_INDEX) {
+                    ctx.font = '600 22px Inter, sans-serif';
+                    ctx.fillStyle = '#f5f2ea';
+                    ctx.fillText('JACKPOT', 155, -10);
+                    ctx.font = '400 13px Inter, sans-serif';
+                    ctx.fillStyle = '#c9a961';
+                    ctx.fillText('1 bé femboy', 155, 14);
+                } else {
+                    ctx.font = '300 56px "Playfair Display", serif';
+                    ctx.fillStyle = TEXT_COLORS[i];
+                    ctx.fillText(i.toString(), 160, 0);
+                }
+                ctx.restore();
+            }
 
-/* =========================================================
-   GUEST
-========================================================= */
-$("btnJoin").onclick = () => {
-  $("joinBox").classList.toggle("hidden");
-  if (!$("joinBox").classList.contains("hidden")) $("roomInput").focus();
-};
-$("btnJoinGo").onclick = () => {
-  const code = $("roomInput").value.trim().toUpperCase();
-  if (code.length !== 4) return alert("Nhập đủ 4 ký tự!");
-  joinRoom(code);
-};
-$("roomInput").addEventListener("keypress", e => { if (e.key === "Enter") $("btnJoinGo").click(); });
-$("roomInput").addEventListener("input", e => {
-  e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
-});
+            ctx.beginPath();
+            ctx.arc(CENTER, CENTER, RADIUS, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(201, 169, 97, 0.4)';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
 
-const params = new URLSearchParams(location.search);
-const autoRoom = params.get("r");
-const autoGame = params.get("g");
-if (autoGame === "pong" || autoGame === "shooter") currentGame = autoGame;
+            ctx.beginPath();
+            ctx.arc(CENTER, CENTER, RADIUS - 8, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(201, 169, 97, 0.1)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
 
-if (autoRoom) {
-  // Cập nhật tab UI nếu autoGame khác
-  if (autoGame) {
-    document.querySelectorAll(".tab").forEach(t => {
-      t.classList.toggle("active", t.dataset.game === autoGame);
-    });
-  }
-  setTimeout(() => joinRoom(autoRoom.toUpperCase()), 100);
-}
+            ctx.beginPath();
+            ctx.arc(CENTER, CENTER, 44, 0, Math.PI * 2);
+            ctx.fillStyle = '#141418';
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(201, 169, 97, 0.3)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
 
-function joinRoom(code) {
-  role = "guest";
-  menuEl.classList.add("hidden");
-  guestEl.classList.remove("hidden");
-  $("guestStatus").textContent = "Đang kết nối tới phòng " + code;
-
-  peer = new Peer(PEER_CONFIG);
-
-  peer.on("open", () => {
-    $("guestStatus").textContent = "Đang tìm Host";
-    conn = peer.connect(peerIdFromCode(code), {
-      reliable: false,
-      serialization: "json"
-    });
-    setupConnection();
-  });
-
-  peer.on("error", (err) => {
-    console.error("Peer error:", err);
-    if (err.type === "peer-unavailable") {
-      $("guestStatus").textContent = "❌ Không tìm thấy phòng " + code;
-    } else {
-      $("guestStatus").textContent = "❌ Lỗi: " + err.type;
-    }
-  });
-
-  setTimeout(() => {
-    if (!isRunning() && role === "guest") {
-      $("guestStatus").textContent = "❌ Hết thời gian kết nối";
-    }
-  }, 10000);
-}
-
-/* =========================================================
-   SETUP CONNECTION
-========================================================= */
-function setupConnection() {
-  conn.on("open", () => {
-    console.log("✅ P2P connected");
-    startGame();
-  });
-  conn.on("data", (data) => { try { onNet(data); } catch(e){ console.error(e); } });
-  conn.on("close", () => { statusEl.textContent = "🔌 Đã ngắt kết nối"; stopGame(); });
-  conn.on("error", (err) => { console.error("Conn error:", err); });
-}
-
-function send(obj) {
-  if (conn && conn.open) {
-    try { conn.send(obj); } catch(_) {}
-  }
-}
-
-/* =========================================================
-   ============== GAME ENGINE (SHARED STATE) ===============
-========================================================= */
-// Host chạy physics, guest chỉ render state nhận được.
-// Nhưng để giảm độ trễ, cả 2 đều mô phỏng local movement,
-// host là "authoritative" cho enemy + bullets.
-
-const SHOOTER = {
-  running: false,
-  players: {
-    p1: { x: 200, y: 250, vx: 0, vy: 0, hp: 100, maxHp: 100, aim: 0, ammo: 6, maxAmmo: 6, reloading: 0, cooldown: 0, color: "#f59e0b", alive: true, respawn: 0 },
-    p2: { x: 700, y: 250, vx: 0, vy: 0, hp: 100, maxHp: 100, aim: Math.PI, ammo: 6, maxAmmo: 6, reloading: 0, cooldown: 0, color: "#60a5fa", alive: true, respawn: 0 }
-  },
-  enemies: [],
-  bullets: [],
-  particles: [],
-  wave: 0,
-  kills: 0,
-  waveTimer: 0,
-  spawnTimer: 0,
-  betweenWaves: 0,
-  worldW: 900, worldH: 500
-};
-
-const PLAYER_RADIUS = 16;
-const BULLET_RADIUS = 4;
-const BULLET_SPEED = 900;
-const PLAYER_SPEED = 240;
-const ENEMY_BASE_HP = 30;
-const RELOAD_TIME = 1.4;
-
-/* =========================================================
-   INPUT STATE
-========================================================= */
-const keys = new Set();
-const input = {
-  up: false, down: false, left: false, right: false,
-  aimX: 0, aimY: 0, shoot: false, reload: false
-};
-
-window.addEventListener("keydown", e => {
-  const k = e.key.toLowerCase();
-  if (["w","a","s","d","arrowup","arrowdown","arrowleft","arrowright","r"," "].includes(k)) {
-    e.preventDefault();
-    keys.add(k);
-  }
-  if (k === "r") tryReload();
-});
-window.addEventListener("keyup", e => keys.delete(e.key.toLowerCase()));
-
-// Mouse aim + shoot
-canvas.addEventListener("mousemove", e => {
-  const r = canvas.getBoundingClientRect();
-  input.aimX = (e.clientX - r.left) * (W / r.width);
-  input.aimY = (e.clientY - r.top) * (H / r.height);
-});
-canvas.addEventListener("mousedown", e => {
-  if (e.button === 0) input.shoot = true;
-  if (e.button === 2) tryReload();
-});
-canvas.addEventListener("mouseup", e => { if (e.button === 0) input.shoot = false; });
-canvas.addEventListener("contextmenu", e => e.preventDefault());
-
-/* Touch joystick */
-const stick = $("moveStick"), knob = $("moveKnob");
-let stickTouchId = null, stickCX = 0, stickCY = 0, stickVX = 0, stickVY = 0;
-function updateStickCenter() {
-  const r = stick.getBoundingClientRect();
-  stickCX = r.left + r.width / 2;
-  stickCY = r.top + r.height / 2;
-}
-stick.addEventListener("touchstart", e => {
-  e.preventDefault();
-  const t = e.changedTouches[0];
-  stickTouchId = t.identifier;
-  updateStickCenter();
-  moveStick(t.clientX, t.clientY);
-}, { passive: false });
-stick.addEventListener("touchmove", e => {
-  e.preventDefault();
-  for (const t of e.changedTouches) {
-    if (t.identifier === stickTouchId) moveStick(t.clientX, t.clientY);
-  }
-}, { passive: false });
-["touchend","touchcancel"].forEach(ev => stick.addEventListener(ev, e => {
-  for (const t of e.changedTouches) {
-    if (t.identifier === stickTouchId) {
-      stickTouchId = null;
-      stickVX = stickVY = 0;
-      knob.style.left = "50%"; knob.style.top = "50%";
-    }
-  }
-}));
-function moveStick(cx, cy) {
-  const maxR = stick.clientWidth / 2 - 20;
-  let dx = cx - stickCX, dy = cy - stickCY;
-  const d = Math.hypot(dx, dy);
-  if (d > maxR) { dx = dx / d * maxR; dy = dy / d * maxR; }
-  knob.style.left = `calc(50% + ${dx}px)`;
-  knob.style.top  = `calc(50% + ${dy}px)`;
-  stickVX = dx / maxR;
-  stickVY = dy / maxR;
-}
-
-/* Touch shoot button */
-const shootBtn = $("shootBtn");
-shootBtn.addEventListener("touchstart", e => { e.preventDefault(); input.shoot = true; }, { passive: false });
-shootBtn.addEventListener("touchend", e => { e.preventDefault(); input.shoot = false; }, { passive: false });
-
-/* Touch reload button */
-$("reloadBtn").addEventListener("touchstart", e => { e.preventDefault(); tryReload(); }, { passive: false });
-
-/* Aim trên mobile: nếu đang cầm joystick và bấm shoot, aim = hướng joystick */
-let lastAimDir = { x: 1, y: 0 };
-
-function readInput() {
-  if (role === "host") {
-    input.up    = keys.has("w") || keys.has("arrowup");
-    input.down  = keys.has("s") || keys.has("arrowdown");
-    input.left  = keys.has("a") || keys.has("arrowleft");
-    input.right = keys.has("d") || keys.has("arrowright");
-  } else {
-    input.up    = stickVY < -0.25;
-    input.down  = stickVY > 0.25;
-    input.left  = stickVX < -0.25;
-    input.right = stickVX > 0.25;
-  }
-  input.reload = false; // handled by key press
-}
-
-/* =========================================================
-   GAME START
-========================================================= */
-function isRunning() {
-  return currentGame === "shooter" ? SHOOTER.running : PONG.running;
-}
-function stopGame() {
-  SHOOTER.running = false;
-  PONG.running = false;
-}
-
-function startGame() {
-  menuEl.classList.add("hidden");
-  hostEl.classList.add("hidden");
-  guestEl.classList.add("hidden");
-  gameEl.classList.remove("hidden");
-
-  if (currentGame === "shooter") {
-    $("hud").classList.remove("hidden");
-    $("touchCtrl").classList.remove("hidden");
-    startShooter();
-  } else {
-    $("hud").classList.add("hidden");
-    $("touchCtrl").classList.add("hidden");
-    startPong();
-  }
-}
-
-/* =========================================================
-   ==================== SHOOTER GAME =====================
-========================================================= */
-function startShooter() {
-  SHOOTER.running = true;
-  SHOOTER.wave = 0;
-  SHOOTER.kills = 0;
-  SHOOTER.enemies = [];
-  SHOOTER.bullets = [];
-  SHOOTER.particles = [];
-  SHOOTER.players.p1 = { x: 200, y: 250, vx: 0, vy: 0, hp: 100, maxHp: 100, aim: 0, ammo: 6, maxAmmo: 6, reloading: 0, cooldown: 0, color: "#f59e0b", alive: true, respawn: 0, id: "p1" };
-  SHOOTER.players.p2 = { x: 700, y: 250, vx: 0, vy: 0, hp: 100, maxHp: 100, aim: Math.PI, ammo: 6, maxAmmo: 6, reloading: 0, cooldown: 0, color: "#60a5fa", alive: true, respawn: 0, id: "p2" };
-  SHOOTER.betweenWaves = 2;
-  SHOOTER.spawnTimer = 0;
-  SHOOTER.lastTime = performance.now();
-  SHOOTER.netAcc = 0;
-  updateHUD();
-  requestAnimationFrame(shooterLoop);
-  statusEl.textContent = role === "host"
-    ? "Bạn là Cao bồi VÀNG (trái)"
-    : "Bạn là Cao bồi XANH (phải)";
-}
-
-function spawnWave() {
-  SHOOTER.wave++;
-  const count = 3 + SHOOTER.wave * 2;
-  const baseHp = ENEMY_BASE_HP + SHOOTER.wave * 6;
-  for (let i = 0; i < count; i++) {
-    setTimeout(() => {
-      if (!SHOOTER.running) return;
-      spawnEnemy(baseHp);
-    }, i * 280);
-  }
-}
-
-function spawnEnemy(hp) {
-  // Spawn từ 4 cạnh
-  const side = Math.floor(Math.random() * 4);
-  let x, y;
-  if (side === 0) { x = Math.random() * W; y = -30; }
-  else if (side === 1) { x = W + 30; y = Math.random() * H; }
-  else if (side === 2) { x = Math.random() * W; y = H + 30; }
-  else { x = -30; y = Math.random() * H; }
-
-  const speedBase = 60 + SHOOTER.wave * 8;
-  const type = Math.random();
-  let kind = "bandit", color = "#dc2626", radius = 16, speed = speedBase, hpMult = 1;
-  if (type > 0.85) { kind = "brute"; color = "#7f1d1d"; radius = 22; speed = speedBase * 0.65; hpMult = 2.5; }
-  else if (type > 0.65) { kind = "runner"; color = "#ea580c"; radius = 13; speed = speedBase * 1.6; hpMult = 0.7; }
-
-  SHOOTER.enemies.push({
-    x, y, hp: hp * hpMult, maxHp: hp * hpMult,
-    speed, radius, color, kind,
-    shootTimer: 1 + Math.random() * 2,
-    hitFlash: 0
-  });
-}
-
-function shooterLoop(now) {
-  if (!SHOOTER.running || currentGame !== "shooter") return;
-  const dt = Math.min((now - SHOOTER.lastTime) / 1000, 0.05);
-  SHOOTER.lastTime = now;
-
-  if (role === "host") {
-    readInput();
-    hostUpdateShooter(dt);
-    SHOOTER.netAcc += dt;
-    if (SHOOTER.netAcc > 1/30) {
-      sendShooterState();
-      SHOOTER.netAcc = 0;
-    }
-  } else {
-    // Guest: đọc input, gửi lên host
-    readInput();
-    guestInputTick(dt);
-    // Local predict player 2 movement cho mượt
-    localPredictGuest(dt);
-  }
-
-  renderShooter();
-  updateHUD();
-  requestAnimationFrame(shooterLoop);
-}
-
-/* --- Guest gửi input --- */
-let guestInputAcc = 0;
-function guestInputTick(dt) {
-  guestInputAcc += dt;
-  if (guestInputAcc < 1/60) return;
-  guestInputAcc = 0;
-  send({
-    t: "in",
-    up: input.up, down: input.down, left: input.left, right: input.right,
-    shoot: input.shoot, reload: input.reload,
-    aimX: input.aimX, aimY: input.aimY
-  });
-}
-
-/* --- Local predict player 2 --- */
-function localPredictGuest(dt) {
-  const p = SHOOTER.players.p2;
-  let dx = 0, dy = 0;
-  if (input.left) dx--; if (input.right) dx++;
-  if (input.up) dy--; if (input.down) dy++;
-  const len = Math.hypot(dx, dy) || 1;
-  p.x += dx / len * PLAYER_SPEED * dt;
-  p.y += dy / len * PLAYER_SPEED * dt;
-  p.x = Math.max(PLAYER_RADIUS, Math.min(W - PLAYER_RADIUS, p.x));
-  p.y = Math.max(PLAYER_RADIUS, Math.min(H - PLAYER_RADIUS, p.y));
-}
-
-/* --- Host update --- */
-function hostUpdateShooter(dt) {
-  const p1 = SHOOTER.players.p1;
-  const p2 = SHOOTER.players.p2;
-  const remoteInput = SHOOTER.remoteInput || {};
-
-  // Di chuyển p1
-  let dx = 0, dy = 0;
-  if (input.left) dx--; if (input.right) dx++;
-  if (input.up) dy--; if (input.down) dy++;
-  const len = Math.hypot(dx, dy) || 1;
-  p1.x += dx / len * PLAYER_SPEED * dt;
-  p1.y += dy / len * PLAYER_SPEED * dt;
-  p1.x = Math.max(PLAYER_RADIUS, Math.min(W - PLAYER_RADIUS, p1.x));
-  p1.y = Math.max(PLAYER_RADIUS, Math.min(H - PLAYER_RADIUS, p1.y));
-
-  // Di chuyển p2 từ input guest
-  let dx2 = 0, dy2 = 0;
-  if (remoteInput.left) dx2--; if (remoteInput.right) dx2++;
-  if (remoteInput.up) dy2--; if (remoteInput.down) dy2++;
-  const len2 = Math.hypot(dx2, dy2) || 1;
-  p2.x += dx2 / len2 * PLAYER_SPEED * dt;
-  p2.y += dy2 / len2 * PLAYER_SPEED * dt;
-  p2.x = Math.max(PLAYER_RADIUS, Math.min(W - PLAYER_RADIUS, p2.x));
-  p2.y = Math.max(PLAYER_RADIUS, Math.min(H - PLAYER_RADIUS, p2.y));
-
-  // Aim
-  p1.aim = Math.atan2(input.aimY - p1.y, input.aimX - p1.x);
-  if (remoteInput.aimX !== undefined) {
-    p2.aim = Math.atan2(remoteInput.aimY - p2.y, remoteInput.aimX - p2.x);
-  }
-
-  // Bắn
-  if (input.shoot) hostTryShoot(p1, dt);
-  else input.shoot = input.shoot; // giữ nguyên
-  if (remoteInput.shoot) hostTryShoot(p2, dt);
-
-  // Reload
-  if (remoteInput.reload) hostTryReload(p2);
-
-  // Cooldown / reload p1
-  tickWeapon(p1, dt);
-  tickWeapon(p2, dt);
-
-  // Bullets
-  for (let i = SHOOTER.bullets.length - 1; i >= 0; i--) {
-    const b = SHOOTER.bullets[i];
-    b.x += b.vx * dt;
-    b.y += b.vy * dt;
-    b.life -= dt;
-
-    if (b.x < -20 || b.x > W + 20 || b.y < -20 || b.y > H + 20 || b.life <= 0) {
-      SHOOTER.bullets.splice(i, 1);
-      continue;
-    }
-
-    // Va chạm enemy (chỉ đạn player)
-    if (b.owner !== "enemy") {
-      let hit = false;
-      for (const e of SHOOTER.enemies) {
-        const d = Math.hypot(e.x - b.x, e.y - b.y);
-        if (d < e.radius + BULLET_RADIUS) {
-          e.hp -= b.damage;
-          e.hitFlash = 0.1;
-          spawnParticles(b.x, b.y, e.color, 6);
-          hit = true;
-          if (e.hp <= 0) {
-            SHOOTER.kills++;
-            spawnParticles(e.x, e.y, e.color, 18);
-            SHOOTER.enemies.splice(SHOOTER.enemies.indexOf(e), 1);
-          }
-          break;
+            ctx.beginPath();
+            ctx.arc(CENTER, CENTER, 12, 0, Math.PI * 2);
+            ctx.fillStyle = '#c9a961';
+            ctx.fill();
         }
-      }
-      if (hit) { SHOOTER.bullets.splice(i, 1); continue; }
-    } else {
-      // Đạn enemy bắn player
-      for (const p of [p1, p2]) {
-        if (!p.alive) continue;
-        const d = Math.hypot(p.x - b.x, p.y - b.y);
-        if (d < PLAYER_RADIUS + BULLET_RADIUS) {
-          p.hp -= b.damage;
-          spawnParticles(b.x, b.y, "#dc2626", 5);
-          if (p.hp <= 0) {
-            p.hp = 0; p.alive = false; p.respawn = 3;
-            spawnParticles(p.x, p.y, p.color, 30);
-          }
-          SHOOTER.bullets.splice(i, 1);
-          break;
+
+        // ---------- LOGIC ----------
+        function normalizeAngle(a) {
+            return ((a % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
         }
-      }
-    }
-  }
 
-  // Respawn
-  for (const p of [p1, p2]) {
-    if (!p.alive) {
-      p.respawn -= dt;
-      if (p.respawn <= 0) {
-        p.alive = true; p.hp = p.maxHp; p.ammo = p.maxAmmo;
-        p.x = p.id === "p1" ? 200 : 700;
-        p.y = 250;
-      }
-    }
-  }
-
-  // Enemies
-  for (const e of SHOOTER.enemies) {
-    const target = nearestAlivePlayer(e);
-    if (!target) continue;
-    const a = Math.atan2(target.y - e.y, target.x - e.x);
-    e.x += Math.cos(a) * e.speed * dt;
-    e.y += Math.sin(a) * e.speed * dt;
-    if (e.hitFlash > 0) e.hitFlash -= dt;
-
-    // Tấn công cận chiến
-    const d = Math.hypot(target.x - e.x, target.y - e.y);
-    if (d < target.r + e.r || d < PLAYER_RADIUS + e.radius) {
-      target.hp -= 25 * dt;
-      if (target.hp <= 0) {
-        target.hp = 0; target.alive = false; target.respawn = 3;
-        spawnParticles(target.x, target.y, target.color, 30);
-      }
-    }
-
-    // Bắn xa (chỉ bandit & brute)
-    if (e.kind !== "runner") {
-      e.shootTimer -= dt;
-      if (e.shootTimer <= 0) {
-        e.shootTimer = 1.8 + Math.random() * 1.2;
-        const d2 = Math.hypot(target.x - e.x, target.y - e.y);
-        if (d2 < 420) {
-          const angle = Math.atan2(target.y - e.y, target.x - e.x);
-          const spread = (Math.random() - 0.5) * 0.25;
-          SHOOTER.bullets.push({
-            x: e.x + Math.cos(angle) * e.radius,
-            y: e.y + Math.sin(angle) * e.radius,
-            vx: Math.cos(angle + spread) * 340,
-            vy: Math.sin(angle + spread) * 340,
-            damage: 8,
-            life: 2.5,
-            owner: "enemy",
-            color: "#ef4444"
-          });
+        function getIndexAtPointer(angle) {
+            const pointerAngle = -Math.PI / 2;
+            let raw = normalizeAngle(pointerAngle - angle);
+            return Math.floor(raw / SECTOR_ANGLE) % NUM_SECTORS;
         }
-      }
-    }
-  }
 
-  // Particles
-  for (let i = SHOOTER.particles.length - 1; i >= 0; i--) {
-    const pt = SHOOTER.particles[i];
-    pt.x += pt.vx * dt;
-    pt.y += pt.vy * dt;
-    pt.life -= dt;
-    if (pt.life <= 0) SHOOTER.particles.splice(i, 1);
-  }
+        function getAngleForIndex(index) {
+            const pointerAngle = -Math.PI / 2;
+            let targetAngle = pointerAngle - index * SECTOR_ANGLE - SECTOR_ANGLE / 2;
+            return normalizeAngle(targetAngle);
+        }
 
-  // Wave logic
-  SHOOTER.betweenWaves -= dt;
-  if (SHOOTER.betweenWaves <= 0 && SHOOTER.enemies.length === 0) {
-    SHOOTER.betweenWaves = 3;
-    spawnWave();
-  }
-}
+        // Quay nhẹ: chọn hướng gần nhất, thêm tối thiểu minRounds vòng
+        function calculateSmoothRotation(startAngle, targetAngle, minRounds = 1) {
+            const startNorm = normalizeAngle(startAngle);
+            const targetNorm = normalizeAngle(targetAngle);
 
-function nearestAlivePlayer(from) {
-  const alive = [SHOOTER.players.p1, SHOOTER.players.p2].filter(p => p.alive);
-  if (alive.length === 0) return null;
-  let best = alive[0], bd = Infinity;
-  for (const p of alive) {
-    const d = Math.hypot(p.x - from.x, p.y - from.y);
-    if (d < bd) { bd = d; best = p; }
-  }
-  return best;
-}
+            let deltaCW = targetNorm - startNorm;
+            if (deltaCW < 0) deltaCW += Math.PI * 2;
 
-function hostTryShoot(p, dt) {
-  if (!p.alive) return;
-  if (p.cooldown > 0 || p.reloading > 0) return;
-  if (p.ammo <= 0) { hostTryReload(p); return; }
-  p.ammo--;
-  p.cooldown = 0.12;
-  const spread = (Math.random() - 0.5) * 0.06;
-  const a = p.aim + spread;
-  SHOOTER.bullets.push({
-    x: p.x + Math.cos(a) * (PLAYER_RADIUS + 6),
-    y: p.y + Math.sin(a) * (PLAYER_RADIUS + 6),
-    vx: Math.cos(a) * BULLET_SPEED,
-    vy: Math.sin(a) * BULLET_SPEED,
-    damage: 15,
-    life: 1.2,
-    owner: p.id,
-    color: "#fbbf24"
-  });
-  spawnParticles(
-    p.x + Math.cos(a) * (PLAYER_RADIUS + 6),
-    p.y + Math.sin(a) * (PLAYER_RADIUS + 6),
-    "#fbbf24", 4
-  );
-  // Muzzle flash shake
-}
+            let deltaCCW = targetNorm - startNorm;
+            if (deltaCCW > 0) deltaCCW -= Math.PI * 2;
 
-function hostTryReload(p) {
-  if (!p.alive) return;
-  if (p.reloading > 0 || p.ammo === p.maxAmmo) return;
-  p.reloading = RELOAD_TIME;
-}
+            const absCW = Math.abs(deltaCW);
+            const absCCW = Math.abs(deltaCCW);
 
-function tickWeapon(p, dt) {
-  if (p.cooldown > 0) p.cooldown -= dt;
-  if (p.reloading > 0) {
-    p.reloading -= dt;
-    if (p.reloading <= 0) {
-      p.ammo = p.maxAmmo;
-      p.reloading = 0;
-    }
-  }
-}
+            let delta, direction;
+            if (absCW <= absCCW) {
+                direction = 1;
+                delta = deltaCW;
+                if (Math.abs(delta) < minRounds * Math.PI * 2) {
+                    const extra = Math.ceil((minRounds * Math.PI * 2 - Math.abs(delta)) / (Math.PI * 2));
+                    delta += extra * Math.PI * 2;
+                }
+            } else {
+                direction = -1;
+                delta = deltaCCW;
+                if (Math.abs(delta) < minRounds * Math.PI * 2) {
+                    const extra = Math.ceil((minRounds * Math.PI * 2 - Math.abs(delta)) / (Math.PI * 2));
+                    delta -= extra * Math.PI * 2;
+                }
+            }
 
-function tryReload() {
-  if (role === "host") hostTryReload(SHOOTER.players.p1);
-  else send({ t: "rld" });
-}
+            return { totalRotation: delta, direction };
+        }
 
-function spawnParticles(x, y, color, count) {
-  for (let i = 0; i < count; i++) {
-    const a = Math.random() * Math.PI * 2;
-    const s = 50 + Math.random() * 200;
-    SHOOTER.particles.push({
-      x, y,
-      vx: Math.cos(a) * s,
-      vy: Math.sin(a) * s,
-      life: 0.4 + Math.random() * 0.4,
-      maxLife: 0.8,
-      color
-    });
-  }
-}
+        // Cập nhật pity counter UI
+        function updatePityUI() {
+            pityCounter.textContent = `Pity: ${pityCounterValue}/${PITY_THRESHOLD}`;
+        }
 
-/* --- Net state sync --- */
-function sendShooterState() {
-  send({
-    t: "sh",
-    p1: { x: SHOOTER.players.p1.x, y: SHOOTER.players.p1.y, hp: SHOOTER.players.p1.hp, alive: SHOOTER.players.p1.alive, ammo: SHOOTER.players.p1.ammo, aim: SHOOTER.players.p1.aim, reloading: SHOOTER.players.p1.reloading },
-    p2: { x: SHOOTER.players.p2.x, y: SHOOTER.players.p2.y, hp: SHOOTER.players.p2.hp, alive: SHOOTER.players.p2.alive, ammo: SHOOTER.players.p2.ammo, aim: SHOOTER.players.p2.aim, reloading: SHOOTER.players.p2.reloading },
-    en: SHOOTER.enemies.map(e => ({ x: e.x, y: e.y, hp: e.hp, maxHp: e.maxHp, r: e.radius, c: e.color, k: e.kind })),
-    bu: SHOOTER.bullets.map(b => ({ x: b.x, y: b.y, c: b.color, o: b.owner })),
-    pa: SHOOTER.particles.map(p => ({ x: p.x, y: p.y, l: p.life / p.maxLife, c: p.color })),
-    w: SHOOTER.wave,
-    k: SHOOTER.kills
-  });
-}
+        // ---------- QUAY ----------
+        function startSpin() {
+            if (isSpinning) return;
 
-/* =========================================================
-   ==================== PONG GAME =========================
-========================================================= */
-const PONG = {
-  running: false,
-  left:  { y: (H - 90) / 2 },
-  right: { y: (H - 90) / 2 },
-  ball:  { x: W/2, y: H/2, vx: 320, vy: 120 },
-  scoreL: 0, scoreR: 0,
-  lastTime: 0, netAcc: 0
-};
+            isSpinning = true;
+            spinPhase = 'randomSpin';
+            spinBtn.disabled = true;
+            messageEl.textContent = 'Đang quay...';
+            messageEl.style.color = '#c9a961';
+            resultDisplay.classList.remove('jackpot-text');
 
-function startPong() {
-  PONG.running = true;
-  PONG.left.y = (H - 90) / 2;
-  PONG.right.y = (H - 90) / 2;
-  PONG.scoreL = 0;
-  PONG.scoreR = 0;
-  if (role === "host") resetPongBall(Math.random() < 0.5 ? -1 : 1);
-  PONG.lastTime = performance.now();
-  PONG.netAcc = 0;
-  requestAnimationFrame(pongLoop);
-  statusEl.textContent = role === "host" ? "Bạn là PADDLE TRÁI 👈" : "Bạn là PADDLE PHẢI 👉";
-}
+            animStartAngle = currentAngle;
 
-function resetPongBall(dir = 1) {
-  PONG.ball.x = W / 2;
-  PONG.ball.y = H / 2;
-  const angle = (Math.random() - 0.5) * Math.PI / 3;
-  PONG.ball.vx = Math.cos(angle) * 320 * dir;
-  PONG.ball.vy = Math.sin(angle) * 320;
-}
+            // Quyết định đích đến
+            let targetIndex;
+            let isPityTriggered = false;
 
-function pongLoop(now) {
-  if (!PONG.running || currentGame !== "pong") return;
-  const dt = Math.min((now - PONG.lastTime) / 1000, 0.05);
-  PONG.lastTime = now;
+            if (pityCounterValue >= PITY_THRESHOLD) {
+                // Pity: chắc chắn trúng jackpot
+                targetIndex = JACKPOT_INDEX;
+                isPityTriggered = true;
+            } else if (Math.random() < JACKPOT_CHANCE) {
+                targetIndex = JACKPOT_INDEX;
+            } else {
+                // Random 0-8 (không bao gồm jackpot)
+                targetIndex = Math.floor(Math.random() * 9);
+            }
 
-  if (role === "host") {
-    hostUpdatePong(dt);
-    PONG.netAcc += dt;
-    if (PONG.netAcc > 1/30) {
-      send({
-        t: "ps",
-        bx: PONG.ball.x, by: PONG.ball.y,
-        ly: PONG.left.y, ry: PONG.right.y,
-        sl: PONG.scoreL, sr: PONG.scoreR
-      });
-      PONG.netAcc = 0;
-    }
-  } else {
-    // Guest input từ joystick
-    const py = stickVY * 480;
-    if (stickTouchId !== null || Math.abs(stickVY) > 0.1) {
-      send({ t: "pi", d: stickVY });
-      PONG.right.y += stickVY * 480 * dt;
-      PONG.right.y = Math.max(0, Math.min(H - 90, PONG.right.y));
-    }
-  }
+            // Lưu lại để xử lý sau khi quay xong
+            window._lastTargetIndex = targetIndex;
+            window._isPityTriggered = isPityTriggered;
 
-  renderPong();
-  requestAnimationFrame(pongLoop);
-}
+            const targetAngle = getAngleForIndex(targetIndex);
 
-function hostUpdatePong(dt) {
-  // Host input từ bàn phím
-  let dir = 0;
-  if (keys.has("w") || keys.has("arrowup")) dir--;
-  if (keys.has("s") || keys.has("arrowdown")) dir++;
-  PONG.left.y += dir * 480 * dt;
-  PONG.left.y = Math.max(0, Math.min(H - 90, PONG.left.y));
+            // Quay nhẹ: 1-2 vòng
+            const minRounds = 1 + Math.floor(Math.random() * 2);
+            const result = calculateSmoothRotation(animStartAngle, targetAngle, minRounds);
+            animTotalRotation = result.totalRotation;
 
-  const b = PONG.ball;
-  b.x += b.vx * dt;
-  b.y += b.vy * dt;
+            animDuration = 1800 + Math.min(600, Math.abs(animTotalRotation) / (Math.PI * 2) * 150);
+            animStartTime = performance.now();
+            lastDrawTime = 0;
 
-  if (b.y - 9 < 0) { b.y = 9; b.vy = Math.abs(b.vy); }
-  if (b.y + 9 > H) { b.y = H - 9; b.vy = -Math.abs(b.vy); }
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            animationFrameId = requestAnimationFrame(spinAnimation);
+        }
 
-  if (b.x - 9 < 12 && b.vx < 0 && b.y > PONG.left.y && b.y < PONG.left.y + 90) {
-    b.x = 12 + 9;
-    const rel = (b.y - (PONG.left.y + 45)) / 45;
-    const ang = rel * (Math.PI / 3.5);
-    const sp = Math.min(Math.hypot(b.vx, b.vy) * 1.06, 900);
-    b.vx = Math.cos(ang) * sp;
-    b.vy = Math.sin(ang) * sp;
-  }
-  if (b.x + 9 > W - 12 && b.vx > 0 && b.y > PONG.right.y && b.y < PONG.right.y + 90) {
-    b.x = W - 12 - 9;
-    const rel = (b.y - (PONG.right.y + 45)) / 45;
-    const ang = rel * (Math.PI / 3.5);
-    const sp = Math.min(Math.hypot(b.vx, b.vy) * 1.06, 900);
-    b.vx = -Math.cos(ang) * sp;
-    b.vy = Math.sin(ang) * sp;
-  }
+        function spinAnimation(now) {
+            if (spinPhase !== 'randomSpin') return;
 
-  if (b.x - 9 < 0) { PONG.scoreR++; resetPongBall(1); }
-  else if (b.x + 9 > W) { PONG.scoreL++; resetPongBall(-1); }
-}
+            const elapsed = now - animStartTime;
+            const progress = Math.min(elapsed / animDuration, 1);
 
-function renderPong() {
-  ctx.fillStyle = "#1a0f0a";
-  ctx.fillRect(0, 0, W, H);
+            const easeOut = 1 - Math.pow(1 - progress, 4);
 
-  ctx.strokeStyle = "#3d2418";
-  ctx.lineWidth = 3;
-  ctx.setLineDash([12, 14]);
-  ctx.beginPath(); ctx.moveTo(W/2, 0); ctx.lineTo(W/2, H); ctx.stroke();
-  ctx.setLineDash([]);
+            const angle = animStartAngle + animTotalRotation * easeOut;
+            currentAngle = angle;
 
-  ctx.fillStyle = "#f59e0b";
-  ctx.fillRect(0, PONG.left.y, 12, 90);
-  ctx.fillStyle = "#60a5fa";
-  ctx.fillRect(W - 12, PONG.right.y, 12, 90);
+            // Chỉ vẽ khi cần (giới hạn ~60fps nhưng bỏ qua frame nếu không thay đổi nhiều)
+            if (now - lastDrawTime > 12) {
+                drawWheel(currentAngle);
+                lastDrawTime = now;
+            }
 
-  ctx.shadowColor = "#fbbf24";
-  ctx.shadowBlur = 20;
-  ctx.fillStyle = "#fbbf24";
-  ctx.beginPath(); ctx.arc(PONG.ball.x, PONG.ball.y, 9, 0, Math.PI*2); ctx.fill();
-  ctx.shadowBlur = 0;
+            if (progress < 1) {
+                animationFrameId = requestAnimationFrame(spinAnimation);
+            } else {
+                drawWheel(currentAngle);
+                handleSpinEnd();
+            }
+        }
 
-  // Score
-  ctx.font = "bold 60px Courier New";
-  ctx.fillStyle = "rgba(245,158,11,.35)";
-  ctx.textAlign = "center";
-  ctx.fillText(PONG.scoreL, W/2 - 80, 80);
-  ctx.fillStyle = "rgba(96,165,250,.35)";
-  ctx.fillText(PONG.scoreR, W/2 + 80, 80);
-}
+        function handleSpinEnd() {
+            const landedIndex = getIndexAtPointer(currentAngle);
+            const isPityTriggered = window._isPityTriggered;
 
-/* =========================================================
-   SHOOTER RENDER
-========================================================= */
-function renderShooter() {
-  // Nền sa mạc
-  const grad = ctx.createLinearGradient(0, 0, 0, H);
-  grad.addColorStop(0, "#3d2418");
-  grad.addColorStop(0.5, "#5a3a22");
-  grad.addColorStop(1, "#2a1810");
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, W, H);
+            // NẾU TRÚNG SỐ 0 NGAY TỪ ĐẦU → DỪNG LUÔN
+            if (landedIndex === 0) {
+                // Reset pity? Không, pity chỉ reset khi trúng jackpot
+                // Nhưng số 0 cũng là kết quả cuối → không tăng pity vì không phải jackpot
+                // Thực ra pity counter chỉ tăng khi KHÔNG trúng jackpot
+                // Ở đây landed 0 → không trúng jackpot → tăng pity
+                if (pityCounterValue < PITY_THRESHOLD) {
+                    pityCounterValue++;
+                    updatePityUI();
+                }
 
-  // Cát lấm tấm
-  ctx.fillStyle = "rgba(120, 80, 40, .25)";
-  for (let i = 0; i < 60; i++) {
-    const x = (i * 137) % W;
-    const y = (i * 89) % H;
-    ctx.fillRect(x, y, 2, 2);
-  }
+                resultDisplay.textContent = '0';
+                messageEl.textContent = 'Chúc mừng! Bạn quay trúng số 0!';
+                messageEl.style.color = '#c9a961';
 
-  // Vignette
-  const vg = ctx.createRadialGradient(W/2, H/2, 100, W/2, H/2, W*0.7);
-  vg.addColorStop(0, "rgba(0,0,0,0)");
-  vg.addColorStop(1, "rgba(0,0,0,.6)");
-  ctx.fillStyle = vg;
-  ctx.fillRect(0, 0, W, H);
+                spinPhase = 'idle';
+                isSpinning = false;
+                spinBtn.disabled = false;
 
-  // Enemies
-  for (const e of SHOOTER.enemies) {
-    // Shadow
-    ctx.fillStyle = "rgba(0,0,0,.4)";
-    ctx.beginPath();
-    ctx.ellipse(e.x, e.y + e.radius - 2, e.radius * 0.9, e.radius * 0.3, 0, 0, Math.PI*2);
-    ctx.fill();
+                fireConfetti(40);
+                return;
+            }
 
-    // Body
-    ctx.fillStyle = e.hitFlash > 0 ? "#fff" : e.color;
-    ctx.beginPath();
-    ctx.arc(e.x, e.y, e.radius, 0, Math.PI*2);
-    ctx.fill();
+            // Nếu trúng jackpot
+            if (landedIndex === JACKPOT_INDEX) {
+                resultDisplay.textContent = '1 BÉ FEMBOY';
+                resultDisplay.classList.add('jackpot-text');
+                if (isPityTriggered) {
+                    messageEl.textContent = '🎉 PITY! Chúc mừng bạn đã trúng JACKPOT!';
+                } else {
+                    messageEl.textContent = 'Chúc mừng! Bạn đã trúng JACKPOT!';
+                }
+                messageEl.style.color = '#c9a961';
+                triggerFlash();
+                fireConfetti(100);
 
-    // Outline
-    ctx.strokeStyle = "#1a0f0a";
-    ctx.lineWidth = 2;
-    ctx.stroke();
+                // Reset pity vì đã trúng jackpot
+                pityCounterValue = 0;
+                updatePityUI();
 
-    // HP bar
-    if (e.hp < e.maxHp) {
-      const w = e.radius * 2;
-      ctx.fillStyle = "#3d2418";
-      ctx.fillRect(e.x - w/2, e.y - e.radius - 10, w, 4);
-      ctx.fillStyle = "#dc2626";
-      ctx.fillRect(e.x - w/2, e.y - e.radius - 10, w * (e.hp / e.maxHp), 4);
-    }
+                spinPhase = 'jackpotCelebration';
 
-    // Hat (bandit look)
-    ctx.fillStyle = "#1a0f0a";
-    ctx.beginPath();
-    ctx.arc(e.x, e.y - e.radius * 0.3, e.radius * 0.75, Math.PI, Math.PI*2);
-    ctx.fill();
-  }
+                setTimeout(() => {
+                    if (spinPhase === 'jackpotCelebration') {
+                        startReturnToZero();
+                    }
+                }, 2400);
+            } else {
+                // Các số 1-8 → không trúng jackpot → tăng pity
+                if (pityCounterValue < PITY_THRESHOLD) {
+                    pityCounterValue++;
+                    updatePityUI();
+                }
 
-  // Bullets
-  for (const b of SHOOTER.bullets) {
-    ctx.shadowColor = b.color;
-    ctx.shadowBlur = 12;
-    ctx.fillStyle = b.color;
-    ctx.beginPath();
-    ctx.arc(b.x, b.y, BULLET_RADIUS, 0, Math.PI*2);
-    ctx.fill();
-    ctx.shadowBlur = 0;
-  }
+                resultDisplay.textContent = landedIndex;
+                messageEl.textContent = `Dừng ở số ${landedIndex}...`;
+                messageEl.style.color = '#6b6b6b';
+                spinPhase = 'pauseAtRandom';
 
-  // Particles
-  for (const pt of SHOOTER.particles) {
-    const alpha = pt.life / pt.maxLife;
-    ctx.fillStyle = pt.color;
-    ctx.globalAlpha = alpha;
-    ctx.fillRect(pt.x - 2, pt.y - 2, 4, 4);
-    ctx.globalAlpha = 1;
-  }
+                setTimeout(() => {
+                    if (spinPhase === 'pauseAtRandom') {
+                        startReturnToZero();
+                    }
+                }, 1200);
+            }
+        }
 
-  // Players
-  drawCowboy(SHOOTER.players.p1, role === "host");
-  drawCowboy(SHOOTER.players.p2, role === "guest");
+        function startReturnToZero() {
+            spinPhase = 'returnToZero';
+            messageEl.textContent = 'Về 0 thôi...';
+            messageEl.style.color = '#6b6b6b';
+            resultDisplay.classList.remove('jackpot-text');
 
-  // Đường ngắm (aim line) cho player local
-  const me = role === "host" ? SHOOTER.players.p1 : SHOOTER.players.p2;
-  if (me.alive) {
-    ctx.strokeStyle = "rgba(251,191,36,.3)";
-    ctx.lineWidth = 1;
-    ctx.setLineDash([6, 8]);
-    ctx.beginPath();
-    ctx.moveTo(me.x, me.y);
-    ctx.lineTo(me.x + Math.cos(me.aim) * 100, me.y + Math.sin(me.aim) * 100);
-    ctx.stroke();
-    ctx.setLineDash([]);
-  }
-}
+            animStartAngle = currentAngle;
+            const targetAngle = getAngleForIndex(0);
 
-function drawCowboy(p, isLocal) {
-  if (!p.alive) {
-    // Xác
-    ctx.fillStyle = "rgba(100,100,100,.4)";
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, PLAYER_RADIUS * 0.6, 0, Math.PI*2);
-    ctx.fill();
-    // Đếm respawn
-    ctx.fillStyle = "#fbbf24";
-    ctx.font = "bold 14px Courier New";
-    ctx.textAlign = "center";
-    ctx.fillText(Math.ceil(p.respawn), p.x, p.y + 5);
-    return;
-  }
+            const minRounds = 1 + Math.floor(Math.random() * 2);
+            const result = calculateSmoothRotation(animStartAngle, targetAngle, minRounds);
+            animTotalRotation = result.totalRotation;
 
-  // Shadow
-  ctx.fillStyle = "rgba(0,0,0,.5)";
-  ctx.beginPath();
-  ctx.ellipse(p.x, p.y + PLAYER_RADIUS - 2, PLAYER_RADIUS * 0.9, PLAYER_RADIUS * 0.3, 0, 0, Math.PI*2);
-  ctx.fill();
+            animDuration = 1600 + Math.random() * 500;
+            animStartTime = performance.now();
+            lastDrawTime = 0;
 
-  // Body
-  ctx.fillStyle = p.color;
-  ctx.beginPath();
-  ctx.arc(p.x, p.y, PLAYER_RADIUS, 0, Math.PI*2);
-  ctx.fill();
-  ctx.strokeStyle = isLocal ? "#fbbf24" : "#1a0f0a";
-  ctx.lineWidth = isLocal ? 3 : 2;
-  ctx.stroke();
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            animationFrameId = requestAnimationFrame(returnAnimation);
+        }
 
-  // Hat
-  ctx.fillStyle = "#1a0f0a";
-  ctx.beginPath();
-  ctx.arc(p.x, p.y - 8, 14, Math.PI, Math.PI*2);
-  ctx.fill();
-  ctx.fillRect(p.x - 18, p.y - 8, 36, 3);
+        function returnAnimation(now) {
+            if (spinPhase !== 'returnToZero') return;
 
-  // Súng (xoay theo aim)
-  const gx = p.x + Math.cos(p.aim) * (PLAYER_RADIUS + 4);
-  const gy = p.y + Math.sin(p.aim) * (PLAYER_RADIUS + 4);
-  ctx.strokeStyle = "#1a0f0a";
-  ctx.lineWidth = 6;
-  ctx.beginPath();
-  ctx.moveTo(p.x, p.y);
-  ctx.lineTo(gx, gy);
-  ctx.stroke();
-  ctx.strokeStyle = "#fbbf24";
-  ctx.lineWidth = 2;
-  ctx.stroke();
+            const elapsed = now - animStartTime;
+            const progress = Math.min(elapsed / animDuration, 1);
 
-  // Nam châm chỉ hướng
-  if (isLocal) {
-    ctx.fillStyle = "#fbbf24";
-    ctx.beginPath();
-    ctx.arc(p.x + Math.cos(p.aim) * (PLAYER_RADIUS + 12),
-            p.y + Math.sin(p.aim) * (PLAYER_RADIUS + 12), 3, 0, Math.PI*2);
-    ctx.fill();
-  }
+            let eased;
+            if (progress < 0.5) {
+                eased = 8 * progress * progress * progress * progress;
+            } else {
+                eased = 1 - Math.pow(-2 * progress + 2, 4) / 2;
+            }
 
-  // Reload indicator
-  if (p.reloading > 0) {
-    const w = 40;
-    const pct = 1 - p.reloading / RELOAD_TIME;
-    ctx.fillStyle = "rgba(0,0,0,.6)";
-    ctx.fillRect(p.x - w/2, p.y - PLAYER_RADIUS - 20, w, 5);
-    ctx.fillStyle = "#60a5fa";
-    ctx.fillRect(p.x - w/2, p.y - PLAYER_RADIUS - 20, w * pct, 5);
-  }
-}
+            const angle = animStartAngle + animTotalRotation * eased;
+            currentAngle = angle;
 
-/* =========================================================
-   HUD
-========================================================= */
-function updateHUD() {
-  const me = role === "host" ? SHOOTER.players.p1 : SHOOTER.players.p2;
-  const pct = me.hp / me.maxHp * 100;
-  $("hpFill").style.width = pct + "%";
-  $("hpFill").classList.toggle("full", pct > 50);
-  $("hpText").textContent = Math.ceil(me.hp);
-  $("waveText").textContent = SHOOTER.wave;
-  $("killText").textContent = SHOOTER.kills;
-  $("ammoText").textContent = me.ammo + "/" + me.maxAmmo + (me.reloading > 0 ? "..." : "");
-}
+            if (now - lastDrawTime > 12) {
+                drawWheel(currentAngle);
+                lastDrawTime = now;
+            }
 
-/* =========================================================
-   NET HANDLER
-========================================================= */
-function onNet(msg) {
-  if (!msg || !msg.t) return;
+            if (progress < 1) {
+                animationFrameId = requestAnimationFrame(returnAnimation);
+            } else {
+                currentAngle = getAngleForIndex(0);
+                drawWheel(currentAngle);
 
-  /* --- SHOOTER --- */
-  if (msg.t === "in" && role === "host") {
-    // Guest gửi input → host lưu
-    SHOOTER.remoteInput = {
-      up: msg.up, down: msg.down, left: msg.left, right: msg.right,
-      shoot: msg.shoot, reload: msg.reload,
-      aimX: msg.aimX, aimY: msg.aimY
-    };
-    if (msg.reload) hostTryReload(SHOOTER.players.p2);
-  }
-  else if (msg.t === "sh" && role === "guest") {
-    // Host gửi state → guest render
-    const p1 = SHOOTER.players.p1, p2 = SHOOTER.players.p2;
-    // p1 = host pos (chính xác)
-    p1.x = msg.p1.x; p1.y = msg.p1.y;
-    p1.hp = msg.p1.hp; p1.alive = msg.p1.alive;
-    p1.ammo = msg.p1.ammo; p1.aim = msg.p1.aim;
-    p1.reloading = msg.p1.reloading;
-    // p2 = guest pos (host gửi lại) — nhưng guest đã local predict,
-    // nếu lệch nhiều thì snap
-    const dx = msg.p2.x - p2.x, dy = msg.p2.y - p2.y;
-    if (Math.hypot(dx, dy) > 30) { p2.x = msg.p2.x; p2.y = msg.p2.y; }
-    p2.hp = msg.p2.hp; p2.alive = msg.p2.alive;
-    p2.ammo = msg.p2.ammo; p2.reloading = msg.p2.reloading;
-    if (msg.p2.aim !== undefined) p2.aim = msg.p2.aim;
+                spinPhase = 'idle';
+                isSpinning = false;
+                spinBtn.disabled = false;
 
-    SHOOTER.enemies = msg.en.map(e => ({
-      x: e.x, y: e.y, hp: e.hp, maxHp: e.maxHp,
-      radius: e.r, color: e.c, kind: e.k,
-      hitFlash: 0, speed: 0, shootTimer: 0
-    }));
-    SHOOTER.bullets = msg.bu.map(b => ({
-      x: b.x, y: b.y, color: b.c, owner: b.o,
-      vx: 0, vy: 0, life: 1, damage: 0, radius: BULLET_RADIUS
-    }));
-    SHOOTER.particles = msg.pa.map(p => ({
-      x: p.x, y: p.y, life: p.l, maxLife: 1,
-      vx: 0, vy: 0, color: p.c
-    }));
-    SHOOTER.wave = msg.w;
-    SHOOTER.kills = msg.k;
-  }
-  else if (msg.t === "rld" && role === "host") {
-    hostTryReload(SHOOTER.players.p2);
-  }
+                resultDisplay.textContent = '0';
+                resultDisplay.classList.remove('jackpot-text');
+                messageEl.textContent = 'Kết quả cuối cùng: 0';
+                messageEl.style.color = '#6b6b6b';
 
-  /* --- PONG --- */
-  else if (msg.t === "pi" && role === "host") {
-    PONG.right.y += msg.d * 480 * (1/60);
-    PONG.right.y = Math.max(0, Math.min(H - 90, PONG.right.y));
-  }
-  else if (msg.t === "ps" && role === "guest") {
-    PONG.ball.x = msg.bx; PONG.ball.y = msg.by;
-    PONG.left.y = msg.ly; PONG.right.y = msg.ry;
-    PONG.scoreL = msg.sl; PONG.scoreR = msg.sr;
-  }
-}
+                fireConfetti(30);
+            }
+        }
 
-/* Fix small typo: e.r / target.r shouldn't be used */
-Object.defineProperty(Object.prototype, 'r', { get(){ return this.radius; }, configurable: true });
+        function triggerFlash() {
+            flash.classList.add('active');
+            setTimeout(() => flash.classList.remove('active'), 500);
+        }
 
-/* Khởi tạo render ban đầu */
-ctx.fillStyle = "#1a0f0a";
-ctx.fillRect(0, 0, W, H);
+        // ---------- CONFETTI (TỐI ƯU) ----------
+        const confettiCanvas = document.getElementById('confettiCanvas');
+        const confettiCtx = confettiCanvas.getContext('2d');
+        let confettiParticles = [];
+        let confettiAnimationId = null;
+
+        function resizeConfettiCanvas() {
+            confettiCanvas.width = window.innerWidth;
+            confettiCanvas.height = window.innerHeight;
+        }
+        resizeConfettiCanvas();
+
+        // Debounce resize
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(resizeConfettiCanvas, 200);
+        });
+
+        const CONFETTI_COLORS = [
+            '#c9a961', '#e8d5a0', '#f5f2ea', '#d4b87a'
+        ];
+
+        function fireConfetti(count) {
+            const w = confettiCanvas.width;
+            const h = confettiCanvas.height;
+
+            for (let i = 0; i < count; i++) {
+                confettiParticles.push({
+                    x: w / 2 + (Math.random() - 0.5) * w * 0.5,
+                    y: h * 0.45 + (Math.random() - 0.5) * 80,
+                    vx: (Math.random() - 0.5) * 12,
+                    vy: -(Math.random() * 10 + 4),
+                    size: Math.random() * 6 + 4,
+                    color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
+                    rotation: Math.random() * Math.PI * 2,
+                    rotSpeed: (Math.random() - 0.5) * 0.3,
+                    gravity: 0.28,
+                    opacity: 1,
+                    shape: Math.random() > 0.6 ? 'ribbon' : 'rect',
+                    life: 0,
+                    sway: Math.random() * 0.4 + 0.3,
+                    swayPhase: Math.random() * Math.PI * 2
+                });
+            }
+
+            if (!confettiAnimationId) {
+                confettiAnimationId = requestAnimationFrame(updateConfetti);
+            }
+        }
+
+        function updateConfetti() {
+            confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+
+            for (let i = confettiParticles.length - 1; i >= 0; i--) {
+                const p = confettiParticles[i];
+
+                p.vy += p.gravity;
+                p.vx *= 0.985;
+                p.swayPhase += 0.05;
+                p.x += p.vx + Math.sin(p.swayPhase) * p.sway;
+                p.y += p.vy;
+                p.rotation += p.rotSpeed;
+                p.life++;
+
+                if (p.life > 80) {
+                    p.opacity -= 0.02;
+                }
+
+                if (p.opacity <= 0 || p.y > confettiCanvas.height + 50) {
+                    confettiParticles.splice(i, 1);
+                    continue;
+                }
+
+                confettiCtx.save();
+                confettiCtx.translate(p.x, p.y);
+                confettiCtx.rotate(p.rotation);
+                confettiCtx.globalAlpha = p.opacity;
+                confettiCtx.fillStyle = p.color;
+
+                if (p.shape === 'ribbon') {
+                    confettiCtx.fillRect(-p.size / 2, -p.size / 6, p.size, p.size / 3);
+                } else {
+                    confettiCtx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
+                }
+
+                confettiCtx.restore();
+            }
+
+            if (confettiParticles.length > 0) {
+                confettiAnimationId = requestAnimationFrame(updateConfetti);
+            } else {
+                confettiAnimationId = null;
+                confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+            }
+        }
+
+        // ---------- INIT ----------
+        function initWheel() {
+            currentAngle = getAngleForIndex(0);
+            drawWheel(currentAngle);
+
+            resultDisplay.textContent = '0';
+            messageEl.textContent = 'Nhấn Quay để bắt đầu';
+            spinPhase = 'idle';
+            isSpinning = false;
+            spinBtn.disabled = false;
+
+            pityCounterValue = 0;
+            updatePityUI();
+        }
+
+        spinBtn.addEventListener('click', startSpin);
+        initWheel();
+
+    })();
 </script>
 </body>
 </html>
