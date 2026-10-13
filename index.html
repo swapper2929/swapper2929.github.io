@@ -1,815 +1,1139 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vòng Quay May Mắn</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-        }
-        html, body {
-            height: 100%;
-        }
-        body {
-            background: #0d0d0f;
-            background-image:
-                radial-gradient(ellipse 80% 50% at 50% -20%, rgba(120, 90, 40, 0.15), transparent),
-                radial-gradient(ellipse 60% 40% at 50% 120%, rgba(60, 40, 90, 0.12), transparent);
-            color: #e8e6e3;
-            font-family: 'Inter', -apple-system, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            padding: 24px;
-            overflow-x: hidden;
-            -webkit-font-smoothing: antialiased;
-        }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#0a0e17" />
+<meta name="description" content="PWA kiểm tra NAT + quét cổng local qua WebRTC STUN và timing probe" />
+<title>NAT Inspector + Port Scan</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><circle cx='12' cy='12' r='10' fill='%2300e5a0'/></svg>" />
 
-        body::after {
-            content: '';
-            position: fixed;
-            inset: 0;
-            background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.5) 100%);
-            pointer-events: none;
-            z-index: 1;
-        }
+<style>
+  :root {
+    --bg: #0a0e17;
+    --bg-elev: #111826;
+    --border: #1e2b45;
+    --text: #e6edf7;
+    --text-dim: #8a9ab8;
+    --accent: #00e5a0;
+    --accent-2: #3b82f6;
+    --warn: #f59e0b;
+    --danger: #ef4444;
+    --ok: #22c55e;
+    --radius: 14px;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background:
+      radial-gradient(1200px 600px at 80% -10%, #10203a 0%, transparent 60%),
+      radial-gradient(900px 500px at -10% 20%, #0d2b26 0%, transparent 55%),
+      var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 24px 18px 60px; }
 
-        .game-container {
-            position: relative;
-            z-index: 2;
-            width: 100%;
-            max-width: 440px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
+  .app-header {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; padding: 18px 0 22px;
+    border-bottom: 1px solid var(--border); margin-bottom: 22px;
+  }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .logo {
+    width: 46px; height: 46px; display: grid; place-items: center;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #00e5a0 0%, #3b82f6 100%);
+    color: #041018; box-shadow: 0 6px 22px #00e5a033;
+  }
+  h1 { font-size: 1.25rem; margin: 0; letter-spacing: -0.02em; }
+  .subtitle { margin: 0; font-size: 0.78rem; color: var(--text-dim); }
 
-        .header {
-            text-align: center;
-            margin-bottom: 36px;
-        }
-        .header .eyebrow {
-            font-size: 11px;
-            font-weight: 500;
-            letter-spacing: 4px;
-            text-transform: uppercase;
-            color: #8a7d5c;
-            margin-bottom: 12px;
-        }
-        .header h1 {
-            font-family: 'Playfair Display', serif;
-            font-weight: 700;
-            font-size: 2.4rem;
-            letter-spacing: -0.5px;
-            line-height: 1.1;
-            color: #f5f2ea;
-            margin-bottom: 8px;
-        }
-        .header h1 em {
-            font-style: italic;
-            font-weight: 500;
-            color: #c9a961;
-        }
-        .header .subtitle {
-            font-size: 13px;
-            font-weight: 400;
-            color: #6b6b6b;
-            letter-spacing: 0.3px;
-        }
+  .btn {
+    font: inherit; font-weight: 600; font-size: 0.9rem;
+    padding: 11px 18px; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--bg-elev);
+    color: var(--text); cursor: pointer;
+    transition: transform .12s ease, background .2s, border-color .2s, opacity .2s;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .btn:hover:not(:disabled) { transform: translateY(-1px); border-color: #2c3f63; }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .btn.primary {
+    background: linear-gradient(135deg, #00e5a0 0%, #17c98a 100%);
+    color: #04140e; border-color: transparent;
+    box-shadow: 0 8px 24px #00e5a033;
+  }
+  .btn.primary:hover:not(:disabled) { box-shadow: 0 10px 28px #00e5a055; }
+  .btn.ghost { background: transparent; }
+  .btn.sm { padding: 8px 13px; font-size: 0.82rem; }
 
-        .wheel-wrapper {
-            position: relative;
-            width: 340px;
-            height: 340px;
-            margin-bottom: 32px;
-        }
+  .panel {
+    background: linear-gradient(180deg, var(--bg-elev) 0%, #0e1522 100%);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px; margin-bottom: 18px;
+  }
+  .panel h2 {
+    font-size: 0.95rem; margin: 0 0 14px;
+    letter-spacing: .02em; text-transform: uppercase;
+    color: var(--text-dim); font-weight: 700;
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .panel h2 .chip {
+    font-size: 0.68rem; padding: 3px 8px; border-radius: 999px;
+    background: #1a2440; color: var(--text-dim); font-weight: 700;
+    letter-spacing: .05em; text-transform: none;
+  }
 
-        .wheel-wrapper::before {
-            content: '';
-            position: absolute;
-            inset: -18px;
-            border-radius: 50%;
-            border: 1px solid rgba(201, 169, 97, 0.15);
-            pointer-events: none;
-        }
-        .wheel-wrapper::after {
-            content: '';
-            position: absolute;
-            inset: -32px;
-            border-radius: 50%;
-            border: 1px solid rgba(201, 169, 97, 0.06);
-            pointer-events: none;
-        }
+  .hero-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px; margin-bottom: 16px;
+  }
+  .hero-item {
+    background: #0b1220; border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px 16px;
+    display: flex; flex-direction: column; gap: 6px; min-width: 0;
+  }
+  .hero-item .label {
+    font-size: 0.7rem; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--text-dim); font-weight: 700;
+  }
+  .hero-item .value {
+    font-family: var(--mono); font-size: 1rem; font-weight: 600;
+    word-break: break-all; color: var(--text);
+  }
+  .badge {
+    display: inline-block; padding: 4px 10px; border-radius: 999px;
+    font-size: 0.78rem !important; background: #1a2440;
+    color: var(--text-dim); width: fit-content;
+  }
+  .badge.ok   { background: #0d3324; color: #4ade80; }
+  .badge.warn { background: #3a2b0d; color: #fbbf24; }
+  .badge.bad  { background: #3a1414; color: #f87171; }
 
-        canvas#wheelCanvas {
-            width: 100%;
-            height: 100%;
-            display: block;
-            border-radius: 50%;
-            box-shadow:
-                0 0 0 1px rgba(201, 169, 97, 0.3),
-                0 20px 60px rgba(0,0,0,0.6),
-                0 0 100px rgba(201, 169, 97, 0.08);
-            will-change: transform;
-        }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; }
 
-        .pointer {
-            position: absolute;
-            top: -14px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 26px;
-            height: 26px;
-            z-index: 10;
-            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.8));
-        }
-        .pointer svg {
-            width: 100%;
-            height: 100%;
-            display: block;
-        }
+  .progress {
+    margin-top: 16px; height: 6px; background: #0b1220;
+    border-radius: 999px; overflow: hidden; border: 1px solid var(--border);
+  }
+  .progress .bar {
+    height: 100%; width: 0%;
+    background: linear-gradient(90deg, #00e5a0, #3b82f6);
+    transition: width .25s ease;
+  }
+  .progress-label {
+    font-size: 0.78rem; color: var(--text-dim);
+    margin-top: 8px; font-family: var(--mono);
+  }
 
-        .spin-btn {
-            width: 100%;
-            max-width: 320px;
-            padding: 20px 32px;
-            background: #f5f2ea;
-            color: #0d0d0f;
-            border: none;
-            border-radius: 100px;
-            font-family: 'Inter', sans-serif;
-            font-size: 15px;
-            font-weight: 600;
-            letter-spacing: 3px;
-            text-transform: uppercase;
-            cursor: pointer;
-            transition: background 0.2s, transform 0.2s;
-            margin-bottom: 28px;
-        }
-        .spin-btn:hover:not(:disabled) {
-            background: #ffffff;
-            transform: translateY(-1px);
-        }
-        .spin-btn:active:not(:disabled) {
-            transform: translateY(0);
-        }
-        .spin-btn:disabled {
-            background: #2a2a2e;
-            color: #555558;
-            cursor: not-allowed;
-        }
+  .table-wrap {
+    overflow-x: auto; border-radius: 10px;
+    border: 1px solid var(--border); max-height: 520px; overflow-y: auto;
+  }
+  table.result-table {
+    width: 100%; border-collapse: collapse;
+    font-size: 0.85rem; min-width: 560px;
+  }
+  .result-table th, .result-table td {
+    padding: 10px 12px; text-align: left;
+    border-bottom: 1px solid var(--border); white-space: nowrap;
+  }
+  .result-table th {
+    background: #0b1220; font-size: 0.72rem;
+    text-transform: uppercase; letter-spacing: .06em;
+    color: var(--text-dim); font-weight: 700;
+    position: sticky; top: 0; z-index: 1;
+  }
+  .result-table td { font-family: var(--mono); font-size: 0.82rem; }
+  .result-table tr:last-child td { border-bottom: none; }
+  .result-table .empty {
+    text-align: center; color: var(--text-dim);
+    font-family: inherit; padding: 24px;
+  }
+  .status-ok   { color: var(--ok); }
+  .status-fail { color: var(--danger); }
+  .status-pend { color: var(--warn); }
+  .status-open { color: var(--ok); font-weight: 700; }
+  .status-closed { color: var(--text-dim); }
+  .status-filtered { color: var(--warn); }
+  .status-unknown { color: var(--text-dim); }
 
-        .result-area {
-            width: 100%;
-            max-width: 320px;
-            padding: 20px 24px;
-            background: rgba(20, 20, 24, 0.6);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 20px;
-            text-align: center;
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-        }
-        .result-label {
-            font-size: 10px;
-            font-weight: 500;
-            letter-spacing: 3px;
-            text-transform: uppercase;
-            color: #6b6b6b;
-            margin-bottom: 10px;
-        }
-        .result-number {
-            font-family: 'Playfair Display', serif;
-            font-weight: 700;
-            font-size: 3.6rem;
-            line-height: 1;
-            color: #f5f2ea;
-            letter-spacing: -1px;
-            transition: color 0.3s, font-size 0.3s;
-        }
-        .result-number.jackpot-text {
-            font-family: 'Inter', sans-serif;
-            font-size: 1.3rem;
-            font-weight: 600;
-            letter-spacing: 1px;
-            color: #c9a961;
-            line-height: 1.3;
-        }
-        .message {
-            font-size: 12px;
-            color: #6b6b6b;
-            margin-top: 12px;
-            font-weight: 400;
-            letter-spacing: 0.3px;
-            min-height: 1.5em;
-            transition: color 0.3s;
-        }
+  .analysis-list {
+    display: grid; gap: 10px;
+    margin: 0; padding: 0; list-style: none;
+  }
+  .analysis-list li {
+    display: flex; gap: 12px; padding: 12px 14px;
+    background: #0b1220; border: 1px solid var(--border);
+    border-radius: 10px; font-size: 0.9rem; align-items: flex-start;
+  }
+  .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    margin-top: 6px; flex-shrink: 0; background: var(--text-dim);
+  }
+  .dot.ok   { background: var(--ok); box-shadow: 0 0 12px #22c55e88; }
+  .dot.warn { background: var(--warn); box-shadow: 0 0 12px #f59e0b88; }
+  .dot.bad  { background: var(--danger); box-shadow: 0 0 12px #ef444488; }
+  .dot.info { background: var(--accent-2); box-shadow: 0 0 12px #3b82f688; }
+  .analysis-list strong { color: var(--accent); }
+  .muted { color: var(--text-dim); font-size: 0.9rem; margin: 0; }
 
-        .note {
-            margin-top: 20px;
-            font-size: 11px;
-            color: #4a4a50;
-            letter-spacing: 0.5px;
-            text-align: center;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-        .note .dot {
-            width: 3px;
-            height: 3px;
-            border-radius: 50%;
-            background: #c9a961;
-            opacity: 0.5;
-        }
-        .note .pity {
-            color: #c9a961;
-            font-weight: 500;
-        }
+  .notes {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 12px;
+  }
+  .note {
+    background: #0b1220; border: 1px solid var(--border);
+    border-left: 3px solid var(--accent-2);
+    border-radius: 10px; padding: 14px 16px;
+  }
+  .note h3 { font-size: 0.85rem; margin: 0 0 8px; color: var(--text); }
+  .note p { margin: 0; font-size: 0.85rem; color: var(--text-dim); line-height: 1.6; }
+  .note.warn { border-left-color: var(--warn); }
+  .note.danger { border-left-color: var(--danger); }
+  code {
+    font-family: var(--mono); font-size: 0.8rem;
+    background: #162032; padding: 2px 6px;
+    border-radius: 4px; color: var(--accent);
+  }
+  strong { color: var(--text); }
 
-        #confettiCanvas {
-            position: fixed;
-            inset: 0;
-            width: 100vw;
-            height: 100vh;
-            pointer-events: none;
-            z-index: 100;
-        }
+  details.raw {
+    background: #0b1220; border: 1px solid var(--border);
+    border-radius: 10px; margin-top: 14px;
+  }
+  details.raw summary {
+    padding: 12px 16px; cursor: pointer;
+    font-size: 0.85rem; color: var(--text-dim); user-select: none;
+  }
+  details.raw pre {
+    margin: 0; padding: 14px 16px;
+    font-family: var(--mono); font-size: 0.78rem; color: #b8c5dd;
+    overflow-x: auto; border-top: 1px solid var(--border); max-height: 380px;
+  }
 
-        .flash {
-            position: fixed;
-            inset: 0;
-            background: #c9a961;
-            pointer-events: none;
-            z-index: 50;
-            opacity: 0;
-            mix-blend-mode: overlay;
-        }
-        .flash.active {
-            animation: flashAnim 0.5s ease-out;
-        }
-        @keyframes flashAnim {
-            0% { opacity: 0; }
-            20% { opacity: 0.4; }
-            100% { opacity: 0; }
-        }
+  /* ---------- Scanner controls ---------- */
+  .scan-controls {
+    display: grid;
+    grid-template-columns: 180px 1fr auto auto;
+    gap: 10px; margin-bottom: 14px; align-items: center;
+  }
+  @media (max-width: 720px) {
+    .scan-controls { grid-template-columns: 1fr 1fr; }
+  }
+  .field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+  .field label {
+    font-size: 0.7rem; text-transform: uppercase;
+    letter-spacing: .06em; color: var(--text-dim); font-weight: 700;
+  }
+  .field input, .field select {
+    font: inherit; font-family: var(--mono); font-size: 0.85rem;
+    padding: 9px 11px; border-radius: 9px;
+    border: 1px solid var(--border); background: #0b1220;
+    color: var(--text); width: 100%; min-width: 0;
+  }
+  .field input:focus, .field select:focus {
+    outline: none; border-color: var(--accent-2);
+    box-shadow: 0 0 0 3px #3b82f625;
+  }
 
-        @media (max-width: 400px) {
-            .wheel-wrapper {
-                width: 300px;
-                height: 300px;
-            }
-            .header h1 {
-                font-size: 2rem;
-            }
-            .result-number {
-                font-size: 3rem;
-            }
-        }
-    </style>
+  .scan-stats {
+    display: flex; gap: 14px; flex-wrap: wrap;
+    font-family: var(--mono); font-size: 0.78rem;
+    color: var(--text-dim); margin: 10px 0 12px;
+    padding: 10px 14px; background: #0b1220;
+    border: 1px solid var(--border); border-radius: 10px;
+  }
+  .scan-stats b { color: var(--text); font-weight: 700; }
+  .scan-stats .open-count { color: var(--ok); }
+  .scan-stats .closed-count { color: var(--text-dim); }
+  .scan-stats .filtered-count { color: var(--warn); }
+
+  .open-list {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    margin-top: 12px; padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .open-list .tag {
+    font-family: var(--mono); font-size: 0.82rem;
+    padding: 5px 11px; border-radius: 999px;
+    background: #0d3324; color: #4ade80;
+    border: 1px solid #22c55e55; font-weight: 700;
+  }
+  .open-list .tag.ws { background: #1a2440; color: #93c5fd; border-color: #3b82f655; }
+  .open-list .tag.http { background: #2a1a3a; color: #c4b5fd; border-color: #8b5cf655; }
+
+  footer {
+    text-align: center; color: var(--text-dim);
+    font-size: 0.75rem; margin-top: 30px;
+  }
+
+  @media (max-width: 520px) {
+    h1 { font-size: 1.05rem; }
+    .logo { width: 40px; height: 40px; }
+    .panel { padding: 16px; }
+  }
+</style>
 </head>
 <body>
-    <canvas id="confettiCanvas"></canvas>
-    <div class="flash" id="flash"></div>
+<div class="wrap">
 
-    <div class="game-container">
-        <div class="header">
-            <div class="eyebrow">Giải thưởng đặc biệt</div>
-            <h1>Vòng Quay <em>May Mắn</em></h1>
-            <div class="subtitle">Quay để nhận phần thưởng của bạn</div>
-        </div>
+  <header class="app-header">
+    <div class="brand">
+      <div class="logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9"/>
+          <path d="M3 12h18M12 3c3 4 3 14 0 18M12 3c-3 4-3 14 0 18"/>
+        </svg>
+      </div>
+      <div>
+        <h1>NAT Inspector <span style="color:var(--accent)">+ Port Scan</span></h1>
+        <p class="subtitle">WebRTC · STUN · Exit Node · Local Port Probe</p>
+      </div>
+    </div>
+    <button id="installBtn" class="btn ghost hidden">⬇ Install</button>
+  </header>
 
-        <div class="wheel-wrapper">
-            <div class="pointer">
-                <svg viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M13 24 L2 4 Q13 0 24 4 Z" fill="#f5f2ea" stroke="#0d0d0f" stroke-width="1"/>
-                    <circle cx="13" cy="6" r="2.5" fill="#c9a961"/>
-                </svg>
-            </div>
-            <canvas id="wheelCanvas" width="500" height="500"></canvas>
-        </div>
+  <!-- ============ NAT PANEL ============ -->
+  <section class="panel">
+    <h2>NAT / Exit Node</h2>
+    <div class="hero-grid">
+      <div class="hero-item">
+        <span class="label">Public IP (srflx)</span>
+        <span class="value" id="publicIP">—</span>
+      </div>
+      <div class="hero-item">
+        <span class="label">Public Port</span>
+        <span class="value" id="publicPort">—</span>
+      </div>
+      <div class="hero-item">
+        <span class="label">Local IP (host)</span>
+        <span class="value" id="localIP">—</span>
+      </div>
+      <div class="hero-item">
+        <span class="label">NAT Type</span>
+        <span class="value badge" id="natType">Chưa kiểm tra</span>
+      </div>
+    </div>
+    <div class="actions">
+      <button id="runBtn" class="btn primary">▶ Chạy kiểm tra NAT</button>
+      <button id="copyBtn" class="btn ghost" disabled>⎘ Copy JSON</button>
+    </div>
+    <div class="progress" id="progress" hidden><div class="bar" id="progressBar"></div></div>
+    <div class="progress-label" id="progressLabel" hidden></div>
+  </section>
 
-        <button class="spin-btn" id="spinButton">Quay</button>
+  <section class="panel">
+    <h2>Kết quả STUN theo từng server</h2>
+    <div class="table-wrap">
+      <table class="result-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>STUN Server</th>
+            <th>Mapped (srflx)</th>
+            <th>Local (host)</th>
+            <th>Trạng thái</th>
+          </tr>
+        </thead>
+        <tbody id="resultBody">
+          <tr><td colspan="5" class="empty">Chưa có dữ liệu — nhấn "Chạy kiểm tra NAT"</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
 
-        <div class="result-area">
-            <div class="result-label">Kết quả</div>
-            <div class="result-number" id="resultDisplay">0</div>
-            <div class="message" id="message">Nhấn Quay để bắt đầu</div>
-        </div>
+  <section class="panel">
+    <h2>Phân tích NAT</h2>
+    <div id="analysis"><p class="muted">Chưa có phân tích.</p></div>
+    <details class="raw">
+      <summary>▸ Raw JSON output</summary>
+      <pre id="rawJson">—</pre>
+    </details>
+  </section>
 
-        <div class="note">
-            <span>Ô JACKPOT</span>
-            <span class="dot"></span>
-            <span>Phần thưởng: 1 bé femboy</span>
-            <span class="dot"></span>
-            <span class="pity" id="pityCounter">Pity: 0/3</span>
-        </div>
+  <!-- ============ PORT SCANNER PANEL ============ -->
+  <section class="panel">
+    <h2>
+      Local Port Scanner
+      <span class="chip">timing-based probe · không phải nmap thật</span>
+    </h2>
+
+    <div class="scan-controls">
+      <div class="field">
+        <label for="scanHost">Target host</label>
+        <input id="scanHost" type="text" value="127.0.0.1" placeholder="127.0.0.1" />
+      </div>
+      <div class="field">
+        <label for="scanPreset">Port preset</label>
+        <select id="scanPreset">
+          <option value="common">Common (top 30)</option>
+          <option value="web">Web / Dev (80,443,3000,5000,8000,8080…)</option>
+          <option value="db">Database (1433,3306,5432,6379,27017…)</option>
+          <option value="all">Well-known 1–1024 (chậm)</option>
+          <option value="custom">Custom (chỉnh bên dưới)</option>
+        </select>
+      </div>
+      <div class="field" style="grid-column: span 2;" id="customPortsWrap" hidden>
+        <label for="scanCustom">Custom ports (vd: 22,80,443,3000-3010)</label>
+        <input id="scanCustom" type="text" placeholder="22,80,443,3000-3010" />
+      </div>
+      <div class="field">
+        <label for="scanConc">Concurrency</label>
+        <input id="scanConc" type="number" value="24" min="1" max="64" />
+      </div>
+      <div class="field">
+        <label for="scanTimeout">Timeout (ms)</label>
+        <input id="scanTimeout" type="number" value="1200" min="300" max="5000" step="100" />
+      </div>
+      <div class="actions" style="grid-column: span 4; margin-top: 4px;">
+        <button id="scanBtn" class="btn primary">🔍 Bắt đầu quét</button>
+        <button id="stopBtn" class="btn ghost" disabled>■ Dừng</button>
+        <button id="useLocalBtn" class="btn sm ghost">↺ Dùng Local IP vừa phát hiện</button>
+      </div>
     </div>
 
+    <div class="scan-stats" id="scanStats" hidden>
+      <span>Đã quét: <b id="statScanned">0</b>/<b id="statTotal">0</b></span>
+      <span class="open-count">Open: <b id="statOpen">0</b></span>
+      <span class="filtered-count">Filtered: <b id="statFiltered">0</b></span>
+      <span class="closed-count">Closed: <b id="statClosed">0</b></span>
+      <span>Thời gian: <b id="statTime">0.0s</b></span>
+    </div>
+
+    <div class="progress" id="scanProgress" hidden><div class="bar" id="scanProgressBar"></div></div>
+
+    <div class="table-wrap" style="margin-top: 14px;">
+      <table class="result-table">
+        <thead>
+          <tr>
+            <th>Port</th>
+            <th>Service</th>
+            <th>Trạng thái</th>
+            <th>Phương thức</th>
+            <th>Latency</th>
+          </tr>
+        </thead>
+        <tbody id="scanBody">
+          <tr><td colspan="5" class="empty">Chưa quét. Nhấn "Bắt đầu quét".</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="open-list" id="openList" hidden>
+      <span class="muted" style="font-size:0.8rem;align-self:center;width:100%">— Cổng mở phát hiện —</span>
+    </div>
+  </section>
+
+  <!-- ============ NOTES ============ -->
+  <section class="panel">
+    <h2>Về UDP / TCP / Scanning</h2>
+    <div class="notes">
+      <div class="note">
+        <h3>UDP — STUN binding</h3>
+        <p>WebRTC gửi Binding Request qua UDP tới STUN server. Trình duyệt <em>không cho</em>
+        JS mở raw UDP socket — mọi thứ đi qua <code>RTCPeerConnection</code>. Bạn chỉ <em>quan sát</em>
+        mapping NAT tạo ra, không thể tự bắn gói UDP tuỳ ý để test filtering.</p>
+      </div>
+      <div class="note">
+        <h3>TCP — không hỗ trợ STUN</h3>
+        <p>STUN chỉ định nghĩa trên UDP (RFC 5389/8489). Muốn kiểm tra TCP NAT cần raw socket
+        (Node.js, native app) hoặc <code>Direct Sockets API</code> trong Isolated Web App của Chrome.</p>
+      </div>
+      <div class="note warn">
+        <h3>Port scan trong browser — giới hạn</h3>
+        <p>Không có raw TCP socket → chỉ có thể dùng <code>fetch(no-cors)</code>, <code>WebSocket</code>,
+        <code>&lt;img&gt;</code> và đo <strong>timing + error type</strong>. Kết quả mang tính
+        <strong>suy đoán</strong>: open / closed / filtered. Chỉ quét được <em>localhost và chính máy</em> —
+        không quét được host từ xa vì CORS + same-origin policy.</p>
+      </div>
+      <div class="note danger">
+        <h3>Cảnh báo pháp lý</h3>
+        <p>Chỉ quét thiết bị của chính bạn. Quét cổng hệ thống không thuộc quyền sở hữu là
+        <strong>hành vi vi phạm pháp luật</strong> tại nhiều quốc gia.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>NAT Inspector + Port Scan · 100% client-side · Không tracking</footer>
+</div>
+
 <script>
-    (function() {
-        const canvas = document.getElementById('wheelCanvas');
-        const ctx = canvas.getContext('2d');
-        const spinBtn = document.getElementById('spinButton');
-        const resultDisplay = document.getElementById('resultDisplay');
-        const messageEl = document.getElementById('message');
-        const flash = document.getElementById('flash');
-        const pityCounter = document.getElementById('pityCounter');
+(() => {
+  'use strict';
 
-        const NUM_SECTORS = 10;
-        const SECTOR_ANGLE = (Math.PI * 2) / NUM_SECTORS;
-        const RADIUS = 235;
-        const CENTER = 250;
-        const JACKPOT_INDEX = 9;
-        const JACKPOT_CHANCE = 0.30; // 30%
-        const PITY_THRESHOLD = 3;    // Sau 3 lần không trúng → lần 4 chắc chắn trúng
+  // ================================================================
+  //  CẤU HÌNH STUN
+  // ================================================================
+  const STUN_SERVERS = [
+    { url: 'stun:stun.l.google.com:19302',  name: 'Google #1 (19302)' },
+    { url: 'stun:stun.l.google.com:19305',  name: 'Google #2 (19305)' },
+    { url: 'stun:stun1.l.google.com:19302', name: 'Google #3 (stun1)' },
+    { url: 'stun:stun2.l.google.com:19302', name: 'Google #4 (stun2)' },
+    { url: 'stun:stun3.l.google.com:19302', name: 'Google #5 (stun3)' },
+    { url: 'stun:stun4.l.google.com:19302', name: 'Google #6 (stun4)' },
+    { url: 'stun:stun.cloudflare.com:3478', name: 'Cloudflare (fallback)' },
+  ];
+  const TIMEOUT_MS = 6000;
 
-        const COLORS = [
-            '#1f1f24', '#26262c', '#2d2d34', '#34343c', '#3b3b44',
-            '#42424c', '#494954', '#50505c', '#575764', '#8b1e3f'
-        ];
+  // ================================================================
+  //  PORT PRESETS — kèm tên dịch vụ
+  // ================================================================
+  const SERVICE_NAMES = {
+    21: 'FTP', 22: 'SSH', 23: 'Telnet', 25: 'SMTP', 53: 'DNS',
+    80: 'HTTP', 81: 'HTTP-alt', 110: 'POP3', 111: 'rpcbind', 135: 'MSRPC',
+    139: 'NetBIOS', 143: 'IMAP', 161: 'SNMP', 389: 'LDAP', 443: 'HTTPS',
+    445: 'SMB', 465: 'SMTPS', 514: 'Syslog', 515: 'LPD', 548: 'AFP',
+    587: 'SMTP-sub', 631: 'IPP/CUPS', 636: 'LDAPS', 873: 'rsync',
+    993: 'IMAPS', 995: 'POP3S', 1080: 'SOCKS', 1433: 'MSSQL',
+    1521: 'Oracle', 1723: 'PPTP', 1883: 'MQTT', 2049: 'NFS',
+    2181: 'ZooKeeper', 2375: 'Docker', 2376: 'Docker-TLS',
+    3000: 'Dev-HTTP', 3128: 'Squid', 3306: 'MySQL', 3389: 'RDP',
+    4000: 'Dev', 5000: 'Dev/UPnP', 5432: 'PostgreSQL', 5601: 'Kibana',
+    5672: 'AMQP', 5900: 'VNC', 5985: 'WinRM-HTTP', 5986: 'WinRM-HTTPS',
+    6379: 'Redis', 6443: 'K8s-API', 7001: 'WebLogic', 8000: 'HTTP-alt',
+    8080: 'HTTP-proxy', 8081: 'HTTP-alt', 8086: 'InfluxDB',
+    8443: 'HTTPS-alt', 8888: 'HTTP-alt', 9000: 'PHP-FPM/Portainer',
+    9090: 'Prometheus', 9200: 'Elasticsearch', 9300: 'Elasticsearch-node',
+    10000: 'Webmin', 11211: 'Memcached', 27017: 'MongoDB',
+    50000: 'SAP', 50051: 'gRPC',
+  };
 
-        const TEXT_COLORS = [
-            '#c9a961', '#c9a961', '#c9a961', '#c9a961', '#c9a961',
-            '#c9a961', '#c9a961', '#c9a961', '#c9a961', '#f5f2ea'
-        ];
+  const PRESETS = {
+    common: [21,22,23,25,53,80,110,143,443,445,993,995,1433,1521,3306,3389,5432,5900,6379,8080,8443,8888,9090,9200,11211,27017,50051,10000,25565,32400],
+    web:    [80,443,3000,4000,4200,5000,5173,8000,8001,8080,8081,8088,8443,8888,9000,9090,9443,1337,3001],
+    db:     [1433,1521,3306,5432,6379,9200,9300,11211,27017,2379,2380,2181,5672,15672,5984,9042],
+    all:    Array.from({ length: 1024 }, (_, i) => i + 1),
+  };
 
-        let currentAngle = 0;
-        let isSpinning = false;
-        let spinPhase = 'idle';
-        let animationFrameId = null;
-        let lastDrawTime = 0;
+  // ================================================================
+  //  DOM
+  // ================================================================
+  const $ = (id) => document.getElementById(id);
+  const els = {
+    publicIP: $('publicIP'), publicPort: $('publicPort'),
+    localIP: $('localIP'), natType: $('natType'),
+    runBtn: $('runBtn'), copyBtn: $('copyBtn'),
+    progress: $('progress'), progressBar: $('progressBar'),
+    progressLabel: $('progressLabel'),
+    resultBody: $('resultBody'),
+    analysis: $('analysis'), rawJson: $('rawJson'),
+    installBtn: $('installBtn'),
 
-        let animStartTime = 0;
-        let animStartAngle = 0;
-        let animTotalRotation = 0;
-        let animDuration = 0;
+    scanHost: $('scanHost'), scanPreset: $('scanPreset'),
+    scanCustom: $('scanCustom'), customPortsWrap: $('customPortsWrap'),
+    scanConc: $('scanConc'), scanTimeout: $('scanTimeout'),
+    scanBtn: $('scanBtn'), stopBtn: $('stopBtn'), useLocalBtn: $('useLocalBtn'),
+    scanStats: $('scanStats'), statScanned: $('statScanned'), statTotal: $('statTotal'),
+    statOpen: $('statOpen'), statClosed: $('statClosed'), statFiltered: $('statFiltered'),
+    statTime: $('statTime'),
+    scanProgress: $('scanProgress'), scanProgressBar: $('scanProgressBar'),
+    scanBody: $('scanBody'), openList: $('openList'),
+  };
 
-        // Pity system
-        let pityCounterValue = 0;
+  let lastNatResult = null;
+  let scanAbort = { aborted: false };
 
-        // Lưu trữ các sector đã vẽ để tránh tính toán lại
-        let wheelDirty = true;
+  // ================================================================
+  //  ==== PHẦN NAT (giống bản trước) ====
+  // ================================================================
+  function parseCandidate(str) {
+    const p = str.split(/\s+/);
+    if (p.length < 8) return null;
+    const protocol = p[2].toLowerCase();
+    const ip = p[4], port = parseInt(p[5], 10), typ = p[7];
+    let raddr = null, rport = null;
+    for (let i = 8; i < p.length - 1; i++) {
+      if (p[i] === 'raddr') raddr = p[i + 1];
+      if (p[i] === 'rport') rport = p[i + 1];
+    }
+    return { protocol, ip, port, typ, raddr, rport };
+  }
 
-        // ---------- VẼ ----------
-        function drawWheel(angle) {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+  function queryStunServer(server) {
+    return new Promise((resolve) => {
+      const pc = new RTCPeerConnection({
+        iceServers: [{ urls: server.url }],
+        iceTransportPolicy: 'all',
+        iceCandidatePoolSize: 0,
+      });
+      const result = {
+        server: server.url, name: server.name,
+        srflx: [], host: [], prflx: [],
+        error: null, durationMs: 0,
+      };
+      const start = performance.now();
+      let finished = false;
+      const finish = (err) => {
+        if (finished) return;
+        finished = true;
+        result.durationMs = Math.round(performance.now() - start);
+        if (err) result.error = err;
+        try { pc.close(); } catch (_) {}
+        resolve(result);
+      };
+      pc.onicecandidate = (evt) => {
+        if (!evt.candidate) return finish(null);
+        const c = parseCandidate(evt.candidate.candidate);
+        if (!c || c.protocol !== 'udp') return;
+        if (c.typ === 'srflx') result.srflx.push(c);
+        else if (c.typ === 'host') result.host.push(c);
+        else if (c.typ === 'prflx') result.prflx.push(c);
+      };
+      pc.onicegatheringstatechange = () => {
+        if (pc.iceGatheringState === 'complete') finish(null);
+      };
+      pc.onicecandidateerror = (e) => {
+        if (result.error === null) result.error = `ICE ${e.errorCode}: ${e.errorText || 'error'}`;
+      };
+      try {
+        pc.createDataChannel('probe');
+        pc.createOffer()
+          .then(o => pc.setLocalDescription(o))
+          .catch(err => finish(err.message || String(err)));
+      } catch (err) { finish(err.message || String(err)); return; }
+      setTimeout(() => finish(result.error || 'timeout'), TIMEOUT_MS);
+    });
+  }
 
-            for (let i = 0; i < NUM_SECTORS; i++) {
-                const startAngle = i * SECTOR_ANGLE + angle;
-                const endAngle = startAngle + SECTOR_ANGLE;
+  function isPrivateIP(ip) {
+    if (!ip) return false;
+    if (ip.includes(':')) return /^(fe80|fc|fd)/i.test(ip);
+    const p = ip.split('.').map(Number);
+    if (p.length !== 4) return false;
+    return p[0] === 10 || p[0] === 127 ||
+      (p[0] === 172 && p[1] >= 16 && p[1] <= 31) ||
+      (p[0] === 192 && p[1] === 168) ||
+      (p[0] === 169 && p[1] === 254);
+  }
 
-                ctx.beginPath();
-                ctx.moveTo(CENTER, CENTER);
-                ctx.arc(CENTER, CENTER, RADIUS, startAngle, endAngle);
-                ctx.closePath();
+  function analyzeNat(results) {
+    const findings = [];
+    const successful = results.filter(r => r.srflx.length > 0 && !r.error);
+    if (successful.length === 0) {
+      findings.push({ level: 'bad', text: 'Không nhận được srflx candidate — UDP có thể bị chặn hoàn toàn hoặc STUN unreachable.' });
+      return { type: 'Blocked/Unknown', findings, mapping: null, hostIps: [] };
+    }
+    const mapped = successful.map(r => ({
+      server: r.name, ip: r.srflx[0].ip, port: r.srflx[0].port,
+    }));
+    const uniqueSet = new Set(mapped.map(m => `${m.ip}:${m.port}`));
+    const uniqueCount = uniqueSet.size;
+    const hostCands = results.flatMap(r => r.host);
+    const hostIps = [...new Set(hostCands.map(h => h.ip))];
 
-                ctx.fillStyle = COLORS[i];
-                ctx.fill();
+    let natType = 'Unknown', mapping = 'unknown';
+    if (uniqueCount === 1) {
+      natType = 'Cone NAT (EIM)'; mapping = 'endpoint-independent';
+      findings.push({ level: 'ok', text: `<strong>Endpoint-Independent Mapping (EIM)</strong> — mọi STUN thấy cùng mapping <code>${mapped[0].ip}:${mapped[0].port}</code>. Dấu hiệu <strong>Cone NAT</strong>. Hole punching khả thi cao.` });
+    } else {
+      natType = 'Symmetric NAT (PDM)'; mapping = 'port-dependent';
+      findings.push({ level: 'bad', text: `<strong>Port-Dependent Mapping (PDM)</strong> — phát hiện <strong>${uniqueCount} mapping khác nhau</strong> trên ${successful.length} STUN. Dấu hiệu <strong>Symmetric NAT</strong>. Hole punching thường thất bại, cần TURN.` });
+    }
+    const uniqueIps = new Set(mapped.map(m => m.ip));
+    if (uniqueIps.size > 1) {
+      findings.push({ level: 'warn', text: `IP công khai khác nhau giữa các STUN (${[...uniqueIps].join(', ')}). Có thể multi-WAN / CGNAT pool.` });
+    }
+    const hasPrivateHost = hostIps.some(isPrivateIP);
+    if (!hasPrivateHost && hostIps.length > 0) {
+      findings.push({ level: 'info', text: 'Host candidate = public IP → có thể ở <strong>public IP trực tiếp</strong> hoặc dùng VPN/TUN.' });
+    }
+    const avgMs = Math.round(successful.reduce((a, r) => a + r.durationMs, 0) / successful.length);
+    findings.push({ level: 'info', text: `ICE gathering trung bình: <strong>${avgMs} ms</strong>. ${avgMs < 500 ? 'Mạng tốt.' : avgMs < 2000 ? 'Trung bình.' : 'Cao, có thể bị throttle.'}` });
+    return { type: natType, findings, mapping, mapped, hostIps };
+  }
 
-                ctx.strokeStyle = 'rgba(201, 169, 97, 0.15)';
-                ctx.lineWidth = 1;
-                ctx.stroke();
+  function renderNatTable(results) {
+    const tbody = els.resultBody;
+    tbody.innerHTML = '';
+    results.forEach((r, i) => {
+      const tr = document.createElement('tr');
+      const srflx = r.srflx[0], host = r.host[0];
+      const srflxText = srflx ? `${srflx.ip}:${srflx.port}` : '—';
+      const hostText  = host  ? `${host.ip}:${host.port}`  : '—';
+      let sCls = 'status-pend', sTxt = '⏳ Pending';
+      if (r.error && !srflx) { sCls = 'status-fail'; sTxt = '✕ ' + r.error; }
+      else if (srflx) { sCls = 'status-ok'; sTxt = `✓ ${r.durationMs} ms`; }
+      tr.innerHTML = `
+        <td>${i + 1}</td>
+        <td>${escapeHtml(r.name)}</td>
+        <td class="${srflx ? '' : 'status-fail'}">${escapeHtml(srflxText)}</td>
+        <td>${escapeHtml(hostText)}</td>
+        <td class="${sCls}">${escapeHtml(sTxt)}</td>`;
+      tbody.appendChild(tr);
+    });
+  }
 
-                ctx.save();
-                ctx.translate(CENTER, CENTER);
-                ctx.rotate(startAngle + SECTOR_ANGLE / 2);
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
+  function renderAnalysis(a) {
+    els.analysis.innerHTML = '';
+    const ul = document.createElement('ul');
+    ul.className = 'analysis-list';
+    a.findings.forEach(f => {
+      const li = document.createElement('li');
+      li.innerHTML = `<span class="dot ${f.level}"></span><div>${f.text}</div>`;
+      ul.appendChild(li);
+    });
+    els.analysis.appendChild(ul);
+  }
 
-                if (i === JACKPOT_INDEX) {
-                    ctx.font = '600 22px Inter, sans-serif';
-                    ctx.fillStyle = '#f5f2ea';
-                    ctx.fillText('JACKPOT', 155, -10);
-                    ctx.font = '400 13px Inter, sans-serif';
-                    ctx.fillStyle = '#c9a961';
-                    ctx.fillText('1 bé femboy', 155, 14);
-                } else {
-                    ctx.font = '300 56px "Playfair Display", serif';
-                    ctx.fillStyle = TEXT_COLORS[i];
-                    ctx.fillText(i.toString(), 160, 0);
-                }
-                ctx.restore();
-            }
+  function setBadge(text, cls) {
+    els.natType.textContent = text;
+    els.natType.className = 'value badge' + (cls ? ' ' + cls : '');
+  }
 
-            ctx.beginPath();
-            ctx.arc(CENTER, CENTER, RADIUS, 0, Math.PI * 2);
-            ctx.strokeStyle = 'rgba(201, 169, 97, 0.4)';
-            ctx.lineWidth = 1.5;
-            ctx.stroke();
+  function setNatProgress(cur, total, label) {
+    els.progress.hidden = false;
+    els.progressLabel.hidden = false;
+    const pct = Math.round((cur / total) * 100);
+    els.progressBar.style.width = pct + '%';
+    els.progressLabel.textContent = `[${cur}/${total}] ${label} — ${pct}%`;
+  }
 
-            ctx.beginPath();
-            ctx.arc(CENTER, CENTER, RADIUS - 8, 0, Math.PI * 2);
-            ctx.strokeStyle = 'rgba(201, 169, 97, 0.1)';
-            ctx.lineWidth = 1;
-            ctx.stroke();
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+  }
 
-            ctx.beginPath();
-            ctx.arc(CENTER, CENTER, 44, 0, Math.PI * 2);
-            ctx.fillStyle = '#141418';
-            ctx.fill();
-            ctx.strokeStyle = 'rgba(201, 169, 97, 0.3)';
-            ctx.lineWidth = 1;
-            ctx.stroke();
+  async function runNatCheck() {
+    els.runBtn.disabled = true;
+    els.copyBtn.disabled = true;
+    els.resultBody.innerHTML = '<tr><td colspan="5" class="empty">Đang quét STUN servers…</td></tr>';
+    els.analysis.innerHTML = '<p class="muted">Đang phân tích…</p>';
+    setBadge('Đang quét…', '');
 
-            ctx.beginPath();
-            ctx.arc(CENTER, CENTER, 12, 0, Math.PI * 2);
-            ctx.fillStyle = '#c9a961';
-            ctx.fill();
+    const results = [];
+    const total = STUN_SERVERS.length;
+    for (let i = 0; i < total; i++) {
+      setNatProgress(i, total, STUN_SERVERS[i].name);
+      const r = await queryStunServer(STUN_SERVERS[i]);
+      results.push(r);
+      renderNatTable(results);
+    }
+    setNatProgress(total, total, 'Hoàn tất');
+
+    const anySrflx = results.find(r => r.srflx.length > 0);
+    const anyHost  = results.find(r => r.host.length > 0);
+    els.publicIP.textContent   = anySrflx ? anySrflx.srflx[0].ip   : '—';
+    els.publicPort.textContent = anySrflx ? anySrflx.srflx[0].port : '—';
+    els.localIP.textContent    = anyHost  ? anyHost.host[0].ip     : '—';
+
+    const analysis = analyzeNat(results);
+    let cls = '';
+    if (analysis.type.includes('Cone')) cls = 'ok';
+    else if (analysis.type.includes('Symm')) cls = 'warn';
+    else if (analysis.type.includes('Block')) cls = 'bad';
+    setBadge(analysis.type, cls);
+    renderAnalysis(analysis);
+
+    lastNatResult = {
+      timestamp: new Date().toISOString(),
+      userAgent: navigator.userAgent,
+      natType: analysis.type,
+      mapping: analysis.mapping,
+      publicEndpoint: anySrflx ? `${anySrflx.srflx[0].ip}:${anySrflx.srflx[0].port}` : null,
+      localIPs: analysis.hostIps || [],
+      servers: results,
+    };
+    els.rawJson.textContent = JSON.stringify(lastNatResult, null, 2);
+    els.copyBtn.disabled = false;
+    els.runBtn.disabled = false;
+  }
+
+  async function copyJson() {
+    if (!lastNatResult) return;
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(lastNatResult, null, 2));
+      els.copyBtn.textContent = '✓ Đã copy';
+    } catch { els.copyBtn.textContent = '✕ Lỗi'; }
+    setTimeout(() => { els.copyBtn.textContent = '⎘ Copy JSON'; }, 1500);
+  }
+
+  // ================================================================
+  //  ==== PORT SCANNER ====
+  //  Kỹ thuật: probe timing với fetch(no-cors) + WebSocket + Image
+  //  Phân loại: open / closed / filtered / unknown
+  // ================================================================
+
+  function parsePorts(str) {
+    const out = new Set();
+    str.split(',').map(s => s.trim()).filter(Boolean).forEach(part => {
+      if (part.includes('-')) {
+        const [a, b] = part.split('-').map(n => parseInt(n, 10));
+        if (Number.isFinite(a) && Number.isFinite(b) && a <= b && b - a <= 65535) {
+          for (let p = a; p <= b; p++) out.add(p);
         }
-
-        // ---------- LOGIC ----------
-        function normalizeAngle(a) {
-            return ((a % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
-        }
-
-        function getIndexAtPointer(angle) {
-            const pointerAngle = -Math.PI / 2;
-            let raw = normalizeAngle(pointerAngle - angle);
-            return Math.floor(raw / SECTOR_ANGLE) % NUM_SECTORS;
-        }
-
-        function getAngleForIndex(index) {
-            const pointerAngle = -Math.PI / 2;
-            let targetAngle = pointerAngle - index * SECTOR_ANGLE - SECTOR_ANGLE / 2;
-            return normalizeAngle(targetAngle);
-        }
-
-        // Quay nhẹ: chọn hướng gần nhất, thêm tối thiểu minRounds vòng
-        function calculateSmoothRotation(startAngle, targetAngle, minRounds = 1) {
-            const startNorm = normalizeAngle(startAngle);
-            const targetNorm = normalizeAngle(targetAngle);
-
-            let deltaCW = targetNorm - startNorm;
-            if (deltaCW < 0) deltaCW += Math.PI * 2;
-
-            let deltaCCW = targetNorm - startNorm;
-            if (deltaCCW > 0) deltaCCW -= Math.PI * 2;
-
-            const absCW = Math.abs(deltaCW);
-            const absCCW = Math.abs(deltaCCW);
-
-            let delta, direction;
-            if (absCW <= absCCW) {
-                direction = 1;
-                delta = deltaCW;
-                if (Math.abs(delta) < minRounds * Math.PI * 2) {
-                    const extra = Math.ceil((minRounds * Math.PI * 2 - Math.abs(delta)) / (Math.PI * 2));
-                    delta += extra * Math.PI * 2;
-                }
-            } else {
-                direction = -1;
-                delta = deltaCCW;
-                if (Math.abs(delta) < minRounds * Math.PI * 2) {
-                    const extra = Math.ceil((minRounds * Math.PI * 2 - Math.abs(delta)) / (Math.PI * 2));
-                    delta -= extra * Math.PI * 2;
-                }
-            }
-
-            return { totalRotation: delta, direction };
-        }
-
-        // Cập nhật pity counter UI
-        function updatePityUI() {
-            pityCounter.textContent = `Pity: ${pityCounterValue}/${PITY_THRESHOLD}`;
-        }
-
-        // ---------- QUAY ----------
-        function startSpin() {
-            if (isSpinning) return;
-
-            isSpinning = true;
-            spinPhase = 'randomSpin';
-            spinBtn.disabled = true;
-            messageEl.textContent = 'Đang quay...';
-            messageEl.style.color = '#c9a961';
-            resultDisplay.classList.remove('jackpot-text');
-
-            animStartAngle = currentAngle;
-
-            // Quyết định đích đến
-            let targetIndex;
-            let isPityTriggered = false;
-
-            if (pityCounterValue >= PITY_THRESHOLD) {
-                // Pity: chắc chắn trúng jackpot
-                targetIndex = JACKPOT_INDEX;
-                isPityTriggered = true;
-            } else if (Math.random() < JACKPOT_CHANCE) {
-                targetIndex = JACKPOT_INDEX;
-            } else {
-                // Random 0-8 (không bao gồm jackpot)
-                targetIndex = Math.floor(Math.random() * 9);
-            }
-
-            // Lưu lại để xử lý sau khi quay xong
-            window._lastTargetIndex = targetIndex;
-            window._isPityTriggered = isPityTriggered;
-
-            const targetAngle = getAngleForIndex(targetIndex);
-
-            // Quay nhẹ: 1-2 vòng
-            const minRounds = 1 + Math.floor(Math.random() * 2);
-            const result = calculateSmoothRotation(animStartAngle, targetAngle, minRounds);
-            animTotalRotation = result.totalRotation;
-
-            animDuration = 1800 + Math.min(600, Math.abs(animTotalRotation) / (Math.PI * 2) * 150);
-            animStartTime = performance.now();
-            lastDrawTime = 0;
-
-            if (animationFrameId) cancelAnimationFrame(animationFrameId);
-            animationFrameId = requestAnimationFrame(spinAnimation);
-        }
-
-        function spinAnimation(now) {
-            if (spinPhase !== 'randomSpin') return;
-
-            const elapsed = now - animStartTime;
-            const progress = Math.min(elapsed / animDuration, 1);
-
-            const easeOut = 1 - Math.pow(1 - progress, 4);
-
-            const angle = animStartAngle + animTotalRotation * easeOut;
-            currentAngle = angle;
-
-            // Chỉ vẽ khi cần (giới hạn ~60fps nhưng bỏ qua frame nếu không thay đổi nhiều)
-            if (now - lastDrawTime > 12) {
-                drawWheel(currentAngle);
-                lastDrawTime = now;
-            }
-
-            if (progress < 1) {
-                animationFrameId = requestAnimationFrame(spinAnimation);
-            } else {
-                drawWheel(currentAngle);
-                handleSpinEnd();
-            }
-        }
-
-        function handleSpinEnd() {
-            const landedIndex = getIndexAtPointer(currentAngle);
-            const isPityTriggered = window._isPityTriggered;
-
-            // NẾU TRÚNG SỐ 0 NGAY TỪ ĐẦU → DỪNG LUÔN
-            if (landedIndex === 0) {
-                // Reset pity? Không, pity chỉ reset khi trúng jackpot
-                // Nhưng số 0 cũng là kết quả cuối → không tăng pity vì không phải jackpot
-                // Thực ra pity counter chỉ tăng khi KHÔNG trúng jackpot
-                // Ở đây landed 0 → không trúng jackpot → tăng pity
-                if (pityCounterValue < PITY_THRESHOLD) {
-                    pityCounterValue++;
-                    updatePityUI();
-                }
-
-                resultDisplay.textContent = '0';
-                messageEl.textContent = 'Chúc mừng! Bạn quay trúng số 0!';
-                messageEl.style.color = '#c9a961';
-
-                spinPhase = 'idle';
-                isSpinning = false;
-                spinBtn.disabled = false;
-
-                fireConfetti(40);
-                return;
-            }
-
-            // Nếu trúng jackpot
-            if (landedIndex === JACKPOT_INDEX) {
-                resultDisplay.textContent = '1 BÉ FEMBOY';
-                resultDisplay.classList.add('jackpot-text');
-                if (isPityTriggered) {
-                    messageEl.textContent = '🎉 PITY! Chúc mừng bạn đã trúng JACKPOT!';
-                } else {
-                    messageEl.textContent = 'Chúc mừng! Bạn đã trúng JACKPOT!';
-                }
-                messageEl.style.color = '#c9a961';
-                triggerFlash();
-                fireConfetti(100);
-
-                // Reset pity vì đã trúng jackpot
-                pityCounterValue = 0;
-                updatePityUI();
-
-                spinPhase = 'jackpotCelebration';
-
-                setTimeout(() => {
-                    if (spinPhase === 'jackpotCelebration') {
-                        startReturnToZero();
-                    }
-                }, 2400);
-            } else {
-                // Các số 1-8 → không trúng jackpot → tăng pity
-                if (pityCounterValue < PITY_THRESHOLD) {
-                    pityCounterValue++;
-                    updatePityUI();
-                }
-
-                resultDisplay.textContent = landedIndex;
-                messageEl.textContent = `Dừng ở số ${landedIndex}...`;
-                messageEl.style.color = '#6b6b6b';
-                spinPhase = 'pauseAtRandom';
-
-                setTimeout(() => {
-                    if (spinPhase === 'pauseAtRandom') {
-                        startReturnToZero();
-                    }
-                }, 1200);
-            }
-        }
-
-        function startReturnToZero() {
-            spinPhase = 'returnToZero';
-            messageEl.textContent = 'Về 0 thôi...';
-            messageEl.style.color = '#6b6b6b';
-            resultDisplay.classList.remove('jackpot-text');
-
-            animStartAngle = currentAngle;
-            const targetAngle = getAngleForIndex(0);
-
-            const minRounds = 1 + Math.floor(Math.random() * 2);
-            const result = calculateSmoothRotation(animStartAngle, targetAngle, minRounds);
-            animTotalRotation = result.totalRotation;
-
-            animDuration = 1600 + Math.random() * 500;
-            animStartTime = performance.now();
-            lastDrawTime = 0;
-
-            if (animationFrameId) cancelAnimationFrame(animationFrameId);
-            animationFrameId = requestAnimationFrame(returnAnimation);
-        }
-
-        function returnAnimation(now) {
-            if (spinPhase !== 'returnToZero') return;
-
-            const elapsed = now - animStartTime;
-            const progress = Math.min(elapsed / animDuration, 1);
-
-            let eased;
-            if (progress < 0.5) {
-                eased = 8 * progress * progress * progress * progress;
-            } else {
-                eased = 1 - Math.pow(-2 * progress + 2, 4) / 2;
-            }
-
-            const angle = animStartAngle + animTotalRotation * eased;
-            currentAngle = angle;
-
-            if (now - lastDrawTime > 12) {
-                drawWheel(currentAngle);
-                lastDrawTime = now;
-            }
-
-            if (progress < 1) {
-                animationFrameId = requestAnimationFrame(returnAnimation);
-            } else {
-                currentAngle = getAngleForIndex(0);
-                drawWheel(currentAngle);
-
-                spinPhase = 'idle';
-                isSpinning = false;
-                spinBtn.disabled = false;
-
-                resultDisplay.textContent = '0';
-                resultDisplay.classList.remove('jackpot-text');
-                messageEl.textContent = 'Kết quả cuối cùng: 0';
-                messageEl.style.color = '#6b6b6b';
-
-                fireConfetti(30);
-            }
-        }
-
-        function triggerFlash() {
-            flash.classList.add('active');
-            setTimeout(() => flash.classList.remove('active'), 500);
-        }
-
-        // ---------- CONFETTI (TỐI ƯU) ----------
-        const confettiCanvas = document.getElementById('confettiCanvas');
-        const confettiCtx = confettiCanvas.getContext('2d');
-        let confettiParticles = [];
-        let confettiAnimationId = null;
-
-        function resizeConfettiCanvas() {
-            confettiCanvas.width = window.innerWidth;
-            confettiCanvas.height = window.innerHeight;
-        }
-        resizeConfettiCanvas();
-
-        // Debounce resize
-        let resizeTimeout;
-        window.addEventListener('resize', () => {
-            clearTimeout(resizeTimeout);
-            resizeTimeout = setTimeout(resizeConfettiCanvas, 200);
-        });
-
-        const CONFETTI_COLORS = [
-            '#c9a961', '#e8d5a0', '#f5f2ea', '#d4b87a'
-        ];
-
-        function fireConfetti(count) {
-            const w = confettiCanvas.width;
-            const h = confettiCanvas.height;
-
-            for (let i = 0; i < count; i++) {
-                confettiParticles.push({
-                    x: w / 2 + (Math.random() - 0.5) * w * 0.5,
-                    y: h * 0.45 + (Math.random() - 0.5) * 80,
-                    vx: (Math.random() - 0.5) * 12,
-                    vy: -(Math.random() * 10 + 4),
-                    size: Math.random() * 6 + 4,
-                    color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
-                    rotation: Math.random() * Math.PI * 2,
-                    rotSpeed: (Math.random() - 0.5) * 0.3,
-                    gravity: 0.28,
-                    opacity: 1,
-                    shape: Math.random() > 0.6 ? 'ribbon' : 'rect',
-                    life: 0,
-                    sway: Math.random() * 0.4 + 0.3,
-                    swayPhase: Math.random() * Math.PI * 2
-                });
-            }
-
-            if (!confettiAnimationId) {
-                confettiAnimationId = requestAnimationFrame(updateConfetti);
-            }
-        }
-
-        function updateConfetti() {
-            confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
-
-            for (let i = confettiParticles.length - 1; i >= 0; i--) {
-                const p = confettiParticles[i];
-
-                p.vy += p.gravity;
-                p.vx *= 0.985;
-                p.swayPhase += 0.05;
-                p.x += p.vx + Math.sin(p.swayPhase) * p.sway;
-                p.y += p.vy;
-                p.rotation += p.rotSpeed;
-                p.life++;
-
-                if (p.life > 80) {
-                    p.opacity -= 0.02;
-                }
-
-                if (p.opacity <= 0 || p.y > confettiCanvas.height + 50) {
-                    confettiParticles.splice(i, 1);
-                    continue;
-                }
-
-                confettiCtx.save();
-                confettiCtx.translate(p.x, p.y);
-                confettiCtx.rotate(p.rotation);
-                confettiCtx.globalAlpha = p.opacity;
-                confettiCtx.fillStyle = p.color;
-
-                if (p.shape === 'ribbon') {
-                    confettiCtx.fillRect(-p.size / 2, -p.size / 6, p.size, p.size / 3);
-                } else {
-                    confettiCtx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
-                }
-
-                confettiCtx.restore();
-            }
-
-            if (confettiParticles.length > 0) {
-                confettiAnimationId = requestAnimationFrame(updateConfetti);
-            } else {
-                confettiAnimationId = null;
-                confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
-            }
-        }
-
-        // ---------- INIT ----------
-        function initWheel() {
-            currentAngle = getAngleForIndex(0);
-            drawWheel(currentAngle);
-
-            resultDisplay.textContent = '0';
-            messageEl.textContent = 'Nhấn Quay để bắt đầu';
-            spinPhase = 'idle';
-            isSpinning = false;
-            spinBtn.disabled = false;
-
-            pityCounterValue = 0;
-            updatePityUI();
-        }
-
-        spinBtn.addEventListener('click', startSpin);
-        initWheel();
-
-    })();
+      } else {
+        const p = parseInt(part, 10);
+        if (Number.isFinite(p) && p > 0 && p <= 65535) out.add(p);
+      }
+    });
+    return [...out].sort((a, b) => a - b);
+  }
+
+  function getPortList() {
+    const preset = els.scanPreset.value;
+    if (preset === 'custom') return parsePorts(els.scanCustom.value || '');
+    return PRESETS[preset] || [];
+  }
+
+  // ---- PROBE 1: fetch no-cors với timeout ----
+  // Trả về: { result: 'open'|'closed'|'filtered'|'unknown', latency }
+  async function probeFetch(host, port, timeoutMs) {
+    const url = `http://${host}:${port}/`;
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort('timeout'), timeoutMs);
+    const t0 = performance.now();
+
+    try {
+      // no-cors: request gửi đi, response opaque hoặc throw network error
+      await fetch(url, {
+        mode: 'no-cors',
+        cache: 'no-store',
+        redirect: 'manual',
+        signal: ctrl.signal,
+        credentials: 'omit',
+      });
+      // Fulfilled → server đã phản hồi (dù opaque)
+      clearTimeout(timer);
+      return { result: 'open', latency: Math.round(performance.now() - t0) };
+    } catch (err) {
+      clearTimeout(timer);
+      const lat = Math.round(performance.now() - t0);
+      // AbortError → timeout → filtered (hoặc service lạ không trả lời)
+      if (err && (err.name === 'AbortError' || String(err).includes('aborted'))) {
+        return { result: 'filtered', latency: lat };
+      }
+      // Network error: phân biệt dựa vào latency
+      // RST từ OS thường <100ms → closed; chậm hơn → filtered
+      if (lat < 120) return { result: 'closed', latency: lat };
+      return { result: 'filtered', latency: lat };
+    }
+  }
+
+  // ---- PROBE 2: WebSocket (bắt được các WS server) ----
+  function probeWebSocket(host, port, timeoutMs) {
+    return new Promise((resolve) => {
+      const t0 = performance.now();
+      let done = false;
+      let ws;
+      const finish = (result) => {
+        if (done) return;
+        done = true;
+        try { ws && ws.close(); } catch (_) {}
+        resolve({ result, latency: Math.round(performance.now() - t0) });
+      };
+      try {
+        ws = new WebSocket(`ws://${host}:${port}/`);
+      } catch {
+        return finish('closed');
+      }
+      const timer = setTimeout(() => finish('filtered'), timeoutMs);
+      ws.onopen = () => { clearTimeout(timer); finish('open'); };
+      ws.onerror = () => {
+        clearTimeout(timer);
+        const lat = performance.now() - t0;
+        // WS error: nếu nhanh → closed (RST), nếu chậm → filtered/timeout
+        finish(lat < 120 ? 'closed' : 'filtered');
+      };
+      ws.onclose = () => { clearTimeout(timer); if (!done) finish('closed'); };
+    });
+  }
+
+  // ---- PROBE 3: Image beacon (bắt HTTP service) ----
+  function probeImage(host, port, timeoutMs) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      const t0 = performance.now();
+      let done = false;
+      const finish = (result) => {
+        if (done) return;
+        done = true;
+        img.onload = img.onerror = null;
+        img.src = '';
+        resolve({ result, latency: Math.round(performance.now() - t0) });
+      };
+      const timer = setTimeout(() => finish('filtered'), timeoutMs);
+      img.onload = () => { clearTimeout(timer); finish('open'); };
+      img.onerror = () => {
+        clearTimeout(timer);
+        const lat = performance.now() - t0;
+        finish(lat < 120 ? 'closed' : 'filtered');
+      };
+      img.src = `http://${host}:${port}/favicon.ico?_=${Date.now()}`;
+    });
+  }
+
+  // ---- PROBE TỔNG HỢP: chạy song song 3 kỹ thuật, vote kết quả ----
+  async function probePort(host, port, timeoutMs) {
+    const [rFetch, rWs, rImg] = await Promise.all([
+      probeFetch(host, port, timeoutMs),
+      probeWebSocket(host, port, timeoutMs),
+      probeImage(host, port, timeoutMs),
+    ]);
+
+    const all = [rFetch, rWs, rImg];
+    const openCount = all.filter(r => r.result === 'open').length;
+    const closedCount = all.filter(r => r.result === 'closed').length;
+    const filteredCount = all.filter(r => r.result === 'filtered').length;
+
+    let verdict = 'unknown';
+    let method = '';
+    let latency = Math.min(...all.map(r => r.latency).filter(n => n > 0)) || 0;
+
+    if (openCount >= 1) {
+      verdict = 'open';
+      const oMethods = [];
+      if (rFetch.result === 'open') oMethods.push('http');
+      if (rWs.result === 'open') oMethods.push('ws');
+      if (rImg.result === 'open') oMethods.push('img');
+      method = oMethods.join('+');
+    } else if (closedCount >= 2) {
+      verdict = 'closed';
+      method = 'rst';
+    } else if (filteredCount >= 2) {
+      verdict = 'filtered';
+      method = 'timeout';
+    } else if (closedCount >= 1) {
+      verdict = 'closed';
+      method = 'rst';
+    } else {
+      verdict = 'filtered';
+      method = 'timeout';
+    }
+
+    return {
+      port,
+      service: SERVICE_NAMES[port] || '',
+      status: verdict,
+      method,
+      latency,
+      raw: { fetch: rFetch.result, ws: rWs.result, img: rImg.result },
+    };
+  }
+
+  // ---- BỘ ĐIỀU KHIỂN SCAN (concurrency pool) ----
+  async function runScan() {
+    const host = els.scanHost.value.trim() || '127.0.0.1';
+    const ports = getPortList();
+    const conc = Math.max(1, Math.min(64, parseInt(els.scanConc.value, 10) || 24));
+    const timeoutMs = Math.max(300, Math.min(5000, parseInt(els.scanTimeout.value, 10) || 1200));
+
+    if (ports.length === 0) {
+      alert('Danh sách cổng trống. Kiểm tra lại cấu hình.');
+      return;
+    }
+
+    // Reset
+    scanAbort = { aborted: false };
+    els.scanBtn.disabled = true;
+    els.stopBtn.disabled = false;
+    els.scanStats.hidden = false;
+    els.scanProgress.hidden = false;
+    els.openList.hidden = true;
+    els.scanBody.innerHTML = '';
+    els.scanProgressBar.style.width = '0%';
+
+    const stats = { total: ports.length, scanned: 0, open: 0, closed: 0, filtered: 0 };
+    els.statTotal.textContent = stats.total;
+    els.statScanned.textContent = '0';
+    els.statOpen.textContent = '0';
+    els.statClosed.textContent = '0';
+    els.statFiltered.textContent = '0';
+
+    const t0 = performance.now();
+    const timerId = setInterval(() => {
+      els.statTime.textContent = ((performance.now() - t0) / 1000).toFixed(1) + 's';
+    }, 100);
+
+    // Sort results by port for stable display
+    const resultsByPort = new Map();
+
+    // Concurrency pool
+    let cursor = 0;
+    async function worker() {
+      while (!scanAbort.aborted) {
+        const idx = cursor++;
+        if (idx >= ports.length) return;
+        const port = ports[idx];
+        const res = await probePort(host, port, timeoutMs);
+        resultsByPort.set(port, res);
+        stats.scanned++;
+        if (res.status === 'open') stats.open++;
+        else if (res.status === 'closed') stats.closed++;
+        else stats.filtered++;
+
+        els.statScanned.textContent = stats.scanned;
+        els.statOpen.textContent = stats.open;
+        els.statClosed.textContent = stats.closed;
+        els.statFiltered.textContent = stats.filtered;
+        els.scanProgressBar.style.width = Math.round((stats.scanned / stats.total) * 100) + '%';
+      }
+    }
+
+    await Promise.all(Array.from({ length: conc }, () => worker()));
+
+    clearInterval(timerId);
+    els.statTime.textContent = ((performance.now() - t0) / 1000).toFixed(1) + 's';
+
+    // Sort + render final table
+    const sorted = [...resultsByPort.values()].sort((a, b) => a.port - b.port);
+    renderScanTable(sorted);
+    renderOpenList(sorted);
+
+    els.scanBtn.disabled = false;
+    els.stopBtn.disabled = true;
+  }
+
+  function renderScanTable(list) {
+    const tbody = els.scanBody;
+    tbody.innerHTML = '';
+
+    if (list.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty">Không có kết quả.</td></tr>';
+      return;
+    }
+
+    // Ưu tiên hiển thị open lên đầu
+    const ordered = [
+      ...list.filter(r => r.status === 'open'),
+      ...list.filter(r => r.status === 'filtered'),
+      ...list.filter(r => r.status === 'closed'),
+    ];
+
+    ordered.forEach(r => {
+      const tr = document.createElement('tr');
+      let cls = 'status-unknown';
+      if (r.status === 'open') cls = 'status-open';
+      else if (r.status === 'closed') cls = 'status-closed';
+      else if (r.status === 'filtered') cls = 'status-filtered';
+
+      const icon = r.status === 'open' ? '●' :
+                   r.status === 'closed' ? '○' :
+                   r.status === 'filtered' ? '◐' : '?';
+
+      tr.innerHTML = `
+        <td><b>${r.port}</b></td>
+        <td>${escapeHtml(r.service || '—')}</td>
+        <td class="${cls}">${icon} ${r.status}</td>
+        <td>${escapeHtml(r.method || '')}</td>
+        <td>${r.latency} ms</td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function renderOpenList(list) {
+    const open = list.filter(r => r.status === 'open');
+    if (open.length === 0) {
+      els.openList.hidden = true;
+      return;
+    }
+    els.openList.hidden = false;
+    els.openList.innerHTML = '<span class="muted" style="font-size:0.8rem;align-self:center;width:100%">— Cổng mở phát hiện —</span>';
+    open.forEach(r => {
+      const tag = document.createElement('span');
+      const cls = r.method.includes('ws') ? 'tag ws' :
+                  r.method.includes('http') ? 'tag http' : 'tag';
+      tag.className = cls;
+      tag.textContent = `${r.port}${r.service ? ' · ' + r.service : ''}`;
+      els.openList.appendChild(tag);
+    });
+  }
+
+  // ================================================================
+  //  ==== EVENT WIRING ====
+  // ================================================================
+  els.runBtn.addEventListener('click', runNatCheck);
+  els.copyBtn.addEventListener('click', copyJson);
+  els.scanBtn.addEventListener('click', runScan);
+  els.stopBtn.addEventListener('click', () => { scanAbort.aborted = true; });
+
+  els.scanPreset.addEventListener('change', () => {
+    els.customPortsWrap.hidden = els.scanPreset.value !== 'custom';
+  });
+
+  els.useLocalBtn.addEventListener('click', () => {
+    const local = els.localIP.textContent.trim();
+    if (local && local !== '—') {
+      // Nếu là mDNS (.local) thì không dùng được, fallback 127.0.0.1
+      if (/\.local$/i.test(local)) {
+        els.scanHost.value = '127.0.0.1';
+        alert('Host candidate là mDNS (.local) — trình duyệt che giấu IP thật. Dùng 127.0.0.1.\nĐể tránh mDNS: chrome://flags/#enable-webrtc-hide-local-ips-with-mdns → Disabled');
+      } else {
+        els.scanHost.value = local;
+      }
+    } else {
+      alert('Chưa có Local IP. Chạy "Kiểm tra NAT" trước.');
+    }
+  });
+
+  // ================================================================
+  //  PWA: Manifest + Service Worker inline
+  // ================================================================
+  const manifest = {
+    name: 'NAT Inspector + Port Scan',
+    short_name: 'NAT+Scan',
+    description: 'Kiểm tra NAT và quét cổng local qua WebRTC STUN',
+    start_url: '.',
+    display: 'standalone',
+    background_color: '#0a0e17',
+    theme_color: '#0a0e17',
+    orientation: 'portrait-primary',
+    icons: [{
+      src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='96' fill='%230a0e17'/><circle cx='256' cy='256' r='160' fill='none' stroke='%2300e5a0' stroke-width='24'/><path d='M96 256h320M256 96c60 80 60 240 0 320M256 96c-60 80-60 240 0 320' fill='none' stroke='%233b82f6' stroke-width='20'/></svg>",
+      sizes: '512x512',
+      type: 'image/svg+xml',
+      purpose: 'any maskable',
+    }],
+  };
+  const manifestURL = URL.createObjectURL(new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' }));
+  const link = document.createElement('link');
+  link.rel = 'manifest';
+  link.href = manifestURL;
+  document.head.appendChild(link);
+
+  const swCode = `
+    const CACHE = 'nat-inspector-v2';
+    self.addEventListener('install', () => self.skipWaiting());
+    self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
+    self.addEventListener('fetch', (e) => {
+      e.respondWith(
+        caches.open(CACHE).then(c =>
+          fetch(e.request).then(res => {
+            if (e.request.method === 'GET' && res.ok) c.put(e.request, res.clone());
+            return res;
+          }).catch(() => c.match(e.request))
+        )
+      );
+    });
+  `;
+  if ('serviceWorker' in navigator) {
+    const swURL = URL.createObjectURL(new Blob([swCode], { type: 'application/javascript' }));
+    navigator.serviceWorker.register(swURL).catch(err => console.warn('SW:', err));
+  }
+
+  let deferredPrompt = null;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    els.installBtn.classList.remove('hidden');
+  });
+  els.installBtn.addEventListener('click', async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    if (outcome === 'accepted') els.installBtn.classList.add('hidden');
+  });
+  window.addEventListener('appinstalled', () => els.installBtn.classList.add('hidden'));
+
+})();
 </script>
 </body>
 </html>
