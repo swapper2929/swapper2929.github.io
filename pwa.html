@@ -1,2059 +1,1139 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-    <meta name="theme-color" content="#2c3e50">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="description" content="Mobile CIF file viewer with touch controls - PWA">
-    <title>KLayout Mobile - CIF Viewer</title>
-    
-    <!-- Inline PWA Manifest -->
-    <link rel="manifest" id="manifest-placeholder">
-    
-    <!-- Apple Touch Icons -->
-    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Ccircle cx='64' cy='64' r='60' fill='%232c3e50'/%3E%3Ccircle cx='64' cy='64' r='40' fill='%233498db'/%3E%3Ccircle cx='64' cy='64' r='20' fill='%232ecc71'/%3E%3C/svg%3E">
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Ccircle cx='24' cy='24' r='22' fill='%232c3e50'/%3E%3Ccircle cx='24' cy='24' r='15' fill='%233498db'/%3E%3Ccircle cx='24' cy='24' r='8' fill='%232ecc71'/%3E%3C/svg%3E">
-    
-    <style>
-        /* CSS Reset and Base Styles */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-            -webkit-touch-callout: none;
-            -webkit-user-select: none;
-            user-select: none;
-        }
-
-        html, body {
-            height: 100%;
-            overflow: hidden;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: #1a1a1a;
-            color: #e0e0e0;
-        }
-
-        /* Mobile-first Layout */
-        .app-container {
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            position: relative;
-            max-width: 100vw;
-        }
-
-        /* Top Header Bar */
-        .header {
-            background: #2c3e50;
-            padding: 12px 16px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            min-height: 60px;
-            z-index: 100;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-        }
-
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .logo-icon {
-            width: 32px;
-            height: 32px;
-            background: linear-gradient(135deg, #3498db, #2ecc71);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: bold;
-            font-size: 18px;
-        }
-
-        .logo-text {
-            font-size: 18px;
-            font-weight: 600;
-            color: white;
-        }
-
-        .header-controls {
-            display: flex;
-            gap: 10px;
-        }
-
-        /* Main Canvas Area */
-        .canvas-container {
-            flex: 1;
-            position: relative;
-            overflow: hidden;
-            background: #121212;
-            touch-action: none;
-        }
-
-        #cif-canvas {
-            display: block;
-            width: 100%;
-            height: 100%;
-            background: #121212;
-        }
-
-        /* Bottom Controls - Mobile Optimized */
-        .bottom-controls {
-            background: #2c3e50;
-            padding: 16px;
-            display: flex;
-            gap: 16px;
-            justify-content: space-around;
-            min-height: 80px;
-            z-index: 100;
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.3);
-        }
-
-        .control-button {
-            flex: 1;
-            min-width: 0;
-            min-height: 56px;
-            background: #34495e;
-            border: none;
-            border-radius: 12px;
-            color: white;
-            font-size: 14px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 4px;
-            cursor: pointer;
-            transition: all 0.2s;
-            touch-action: manipulation;
-        }
-
-        .control-button:active {
-            background: #3498db;
-            transform: scale(0.95);
-        }
-
-        .control-button .icon {
-            font-size: 20px;
-            margin-bottom: 2px;
-        }
-
-        .control-button .label {
-            font-size: 12px;
-            opacity: 0.9;
-        }
-
-        .control-button.install-button {
-            background: linear-gradient(135deg, #2ecc71, #27ae60);
-            animation: pulse 2s infinite;
-        }
-
-        .control-button.install-button:active {
-            background: linear-gradient(135deg, #27ae60, #219653);
-        }
-
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.4); }
-            70% { box-shadow: 0 0 0 10px rgba(46, 204, 113, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0); }
-        }
-
-        /* Bottom Sheet for Layers */
-        .bottom-sheet {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: #2c3e50;
-            border-radius: 20px 20px 0 0;
-            box-shadow: 0 -4px 20px rgba(0,0,0,0.5);
-            transform: translateY(100%);
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            z-index: 1000;
-            max-height: 80vh;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .bottom-sheet.open {
-            transform: translateY(0);
-        }
-
-        .sheet-handle {
-            width: 40px;
-            height: 4px;
-            background: rgba(255,255,255,0.3);
-            border-radius: 2px;
-            margin: 12px auto;
-        }
-
-        .sheet-content {
-            flex: 1;
-            overflow-y: auto;
-            padding: 0 20px 20px;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        .sheet-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-top: 10px;
-        }
-
-        .sheet-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: white;
-        }
-
-        .close-sheet {
-            width: 40px;
-            height: 40px;
-            border-radius: 20px;
-            background: #34495e;
-            border: none;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-        }
-
-        /* Layer List */
-        .layer-list {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-
-        .layer-item {
-            display: flex;
-            align-items: center;
-            padding: 12px;
-            background: #34495e;
-            border-radius: 10px;
-            min-height: 60px;
-        }
-
-        .layer-color {
-            width: 24px;
-            height: 24px;
-            border-radius: 6px;
-            margin-right: 12px;
-            border: 2px solid rgba(255,255,255,0.2);
-        }
-
-        .layer-info {
-            flex: 1;
-        }
-
-        .layer-name {
-            font-weight: 500;
-            margin-bottom: 2px;
-        }
-
-        .layer-stats {
-            font-size: 12px;
-            opacity: 0.7;
-        }
-
-        .layer-toggle {
-            width: 44px;
-            height: 24px;
-            border-radius: 12px;
-            background: #7f8c8d;
-            position: relative;
-            transition: background 0.3s;
-            cursor: pointer;
-            margin-left: 10px;
-        }
-
-        .layer-toggle.active {
-            background: #2ecc71;
-        }
-
-        .layer-toggle::after {
-            content: '';
-            position: absolute;
-            width: 20px;
-            height: 20px;
-            background: white;
-            border-radius: 50%;
-            top: 2px;
-            left: 2px;
-            transition: transform 0.3s;
-        }
-
-        .layer-toggle.active::after {
-            transform: translateX(20px);
-        }
-
-        /* Install PWA Banner */
-        .install-banner {
-            position: fixed;
-            bottom: 90px;
-            left: 20px;
-            right: 20px;
-            background: linear-gradient(135deg, #2c3e50, #34495e);
-            border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            z-index: 999;
-            transform: translateY(150%);
-            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-            border: 2px solid #3498db;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .install-banner.show {
-            transform: translateY(0);
-        }
-
-        .install-icon {
-            width: 50px;
-            height: 50px;
-            background: linear-gradient(135deg, #3498db, #2ecc71);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            flex-shrink: 0;
-        }
-
-        .install-text {
-            flex: 1;
-        }
-
-        .install-title {
-            font-weight: 600;
-            margin-bottom: 5px;
-            color: white;
-        }
-
-        .install-description {
-            font-size: 13px;
-            opacity: 0.8;
-        }
-
-        .install-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-        }
-
-        .install-btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .install-primary {
-            background: #2ecc71;
-            color: white;
-        }
-
-        .install-secondary {
-            background: transparent;
-            color: #3498db;
-            border: 2px solid #3498db;
-        }
-
-        /* File Info Panel */
-        .file-info-panel {
-            background: #34495e;
-            border-radius: 10px;
-            padding: 15px;
-            margin-top: 20px;
-        }
-
-        .info-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .info-item:last-child {
-            border-bottom: none;
-        }
-
-        /* Touch Instructions Overlay */
-        .touch-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.9);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            z-index: 2000;
-            opacity: 1;
-            transition: opacity 0.5s;
-        }
-
-        .touch-overlay.hidden {
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        .touch-demo {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 30px;
-            max-width: 400px;
-        }
-
-        .touch-gesture {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-        }
-
-        .gesture-icon {
-            width: 80px;
-            height: 80px;
-            background: rgba(52, 152, 219, 0.2);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 10px;
-            font-size: 36px;
-        }
-
-        .gesture-text {
-            font-size: 16px;
-            color: white;
-        }
-
-        /* Loading Overlay */
-        .loading-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.8);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 1001;
-        }
-
-        .spinner {
-            width: 60px;
-            height: 60px;
-            border: 4px solid rgba(255,255,255,0.1);
-            border-radius: 50%;
-            border-top-color: #3498db;
-            animation: spin 1s linear infinite;
-            margin-bottom: 20px;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        /* Fullscreen Mode */
-        .fullscreen .header,
-        .fullscreen .bottom-controls {
-            display: none;
-        }
-
-        .fullscreen-toggle {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            width: 44px;
-            height: 44px;
-            background: rgba(44, 62, 80, 0.8);
-            border-radius: 22px;
-            border: none;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            z-index: 50;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-        }
-
-        /* Coordinate Display */
-        .coordinate-display {
-            position: absolute;
-            bottom: 90px;
-            left: 20px;
-            background: rgba(44, 62, 80, 0.8);
-            padding: 10px 15px;
-            border-radius: 10px;
-            font-size: 12px;
-            font-family: 'Courier New', monospace;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-        }
-
-        /* Grid Toggle */
-        .grid-toggle {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            width: 44px;
-            height: 44px;
-            background: rgba(44, 62, 80, 0.8);
-            border-radius: 22px;
-            border: none;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            z-index: 50;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-        }
-
-        /* File Drop Zone */
-        .drop-zone {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(52, 152, 219, 0.9);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 1002;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s;
-        }
-
-        .drop-zone.active {
-            opacity: 1;
-            pointer-events: all;
-        }
-
-        .drop-icon {
-            font-size: 64px;
-            margin-bottom: 20px;
-        }
-
-        /* Zoom Level Indicator */
-        .zoom-indicator {
-            position: absolute;
-            top: 80px;
-            right: 20px;
-            background: rgba(44, 62, 80, 0.8);
-            padding: 8px 12px;
-            border-radius: 8px;
-            font-size: 14px;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-        }
-
-        /* PWA Install Instructions */
-        .pwa-instructions {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.95);
-            z-index: 3000;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.5s;
-        }
-
-        .pwa-instructions.show {
-            opacity: 1;
-            pointer-events: all;
-        }
-
-        .instructions-content {
-            max-width: 500px;
-            background: #2c3e50;
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-        }
-
-        .instructions-header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .instructions-header h2 {
-            font-size: 24px;
-            margin-bottom: 10px;
-            color: white;
-        }
-
-        .instructions-steps {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .step {
-            display: flex;
-            align-items: flex-start;
-            gap: 15px;
-        }
-
-        .step-number {
-            width: 30px;
-            height: 30px;
-            background: #3498db;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            flex-shrink: 0;
-        }
-
-        /* Responsive Adjustments */
-        @media (min-width: 768px) {
-            .control-button {
-                max-width: 200px;
-            }
-            
-            .bottom-sheet {
-                max-width: 500px;
-                left: 50%;
-                transform: translate(-50%, 100%);
-                border-radius: 20px;
-            }
-            
-            .bottom-sheet.open {
-                transform: translate(-50%, 0);
-            }
-            
-            .install-banner {
-                max-width: 500px;
-                left: 50%;
-                transform: translate(-50%, 150%);
-            }
-            
-            .install-banner.show {
-                transform: translate(-50%, 0);
-            }
-        }
-
-        @media (orientation: landscape) {
-            .app-container {
-                flex-direction: row;
-            }
-            
-            .header {
-                flex-direction: column;
-                width: 80px;
-                padding: 16px 8px;
-                justify-content: flex-start;
-            }
-            
-            .logo {
-                flex-direction: column;
-                margin-bottom: 20px;
-            }
-            
-            .header-controls {
-                flex-direction: column;
-            }
-            
-            .bottom-controls {
-                flex-direction: column;
-                width: 80px;
-                min-height: auto;
-                padding: 16px 8px;
-            }
-            
-            .control-button {
-                min-height: 70px;
-            }
-            
-            .install-banner {
-                bottom: 20px;
-                left: 100px;
-                right: 100px;
-            }
-        }
-    </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#0a0e17" />
+<meta name="description" content="PWA kiểm tra NAT + quét cổng local qua WebRTC STUN và timing probe" />
+<title>NAT Inspector + Port Scan</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><circle cx='12' cy='12' r='10' fill='%2300e5a0'/></svg>" />
+
+<style>
+  :root {
+    --bg: #0a0e17;
+    --bg-elev: #111826;
+    --border: #1e2b45;
+    --text: #e6edf7;
+    --text-dim: #8a9ab8;
+    --accent: #00e5a0;
+    --accent-2: #3b82f6;
+    --warn: #f59e0b;
+    --danger: #ef4444;
+    --ok: #22c55e;
+    --radius: 14px;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background:
+      radial-gradient(1200px 600px at 80% -10%, #10203a 0%, transparent 60%),
+      radial-gradient(900px 500px at -10% 20%, #0d2b26 0%, transparent 55%),
+      var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 24px 18px 60px; }
+
+  .app-header {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; padding: 18px 0 22px;
+    border-bottom: 1px solid var(--border); margin-bottom: 22px;
+  }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .logo {
+    width: 46px; height: 46px; display: grid; place-items: center;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #00e5a0 0%, #3b82f6 100%);
+    color: #041018; box-shadow: 0 6px 22px #00e5a033;
+  }
+  h1 { font-size: 1.25rem; margin: 0; letter-spacing: -0.02em; }
+  .subtitle { margin: 0; font-size: 0.78rem; color: var(--text-dim); }
+
+  .btn {
+    font: inherit; font-weight: 600; font-size: 0.9rem;
+    padding: 11px 18px; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--bg-elev);
+    color: var(--text); cursor: pointer;
+    transition: transform .12s ease, background .2s, border-color .2s, opacity .2s;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .btn:hover:not(:disabled) { transform: translateY(-1px); border-color: #2c3f63; }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .btn.primary {
+    background: linear-gradient(135deg, #00e5a0 0%, #17c98a 100%);
+    color: #04140e; border-color: transparent;
+    box-shadow: 0 8px 24px #00e5a033;
+  }
+  .btn.primary:hover:not(:disabled) { box-shadow: 0 10px 28px #00e5a055; }
+  .btn.ghost { background: transparent; }
+  .btn.sm { padding: 8px 13px; font-size: 0.82rem; }
+
+  .panel {
+    background: linear-gradient(180deg, var(--bg-elev) 0%, #0e1522 100%);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px; margin-bottom: 18px;
+  }
+  .panel h2 {
+    font-size: 0.95rem; margin: 0 0 14px;
+    letter-spacing: .02em; text-transform: uppercase;
+    color: var(--text-dim); font-weight: 700;
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .panel h2 .chip {
+    font-size: 0.68rem; padding: 3px 8px; border-radius: 999px;
+    background: #1a2440; color: var(--text-dim); font-weight: 700;
+    letter-spacing: .05em; text-transform: none;
+  }
+
+  .hero-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px; margin-bottom: 16px;
+  }
+  .hero-item {
+    background: #0b1220; border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px 16px;
+    display: flex; flex-direction: column; gap: 6px; min-width: 0;
+  }
+  .hero-item .label {
+    font-size: 0.7rem; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--text-dim); font-weight: 700;
+  }
+  .hero-item .value {
+    font-family: var(--mono); font-size: 1rem; font-weight: 600;
+    word-break: break-all; color: var(--text);
+  }
+  .badge {
+    display: inline-block; padding: 4px 10px; border-radius: 999px;
+    font-size: 0.78rem !important; background: #1a2440;
+    color: var(--text-dim); width: fit-content;
+  }
+  .badge.ok   { background: #0d3324; color: #4ade80; }
+  .badge.warn { background: #3a2b0d; color: #fbbf24; }
+  .badge.bad  { background: #3a1414; color: #f87171; }
+
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  .progress {
+    margin-top: 16px; height: 6px; background: #0b1220;
+    border-radius: 999px; overflow: hidden; border: 1px solid var(--border);
+  }
+  .progress .bar {
+    height: 100%; width: 0%;
+    background: linear-gradient(90deg, #00e5a0, #3b82f6);
+    transition: width .25s ease;
+  }
+  .progress-label {
+    font-size: 0.78rem; color: var(--text-dim);
+    margin-top: 8px; font-family: var(--mono);
+  }
+
+  .table-wrap {
+    overflow-x: auto; border-radius: 10px;
+    border: 1px solid var(--border); max-height: 520px; overflow-y: auto;
+  }
+  table.result-table {
+    width: 100%; border-collapse: collapse;
+    font-size: 0.85rem; min-width: 560px;
+  }
+  .result-table th, .result-table td {
+    padding: 10px 12px; text-align: left;
+    border-bottom: 1px solid var(--border); white-space: nowrap;
+  }
+  .result-table th {
+    background: #0b1220; font-size: 0.72rem;
+    text-transform: uppercase; letter-spacing: .06em;
+    color: var(--text-dim); font-weight: 700;
+    position: sticky; top: 0; z-index: 1;
+  }
+  .result-table td { font-family: var(--mono); font-size: 0.82rem; }
+  .result-table tr:last-child td { border-bottom: none; }
+  .result-table .empty {
+    text-align: center; color: var(--text-dim);
+    font-family: inherit; padding: 24px;
+  }
+  .status-ok   { color: var(--ok); }
+  .status-fail { color: var(--danger); }
+  .status-pend { color: var(--warn); }
+  .status-open { color: var(--ok); font-weight: 700; }
+  .status-closed { color: var(--text-dim); }
+  .status-filtered { color: var(--warn); }
+  .status-unknown { color: var(--text-dim); }
+
+  .analysis-list {
+    display: grid; gap: 10px;
+    margin: 0; padding: 0; list-style: none;
+  }
+  .analysis-list li {
+    display: flex; gap: 12px; padding: 12px 14px;
+    background: #0b1220; border: 1px solid var(--border);
+    border-radius: 10px; font-size: 0.9rem; align-items: flex-start;
+  }
+  .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    margin-top: 6px; flex-shrink: 0; background: var(--text-dim);
+  }
+  .dot.ok   { background: var(--ok); box-shadow: 0 0 12px #22c55e88; }
+  .dot.warn { background: var(--warn); box-shadow: 0 0 12px #f59e0b88; }
+  .dot.bad  { background: var(--danger); box-shadow: 0 0 12px #ef444488; }
+  .dot.info { background: var(--accent-2); box-shadow: 0 0 12px #3b82f688; }
+  .analysis-list strong { color: var(--accent); }
+  .muted { color: var(--text-dim); font-size: 0.9rem; margin: 0; }
+
+  .notes {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 12px;
+  }
+  .note {
+    background: #0b1220; border: 1px solid var(--border);
+    border-left: 3px solid var(--accent-2);
+    border-radius: 10px; padding: 14px 16px;
+  }
+  .note h3 { font-size: 0.85rem; margin: 0 0 8px; color: var(--text); }
+  .note p { margin: 0; font-size: 0.85rem; color: var(--text-dim); line-height: 1.6; }
+  .note.warn { border-left-color: var(--warn); }
+  .note.danger { border-left-color: var(--danger); }
+  code {
+    font-family: var(--mono); font-size: 0.8rem;
+    background: #162032; padding: 2px 6px;
+    border-radius: 4px; color: var(--accent);
+  }
+  strong { color: var(--text); }
+
+  details.raw {
+    background: #0b1220; border: 1px solid var(--border);
+    border-radius: 10px; margin-top: 14px;
+  }
+  details.raw summary {
+    padding: 12px 16px; cursor: pointer;
+    font-size: 0.85rem; color: var(--text-dim); user-select: none;
+  }
+  details.raw pre {
+    margin: 0; padding: 14px 16px;
+    font-family: var(--mono); font-size: 0.78rem; color: #b8c5dd;
+    overflow-x: auto; border-top: 1px solid var(--border); max-height: 380px;
+  }
+
+  /* ---------- Scanner controls ---------- */
+  .scan-controls {
+    display: grid;
+    grid-template-columns: 180px 1fr auto auto;
+    gap: 10px; margin-bottom: 14px; align-items: center;
+  }
+  @media (max-width: 720px) {
+    .scan-controls { grid-template-columns: 1fr 1fr; }
+  }
+  .field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+  .field label {
+    font-size: 0.7rem; text-transform: uppercase;
+    letter-spacing: .06em; color: var(--text-dim); font-weight: 700;
+  }
+  .field input, .field select {
+    font: inherit; font-family: var(--mono); font-size: 0.85rem;
+    padding: 9px 11px; border-radius: 9px;
+    border: 1px solid var(--border); background: #0b1220;
+    color: var(--text); width: 100%; min-width: 0;
+  }
+  .field input:focus, .field select:focus {
+    outline: none; border-color: var(--accent-2);
+    box-shadow: 0 0 0 3px #3b82f625;
+  }
+
+  .scan-stats {
+    display: flex; gap: 14px; flex-wrap: wrap;
+    font-family: var(--mono); font-size: 0.78rem;
+    color: var(--text-dim); margin: 10px 0 12px;
+    padding: 10px 14px; background: #0b1220;
+    border: 1px solid var(--border); border-radius: 10px;
+  }
+  .scan-stats b { color: var(--text); font-weight: 700; }
+  .scan-stats .open-count { color: var(--ok); }
+  .scan-stats .closed-count { color: var(--text-dim); }
+  .scan-stats .filtered-count { color: var(--warn); }
+
+  .open-list {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    margin-top: 12px; padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .open-list .tag {
+    font-family: var(--mono); font-size: 0.82rem;
+    padding: 5px 11px; border-radius: 999px;
+    background: #0d3324; color: #4ade80;
+    border: 1px solid #22c55e55; font-weight: 700;
+  }
+  .open-list .tag.ws { background: #1a2440; color: #93c5fd; border-color: #3b82f655; }
+  .open-list .tag.http { background: #2a1a3a; color: #c4b5fd; border-color: #8b5cf655; }
+
+  footer {
+    text-align: center; color: var(--text-dim);
+    font-size: 0.75rem; margin-top: 30px;
+  }
+
+  @media (max-width: 520px) {
+    h1 { font-size: 1.05rem; }
+    .logo { width: 40px; height: 40px; }
+    .panel { padding: 16px; }
+  }
+</style>
 </head>
 <body>
-    <div class="app-container" id="app-container">
-        <!-- Header -->
-        <header class="header">
-            <div class="logo">
-                <div class="logo-icon">K</div>
-                <div class="logo-text">KLayout Mobile</div>
-            </div>
-            <div class="header-controls">
-                <button class="control-button" id="btn-open-file">
-                    <span class="icon">📁</span>
-                    <span class="label">Open</span>
-                </button>
-                <button class="control-button" id="btn-fullscreen">
-                    <span class="icon">🔲</span>
-                    <span class="label">Fullscreen</span>
-                </button>
-            </div>
-        </header>
+<div class="wrap">
 
-        <!-- Main Canvas -->
-        <div class="canvas-container">
-            <canvas id="cif-canvas"></canvas>
-            
-            <!-- Floating Controls -->
-            <button class="grid-toggle" id="btn-toggle-grid" title="Toggle Grid">
-                ⏹️
-            </button>
-            <button class="fullscreen-toggle" id="btn-toggle-fullscreen" style="display: none;">
-                🔲
-            </button>
-            <div class="coordinate-display" id="coordinate-display">
-                X: 0.00, Y: 0.00
-            </div>
-            <div class="zoom-indicator" id="zoom-indicator">
-                Zoom: 100%
-            </div>
-            
-            <!-- Drop Zone -->
-            <div class="drop-zone" id="drop-zone">
-                <div class="drop-icon">📁</div>
-                <div style="font-size: 24px; margin-bottom: 10px;">Drop CIF File</div>
-                <div style="opacity: 0.8;">Release to view the file</div>
-            </div>
-            
-            <!-- Loading Overlay -->
-            <div class="loading-overlay" id="loading-overlay" style="display: none;">
-                <div class="spinner"></div>
-                <div>Processing CIF file...</div>
-            </div>
-        </div>
+  <header class="app-header">
+    <div class="brand">
+      <div class="logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9"/>
+          <path d="M3 12h18M12 3c3 4 3 14 0 18M12 3c-3 4-3 14 0 18"/>
+        </svg>
+      </div>
+      <div>
+        <h1>NAT Inspector <span style="color:var(--accent)">+ Port Scan</span></h1>
+        <p class="subtitle">WebRTC · STUN · Exit Node · Local Port Probe</p>
+      </div>
+    </div>
+    <button id="installBtn" class="btn ghost hidden">⬇ Install</button>
+  </header>
 
-        <!-- Bottom Controls -->
-        <div class="bottom-controls">
-            <button class="control-button" id="btn-layers">
-                <span class="icon">📊</span>
-                <span class="label">Layers</span>
-            </button>
-            <button class="control-button" id="btn-fit-view">
-                <span class="icon">⏱️</span>
-                <span class="label">Fit View</span>
-            </button>
-            <button class="control-button" id="btn-install-pwa">
-                <span class="icon">📱</span>
-                <span class="label">Install App</span>
-            </button>
-            <button class="control-button" id="btn-help">
-                <span class="icon">❓</span>
-                <span class="label">Help</span>
-            </button>
-        </div>
+  <!-- ============ NAT PANEL ============ -->
+  <section class="panel">
+    <h2>NAT / Exit Node</h2>
+    <div class="hero-grid">
+      <div class="hero-item">
+        <span class="label">Public IP (srflx)</span>
+        <span class="value" id="publicIP">—</span>
+      </div>
+      <div class="hero-item">
+        <span class="label">Public Port</span>
+        <span class="value" id="publicPort">—</span>
+      </div>
+      <div class="hero-item">
+        <span class="label">Local IP (host)</span>
+        <span class="value" id="localIP">—</span>
+      </div>
+      <div class="hero-item">
+        <span class="label">NAT Type</span>
+        <span class="value badge" id="natType">Chưa kiểm tra</span>
+      </div>
+    </div>
+    <div class="actions">
+      <button id="runBtn" class="btn primary">▶ Chạy kiểm tra NAT</button>
+      <button id="copyBtn" class="btn ghost" disabled>⎘ Copy JSON</button>
+    </div>
+    <div class="progress" id="progress" hidden><div class="bar" id="progressBar"></div></div>
+    <div class="progress-label" id="progressLabel" hidden></div>
+  </section>
 
-        <!-- PWA Install Banner -->
-        <div class="install-banner" id="install-banner">
-            <div class="install-icon">📱</div>
-            <div class="install-text">
-                <div class="install-title">Install KLayout Mobile</div>
-                <div class="install-description">Get full app experience with offline access</div>
-                <div class="install-actions">
-                    <button class="install-btn install-primary" id="btn-install-now">Install Now</button>
-                    <button class="install-btn install-secondary" id="btn-install-later">Later</button>
-                </div>
-            </div>
-        </div>
+  <section class="panel">
+    <h2>Kết quả STUN theo từng server</h2>
+    <div class="table-wrap">
+      <table class="result-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>STUN Server</th>
+            <th>Mapped (srflx)</th>
+            <th>Local (host)</th>
+            <th>Trạng thái</th>
+          </tr>
+        </thead>
+        <tbody id="resultBody">
+          <tr><td colspan="5" class="empty">Chưa có dữ liệu — nhấn "Chạy kiểm tra NAT"</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
 
-        <!-- Bottom Sheet for Layers -->
-        <div class="bottom-sheet" id="layer-sheet">
-            <div class="sheet-handle"></div>
-            <div class="sheet-content">
-                <div class="sheet-header">
-                    <div class="sheet-title">Layer Controls</div>
-                    <button class="close-sheet" id="btn-close-sheet">✕</button>
-                </div>
-                
-                <div class="layer-list" id="layer-list">
-                    <!-- Layers will be dynamically added here -->
-                </div>
-                
-                <div class="file-info-panel" id="file-info-panel" style="display: none;">
-                    <div class="info-item">
-                        <span>File:</span>
-                        <span id="file-name">None</span>
-                    </div>
-                    <div class="info-item">
-                        <span>Objects:</span>
-                        <span id="total-objects">0</span>
-                    </div>
-                    <div class="info-item">
-                        <span>Layers:</span>
-                        <span id="total-layers">0</span>
-                    </div>
-                    <div class="info-item">
-                        <span>Zoom:</span>
-                        <span id="current-zoom">100%</span>
-                    </div>
-                    <div class="info-item">
-                        <span>App Mode:</span>
-                        <span id="app-mode">Browser</span>
-                    </div>
-                </div>
-            </div>
-        </div>
+  <section class="panel">
+    <h2>Phân tích NAT</h2>
+    <div id="analysis"><p class="muted">Chưa có phân tích.</p></div>
+    <details class="raw">
+      <summary>▸ Raw JSON output</summary>
+      <pre id="rawJson">—</pre>
+    </details>
+  </section>
 
-        <!-- Touch Instructions Overlay -->
-        <div class="touch-overlay" id="touch-overlay">
-            <div class="touch-demo">
-                <div class="touch-gesture">
-                    <div class="gesture-icon">👆</div>
-                    <div class="gesture-text">One finger drag to pan</div>
-                </div>
-                <div class="touch-gesture">
-                    <div class="gesture-icon">🤏</div>
-                    <div class="gesture-text">Pinch to zoom in/out</div>
-                </div>
-                <div class="touch-gesture">
-                    <div class="gesture-icon">👆👆</div>
-                    <div class="gesture-text">Double tap to fit view</div>
-                </div>
-                <button class="control-button" id="btn-got-it" style="max-width: 200px; margin-top: 20px;">
-                    <span class="label">Got it!</span>
-                </button>
-            </div>
-        </div>
+  <!-- ============ PORT SCANNER PANEL ============ -->
+  <section class="panel">
+    <h2>
+      Local Port Scanner
+      <span class="chip">timing-based probe · không phải nmap thật</span>
+    </h2>
 
-        <!-- PWA Install Instructions -->
-        <div class="pwa-instructions" id="pwa-instructions">
-            <div class="instructions-content">
-                <div class="instructions-header">
-                    <h2>How to Install</h2>
-                    <p>Follow these steps to install KLayout Mobile as an app:</p>
-                </div>
-                <div class="instructions-steps" id="instructions-steps">
-                    <!-- Dynamic instructions based on platform -->
-                </div>
-                <div class="install-actions" style="justify-content: center;">
-                    <button class="install-btn install-primary" id="btn-close-instructions">Got it!</button>
-                </div>
-            </div>
-        </div>
+    <div class="scan-controls">
+      <div class="field">
+        <label for="scanHost">Target host</label>
+        <input id="scanHost" type="text" value="127.0.0.1" placeholder="127.0.0.1" />
+      </div>
+      <div class="field">
+        <label for="scanPreset">Port preset</label>
+        <select id="scanPreset">
+          <option value="common">Common (top 30)</option>
+          <option value="web">Web / Dev (80,443,3000,5000,8000,8080…)</option>
+          <option value="db">Database (1433,3306,5432,6379,27017…)</option>
+          <option value="all">Well-known 1–1024 (chậm)</option>
+          <option value="custom">Custom (chỉnh bên dưới)</option>
+        </select>
+      </div>
+      <div class="field" style="grid-column: span 2;" id="customPortsWrap" hidden>
+        <label for="scanCustom">Custom ports (vd: 22,80,443,3000-3010)</label>
+        <input id="scanCustom" type="text" placeholder="22,80,443,3000-3010" />
+      </div>
+      <div class="field">
+        <label for="scanConc">Concurrency</label>
+        <input id="scanConc" type="number" value="24" min="1" max="64" />
+      </div>
+      <div class="field">
+        <label for="scanTimeout">Timeout (ms)</label>
+        <input id="scanTimeout" type="number" value="1200" min="300" max="5000" step="100" />
+      </div>
+      <div class="actions" style="grid-column: span 4; margin-top: 4px;">
+        <button id="scanBtn" class="btn primary">🔍 Bắt đầu quét</button>
+        <button id="stopBtn" class="btn ghost" disabled>■ Dừng</button>
+        <button id="useLocalBtn" class="btn sm ghost">↺ Dùng Local IP vừa phát hiện</button>
+      </div>
     </div>
 
-    <!-- Hidden File Input -->
-    <input type="file" id="file-input" accept=".cif" style="display: none;">
+    <div class="scan-stats" id="scanStats" hidden>
+      <span>Đã quét: <b id="statScanned">0</b>/<b id="statTotal">0</b></span>
+      <span class="open-count">Open: <b id="statOpen">0</b></span>
+      <span class="filtered-count">Filtered: <b id="statFiltered">0</b></span>
+      <span class="closed-count">Closed: <b id="statClosed">0</b></span>
+      <span>Thời gian: <b id="statTime">0.0s</b></span>
+    </div>
 
-    <script>
-        // Mobile-optimized CIF Viewer Application with PWA Installation
-        document.addEventListener('DOMContentLoaded', function() {
-            // DOM Elements
-            const canvas = document.getElementById('cif-canvas');
-            const ctx = canvas.getContext('2d');
-            const appContainer = document.getElementById('app-container');
-            const layerSheet = document.getElementById('layer-sheet');
-            const touchOverlay = document.getElementById('touch-overlay');
-            const loadingOverlay = document.getElementById('loading-overlay');
-            const dropZone = document.getElementById('drop-zone');
-            const installBanner = document.getElementById('install-banner');
-            const pwaInstructions = document.getElementById('pwa-instructions');
-            const fileInput = document.getElementById('file-input');
-            
-            // PWA Installation Variables
-            let deferredPrompt = null;
-            let isPWAInstalled = false;
-            let isStandalone = false;
-            
-            // State Management
-            let cifData = null;
-            let layers = [];
-            let activeLayers = new Set();
-            let showGrid = true;
-            let isFullscreen = false;
-            let lastTouchDistance = 0;
-            let initialPinchCenter = null;
-            
-            // Viewport State
-            let offsetX = 0;
-            let offsetY = 0;
-            let scale = 1.0;
-            let minScale = 0.01;
-            let maxScale = 50.0;
-            let canvasWidth = 0;
-            let canvasHeight = 0;
-            let boundingBox = { minX: 0, maxX: 0, minY: 0, maxY: 0 };
-            
-            // Touch Tracking
-            let activeTouches = new Map();
-            let lastTapTime = 0;
-            let isDragging = false;
-            
-            // Color Palette
-            const layerColors = [
-                '#ff6b6b', '#4ecdc4', '#ffe66d', '#1a936f', '#ff9a00',
-                '#9d4edd', '#00bbf9', '#f15bb5', '#00f5d4', '#ff6d00',
-                '#a663cc', '#6a994e', '#ee6c4d', '#118ab2', '#06d6a0'
-            ];
-            
-            // Initialize Application
-            function init() {
-                setupCanvas();
-                setupEventListeners();
-                setupUI();
-                setupPWA();
-                checkFirstTimeUser();
-                
-                // Load sample data for demo
-                setTimeout(loadSampleData, 1000);
-            }
-            
-            function setupCanvas() {
-                const dpr = window.devicePixelRatio || 1;
-                const rect = canvas.parentElement.getBoundingClientRect();
-                
-                canvasWidth = rect.width;
-                canvasHeight = rect.height;
-                
-                // Set canvas size with device pixel ratio for retina displays
-                canvas.width = canvasWidth * dpr;
-                canvas.height = canvasHeight * dpr;
-                ctx.scale(dpr, dpr);
-                
-                draw();
-            }
-            
-            function setupEventListeners() {
-                // File handling
-                document.getElementById('btn-open-file').addEventListener('click', () => fileInput.click());
-                fileInput.addEventListener('change', handleFileSelect);
-                
-                // UI Controls
-                document.getElementById('btn-layers').addEventListener('click', toggleLayerSheet);
-                document.getElementById('btn-close-sheet').addEventListener('click', toggleLayerSheet);
-                document.getElementById('btn-fit-view').addEventListener('click', fitToScreen);
-                document.getElementById('btn-help').addEventListener('click', showHelp);
-                document.getElementById('btn-got-it').addEventListener('click', hideHelp);
-                document.getElementById('btn-toggle-grid').addEventListener('click', toggleGrid);
-                document.getElementById('btn-fullscreen').addEventListener('click', toggleFullscreen);
-                document.getElementById('btn-toggle-fullscreen').addEventListener('click', toggleFullscreen);
-                
-                // PWA Installation
-                document.getElementById('btn-install-pwa').addEventListener('click', showPWAInstructions);
-                document.getElementById('btn-install-now').addEventListener('click', installPWA);
-                document.getElementById('btn-install-later').addEventListener('click', hideInstallBanner);
-                document.getElementById('btn-close-instructions').addEventListener('click', () => {
-                    pwaInstructions.classList.remove('show');
-                });
-                
-                // Touch events for canvas
-                canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
-                canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
-                canvas.addEventListener('touchend', handleTouchEnd);
-                canvas.addEventListener('touchcancel', handleTouchEnd);
-                
-                // Mouse events (for desktop/tablet compatibility)
-                canvas.addEventListener('mousedown', handleMouseDown);
-                canvas.addEventListener('mousemove', handleMouseMove);
-                canvas.addEventListener('mouseup', handleMouseUp);
-                canvas.addEventListener('wheel', handleWheel, { passive: false });
-                
-                // Double tap detection
-                canvas.addEventListener('click', handleCanvasClick);
-                
-                // Drag and drop
-                canvas.addEventListener('dragover', handleDragOver);
-                canvas.addEventListener('dragleave', handleDragLeave);
-                canvas.addEventListener('drop', handleDrop);
-                
-                // Fullscreen API
-                document.addEventListener('fullscreenchange', handleFullscreenChange);
-                document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-                
-                // Window resize
-                window.addEventListener('resize', handleResize);
-                window.addEventListener('orientationchange', handleResize);
-                
-                // PWA Installation Events
-                window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-                window.addEventListener('appinstalled', handleAppInstalled);
-            }
-            
-            function setupUI() {
-                // Update coordinate display on mouse move
-                canvas.addEventListener('mousemove', updateCoordinateDisplay);
-                canvas.addEventListener('touchmove', updateCoordinateDisplay);
-                
-                // Check if already in standalone mode (PWA installed)
-                checkPWAStatus();
-            }
-            
-            function setupPWA() {
-                // Set up inline manifest
-                const manifest = {
-                    "name": "KLayout Mobile CIF Viewer",
-                    "short_name": "KLayout Mobile",
-                    "description": "Mobile CIF file viewer with touch controls",
-                    "theme_color": "#2c3e50",
-                    "background_color": "#1a1a1a",
-                    "display": "standalone",
-                    "orientation": "any",
-                    "scope": "/",
-                    "start_url": ".",
-                    "icons": [
-                        {
-                            "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Ccircle cx='24' cy='24' r='22' fill='%232c3e50'/%3E%3Ccircle cx='24' cy='24' r='15' fill='%233498db'/%3E%3Ccircle cx='24' cy='24' r='8' fill='%232ecc71'/%3E%3C/svg%3E",
-                            "sizes": "48x48",
-                            "type": "image/svg+xml"
-                        },
-                        {
-                            "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Ccircle cx='64' cy='64' r='60' fill='%232c3e50'/%3E%3Ccircle cx='64' cy='64' r='40' fill='%233498db'/%3E%3Ccircle cx='64' cy='64' r='20' fill='%232ecc71'/%3E%3C/svg%3E",
-                            "sizes": "128x128",
-                            "type": "image/svg+xml"
-                        },
-                        {
-                            "src": "data:image/svg+xml,%3Csvg xmlns='http.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Ccircle cx='96' cy='96' r='90' fill='%232c3e50'/%3E%3Ccircle cx='96' cy='96' r='60' fill='%233498db'/%3E%3Ccircle cx='96' cy='96' r='30' fill='%232ecc71'/%3E%3C/svg%3E",
-                            "sizes": "192x192",
-                            "type": "image/svg+xml"
-                        },
-                        {
-                            "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Ccircle cx='256' cy='256' r='240' fill='%232c3e50'/%3E%3Ccircle cx='256' cy='256' r='160' fill='%233498db'/%3E%3Ccircle cx='256' cy='256' r='80' fill='%232ecc71'/%3E%3C/svg%3E",
-                            "sizes": "512x512",
-                            "type": "image/svg+xml"
-                        }
-                    ]
-                };
-                
-                // Create a blob URL for the manifest
-                const manifestBlob = new Blob([JSON.stringify(manifest)], {type: 'application/manifest+json'});
-                const manifestURL = URL.createObjectURL(manifestBlob);
-                
-                // Set the manifest link
-                const manifestLink = document.getElementById('manifest-placeholder');
-                manifestLink.href = manifestURL;
-                
-                // Register service worker for PWA functionality
-                if ('serviceWorker' in navigator) {
-                    const swCode = `
-                        const CACHE_NAME = 'klayout-mobile-v2';
-                        const urlsToCache = ['.'];
+    <div class="progress" id="scanProgress" hidden><div class="bar" id="scanProgressBar"></div></div>
 
-                        self.addEventListener('install', event => {
-                            event.waitUntil(
-                                caches.open(CACHE_NAME)
-                                    .then(cache => cache.addAll(urlsToCache))
-                            );
-                        });
+    <div class="table-wrap" style="margin-top: 14px;">
+      <table class="result-table">
+        <thead>
+          <tr>
+            <th>Port</th>
+            <th>Service</th>
+            <th>Trạng thái</th>
+            <th>Phương thức</th>
+            <th>Latency</th>
+          </tr>
+        </thead>
+        <tbody id="scanBody">
+          <tr><td colspan="5" class="empty">Chưa quét. Nhấn "Bắt đầu quét".</td></tr>
+        </tbody>
+      </table>
+    </div>
 
-                        self.addEventListener('fetch', event => {
-                            event.respondWith(
-                                caches.match(event.request)
-                                    .then(response => response || fetch(event.request))
-                            );
-                        });
+    <div class="open-list" id="openList" hidden>
+      <span class="muted" style="font-size:0.8rem;align-self:center;width:100%">— Cổng mở phát hiện —</span>
+    </div>
+  </section>
 
-                        self.addEventListener('activate', event => {
-                            event.waitUntil(
-                                caches.keys().then(cacheNames => {
-                                    return Promise.all(
-                                        cacheNames.map(cacheName => {
-                                            if (cacheName !== CACHE_NAME) {
-                                                return caches.delete(cacheName);
-                                            }
-                                        })
-                                    );
-                                })
-                            );
-                        });
-                    `;
-                    
-                    const swBlob = new Blob([swCode], {type: 'application/javascript'});
-                    const swURL = URL.createObjectURL(swBlob);
-                    
-                    navigator.serviceWorker.register(swURL)
-                        .then(registration => {
-                            console.log('ServiceWorker registration successful');
-                        })
-                        .catch(error => {
-                            console.log('ServiceWorker registration failed:', error);
-                        });
-                }
-            }
-            
-            // PWA Installation Functions
-            function handleBeforeInstallPrompt(e) {
-                // Prevent the mini-infobar from appearing on mobile
-                e.preventDefault();
-                
-                // Stash the event so it can be triggered later
-                deferredPrompt = e;
-                
-                // Update UI to notify the user they can install the PWA
-                console.log('PWA installation available');
-                
-                // Show install banner after a delay
-                setTimeout(() => {
-                    if (!isPWAInstalled && !isStandalone) {
-                        showInstallBanner();
-                    }
-                }, 3000);
-            }
-            
-            function handleAppInstalled() {
-                console.log('PWA was installed');
-                isPWAInstalled = true;
-                deferredPrompt = null;
-                hideInstallBanner();
-                
-                // Update app mode display
-                document.getElementById('app-mode').textContent = 'Installed PWA';
-                
-                // Show confirmation
-                showToast('App installed successfully!');
-            }
-            
-            function checkPWAStatus() {
-                // Check if the app is running in standalone mode
-                isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
-                              window.navigator.standalone || 
-                              document.referrer.includes('android-app://');
-                
-                if (isStandalone) {
-                    console.log('Running as installed PWA');
-                    isPWAInstalled = true;
-                    document.getElementById('app-mode').textContent = 'PWA Mode';
-                    
-                    // Hide install button when already installed
-                    document.getElementById('btn-install-pwa').style.display = 'none';
-                }
-            }
-            
-            function showInstallBanner() {
-                // Don't show if already installed or in standalone mode
-                if (isPWAInstalled || isStandalone) return;
-                
-                // Check if banner was recently dismissed
-                const bannerDismissed = localStorage.getItem('klayout-install-banner-dismissed');
-                if (bannerDismissed) {
-                    const dismissTime = parseInt(bannerDismissed);
-                    const now = Date.now();
-                    const oneDay = 24 * 60 * 60 * 1000;
-                    
-                    // Only show again after 7 days
-                    if (now - dismissTime < 7 * oneDay) {
-                        return;
-                    }
-                }
-                
-                installBanner.classList.add('show');
-            }
-            
-            function hideInstallBanner() {
-                installBanner.classList.remove('show');
-                
-                // Remember dismissal for 7 days
-                localStorage.setItem('klayout-install-banner-dismissed', Date.now().toString());
-            }
-            
-            async function installPWA() {
-                if (!deferredPrompt) {
-                    // If deferredPrompt is not available, show instructions
-                    showPWAInstructions();
-                    return;
-                }
-                
-                // Show the install prompt
-                deferredPrompt.prompt();
-                
-                // Wait for the user to respond to the prompt
-                const { outcome } = await deferredPrompt.userChoice;
-                
-                if (outcome === 'accepted') {
-                    console.log('User accepted the install prompt');
-                    showToast('Installing app...');
-                } else {
-                    console.log('User dismissed the install prompt');
-                    showToast('Installation cancelled');
-                }
-                
-                // Clear the deferredPrompt variable
-                deferredPrompt = null;
-                
-                // Hide the banner
-                hideInstallBanner();
-            }
-            
-            function showPWAInstructions() {
-                const instructionsContainer = document.getElementById('instructions-steps');
-                instructionsContainer.innerHTML = '';
-                
-                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-                const isAndroid = /Android/.test(navigator.userAgent);
-                const isChrome = /Chrome/.test(navigator.userAgent) && !/Edge/.test(navigator.userAgent);
-                const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
-                
-                let steps = [];
-                
-                if (isIOS && isSafari) {
-                    steps = [
-                        {
-                            number: "1",
-                            text: "Tap the Share button at the bottom of the screen (the square with an arrow pointing up)"
-                        },
-                        {
-                            number: "2",
-                            text: "Scroll down and tap 'Add to Home Screen'"
-                        },
-                        {
-                            number: "3",
-                            text: "Tap 'Add' in the top right corner"
-                        },
-                        {
-                            number: "4",
-                            text: "The app will now appear on your home screen"
-                        }
-                    ];
-                } else if (isAndroid && isChrome) {
-                    steps = [
-                        {
-                            number: "1",
-                            text: "Tap the three-dot menu in the top right corner"
-                        },
-                        {
-                            number: "2",
-                            text: "Select 'Install app' or 'Add to Home screen'"
-                        },
-                        {
-                            number: "3",
-                            text: "Tap 'Install' in the popup dialog"
-                        },
-                        {
-                            number: "4",
-                            text: "The app will install and appear on your home screen"
-                        }
-                    ];
-                } else {
-                    steps = [
-                        {
-                            number: "1",
-                            text: "Look for the install icon in your browser's address bar"
-                        },
-                        {
-                            number: "2",
-                            text: "Click the install icon or look for 'Install' in the browser menu"
-                        },
-                        {
-                            number: "3",
-                            text: "Follow the prompts to install the app"
-                        },
-                        {
-                            number: "4",
-                            text: "The app will be added to your home screen or app list"
-                        }
-                    ];
-                }
-                
-                // Add platform-specific note
-                if (isIOS) {
-                    steps.push({
-                        number: "ℹ️",
-                        text: "Note: On iOS, you must use Safari browser to install PWAs"
-                    });
-                }
-                
-                // Render steps
-                steps.forEach(step => {
-                    const stepElement = document.createElement('div');
-                    stepElement.className = 'step';
-                    stepElement.innerHTML = `
-                        <div class="step-number">${step.number}</div>
-                        <div style="flex: 1; font-size: 14px; line-height: 1.4;">${step.text}</div>
-                    `;
-                    instructionsContainer.appendChild(stepElement);
-                });
-                
-                pwaInstructions.classList.add('show');
-            }
-            
-            function showToast(message) {
-                // Create toast element
-                const toast = document.createElement('div');
-                toast.textContent = message;
-                toast.style.cssText = `
-                    position: fixed;
-                    bottom: 150px;
-                    left: 50%;
-                    transform: translateX(-50%);
-                    background: #2c3e50;
-                    color: white;
-                    padding: 12px 24px;
-                    border-radius: 8px;
-                    z-index: 3000;
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-                    font-weight: 500;
-                    opacity: 0;
-                    transition: opacity 0.3s;
-                `;
-                
-                document.body.appendChild(toast);
-                
-                // Fade in
-                setTimeout(() => {
-                    toast.style.opacity = '1';
-                }, 10);
-                
-                // Remove after 3 seconds
-                setTimeout(() => {
-                    toast.style.opacity = '0';
-                    setTimeout(() => {
-                        document.body.removeChild(toast);
-                    }, 300);
-                }, 3000);
-            }
-            
-            // Touch Event Handlers (remain the same as before)
-            function handleTouchStart(e) {
-                e.preventDefault();
-                const touches = Array.from(e.touches);
-                
-                touches.forEach(touch => {
-                    activeTouches.set(touch.identifier, {
-                        x: touch.clientX,
-                        y: touch.clientY,
-                        startX: touch.clientX,
-                        startY: touch.clientY,
-                        time: Date.now()
-                    });
-                });
-                
-                if (touches.length === 1) {
-                    isDragging = true;
-                    const touch = touches[0];
-                    const touchData = activeTouches.get(touch.identifier);
-                    
-                    const currentTime = Date.now();
-                    if (currentTime - lastTapTime < 300 && 
-                        Math.abs(touchData.x - touchData.startX) < 10 &&
-                        Math.abs(touchData.y - touchData.startY) < 10) {
-                        fitToScreen();
-                        lastTapTime = 0;
-                    } else {
-                        lastTapTime = currentTime;
-                    }
-                }
-                else if (touches.length === 2) {
-                    const touch1 = touches[0];
-                    const touch2 = touches[1];
-                    
-                    lastTouchDistance = Math.hypot(
-                        touch2.clientX - touch1.clientX,
-                        touch2.clientY - touch1.clientY
-                    );
-                    
-                    initialPinchCenter = {
-                        x: (touch1.clientX + touch2.clientX) / 2,
-                        y: (touch1.clientY + touch2.clientY) / 2
-                    };
-                }
-            }
-            
-            function handleTouchMove(e) {
-                e.preventDefault();
-                const touches = Array.from(e.touches);
-                
-                if (touches.length === 1 && isDragging) {
-                    const touch = touches[0];
-                    const touchData = activeTouches.get(touch.identifier);
-                    
-                    if (touchData) {
-                        const deltaX = touch.clientX - touchData.x;
-                        const deltaY = touch.clientY - touchData.y;
-                        
-                        offsetX += deltaX / scale;
-                        offsetY += deltaY / scale;
-                        
-                        touchData.x = touch.clientX;
-                        touchData.y = touch.clientY;
-                        
-                        draw();
-                    }
-                }
-                else if (touches.length === 2) {
-                    const touch1 = touches[0];
-                    const touch2 = touches[1];
-                    
-                    const currentDistance = Math.hypot(
-                        touch2.clientX - touch1.clientX,
-                        touch2.clientY - touch1.clientY
-                    );
-                    
-                    if (lastTouchDistance > 0) {
-                        const zoomFactor = currentDistance / lastTouchDistance;
-                        const newScale = scale * zoomFactor;
-                        
-                        scale = Math.max(minScale, Math.min(maxScale, newScale));
-                        
-                        const centerX = (touch1.clientX + touch2.clientX) / 2;
-                        const centerY = (touch1.clientY + touch2.clientY) / 2;
-                        
-                        const rect = canvas.getBoundingClientRect();
-                        const worldX = (centerX - rect.left - canvasWidth/2) / scale - offsetX;
-                        const worldY = (centerY - rect.top - canvasHeight/2) / scale - offsetY;
-                        
-                        const newWorldX = (centerX - rect.left - canvasWidth/2) / newScale - offsetX;
-                        const newWorldY = (centerY - rect.top - canvasHeight/2) / newScale - offsetY;
-                        
-                        offsetX += newWorldX - worldX;
-                        offsetY += newWorldY - worldY;
-                        
-                        draw();
-                    }
-                    
-                    lastTouchDistance = currentDistance;
-                }
-                
-                touches.forEach(touch => {
-                    const touchData = activeTouches.get(touch.identifier);
-                    if (touchData) {
-                        touchData.x = touch.clientX;
-                        touchData.y = touch.clientY;
-                    }
-                });
-            }
-            
-            function handleTouchEnd(e) {
-                e.preventDefault();
-                const endedTouches = Array.from(e.changedTouches);
-                
-                endedTouches.forEach(touch => {
-                    activeTouches.delete(touch.identifier);
-                });
-                
-                if (activeTouches.size === 0) {
-                    isDragging = false;
-                    lastTouchDistance = 0;
-                    initialPinchCenter = null;
-                }
-            }
-            
-            // Mouse Event Handlers (remain the same)
-            function handleMouseDown(e) {
-                e.preventDefault();
-                isDragging = true;
-                
-                activeTouches.set('mouse', {
-                    x: e.clientX,
-                    y: e.clientY,
-                    startX: e.clientX,
-                    startY: e.clientY,
-                    time: Date.now()
-                });
-            }
-            
-            function handleMouseMove(e) {
-                if (isDragging) {
-                    e.preventDefault();
-                    const touchData = activeTouches.get('mouse');
-                    
-                    if (touchData) {
-                        const deltaX = e.clientX - touchData.x;
-                        const deltaY = e.clientY - touchData.y;
-                        
-                        offsetX += deltaX / scale;
-                        offsetY += deltaY / scale;
-                        
-                        touchData.x = e.clientX;
-                        touchData.y = e.clientY;
-                        
-                        draw();
-                    }
-                }
-            }
-            
-            function handleMouseUp() {
-                isDragging = false;
-                activeTouches.delete('mouse');
-            }
-            
-            function handleWheel(e) {
-                e.preventDefault();
-                
-                const zoomFactor = 0.1;
-                const delta = e.deltaY > 0 ? -1 : 1;
-                const newScale = scale * (1 + delta * zoomFactor);
-                
-                scale = Math.max(minScale, Math.min(maxScale, newScale));
-                
-                const rect = canvas.getBoundingClientRect();
-                const mouseX = e.clientX - rect.left;
-                const mouseY = e.clientY - rect.top;
-                
-                const worldX = (mouseX - canvasWidth/2) / scale - offsetX;
-                const worldY = (mouseY - canvasHeight/2) / scale - offsetY;
-                
-                const newWorldX = (mouseX - canvasWidth/2) / newScale - offsetX;
-                const newWorldY = (mouseY - canvasHeight/2) / newScale - offsetY;
-                
-                offsetX += newWorldX - worldX;
-                offsetY += newWorldY - worldY;
-                
-                draw();
-            }
-            
-            function handleCanvasClick(e) {
-                const currentTime = Date.now();
-                if (currentTime - lastTapTime < 300) {
-                    fitToScreen();
-                    lastTapTime = 0;
-                } else {
-                    lastTapTime = currentTime;
-                }
-            }
-            
-            // File Handling (remain the same)
-            function handleFileSelect(e) {
-                const file = e.target.files[0];
-                if (file && file.name.endsWith('.cif')) {
-                    loadCIFFile(file);
-                }
-            }
-            
-            function handleDragOver(e) {
-                e.preventDefault();
-                dropZone.classList.add('active');
-            }
-            
-            function handleDragLeave() {
-                dropZone.classList.remove('active');
-            }
-            
-            function handleDrop(e) {
-                e.preventDefault();
-                dropZone.classList.remove('active');
-                
-                const file = e.dataTransfer.files[0];
-                if (file && file.name.endsWith('.cif')) {
-                    loadCIFFile(file);
-                }
-            }
-            
-            async function loadCIFFile(file) {
-                loadingOverlay.style.display = 'flex';
-                
-                try {
-                    const content = await readFileAsText(file);
-                    parseCIF(content, file.name);
-                } catch (error) {
-                    alert('Error loading file: ' + error.message);
-                } finally {
-                    loadingOverlay.style.display = 'none';
-                }
-            }
-            
-            function readFileAsText(file) {
-                return new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = e => resolve(e.target.result);
-                    reader.onerror = e => reject(new Error('Failed to read file'));
-                    reader.readAsText(file);
-                });
-            }
-            
-            // CIF Parser (remain the same)
-            function parseCIF(content, fileName) {
-                cifData = [];
-                layers = [];
-                activeLayers.clear();
-                boundingBox = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity };
-                
-                let currentLayer = null;
-                let layerId = 0;
-                
-                const lines = content.split('\n');
-                const chunkSize = 1000;
-                
-                const processChunk = (start) => {
-                    const end = Math.min(start + chunkSize, lines.length);
-                    
-                    for (let i = start; i < end; i++) {
-                        parseCIFLine(lines[i], i + 1);
-                    }
-                    
-                    if (end < lines.length) {
-                        setTimeout(() => processChunk(end), 0);
-                    } else {
-                        finishParsing(fileName);
-                    }
-                };
-                
-                processChunk(0);
-                
-                function parseCIFLine(line, lineNumber) {
-                    line = line.trim();
-                    if (!line || line.startsWith('#')) return;
-                    
-                    const parts = line.split(';').filter(p => p.trim());
-                    
-                    for (let part of parts) {
-                        part = part.trim();
-                        const firstChar = part.charAt(0);
-                        
-                        switch (firstChar) {
-                            case 'L':
-                                const layerMatch = part.match(/L\s+(\S+)/);
-                                if (layerMatch) {
-                                    currentLayer = {
-                                        id: layerId++,
-                                        name: layerMatch[1],
-                                        objects: []
-                                    };
-                                    layers.push(currentLayer);
-                                    activeLayers.add(currentLayer.id);
-                                }
-                                break;
-                                
-                            case 'B':
-                                const boxMatch = part.match(/B\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/);
-                                if (boxMatch && currentLayer) {
-                                    const width = parseInt(boxMatch[1]);
-                                    const height = parseInt(boxMatch[2]);
-                                    const x = parseInt(boxMatch[3]);
-                                    const y = parseInt(boxMatch[4]);
-                                    
-                                    currentLayer.objects.push({
-                                        type: 'B',
-                                        x, y, width, height
-                                    });
-                                    
-                                    updateBoundingBox(x, y);
-                                    updateBoundingBox(x + width, y + height);
-                                }
-                                break;
-                                
-                            case 'P':
-                                const polyMatch = part.match(/P\s+(\d+)((?:\s+\d+){6,})/);
-                                if (polyMatch && currentLayer) {
-                                    const pointCount = parseInt(polyMatch[1]);
-                                    const coords = polyMatch[2].trim().split(/\s+/).map(Number);
-                                    
-                                    const points = [];
-                                    for (let i = 0; i < pointCount * 2; i += 2) {
-                                        points.push({ x: coords[i], y: coords[i+1] });
-                                        updateBoundingBox(coords[i], coords[i+1]);
-                                    }
-                                    
-                                    currentLayer.objects.push({
-                                        type: 'P',
-                                        points
-                                    });
-                                }
-                                break;
-                                
-                            case 'W':
-                                const wireMatch = part.match(/W\s+(\d+)((?:\s+\d+){4,})/);
-                                if (wireMatch && currentLayer) {
-                                    const pointCount = parseInt(wireMatch[1]);
-                                    const coords = wireMatch[2].trim().split(/\s+/).map(Number);
-                                    
-                                    const points = [];
-                                    for (let i = 0; i < pointCount * 2; i += 2) {
-                                        points.push({ x: coords[i], y: coords[i+1] });
-                                        updateBoundingBox(coords[i], coords[i+1]);
-                                    }
-                                    
-                                    currentLayer.objects.push({
-                                        type: 'W',
-                                        points
-                                    });
-                                }
-                                break;
-                        }
-                    }
-                }
-            }
-            
-            function finishParsing(fileName) {
-                if (layers.length === 0) {
-                    const defaultLayer = {
-                        id: 0,
-                        name: "Default",
-                        objects: []
-                    };
-                    layers.push(defaultLayer);
-                    activeLayers.add(defaultLayer.id);
-                }
-                
-                updateLayerList();
-                updateFileInfo(fileName);
-                fitToScreen();
-                draw();
-            }
-            
-            function updateBoundingBox(x, y) {
-                boundingBox.minX = Math.min(boundingBox.minX, x);
-                boundingBox.maxX = Math.max(boundingBox.maxX, x);
-                boundingBox.minY = Math.min(boundingBox.minY, y);
-                boundingBox.maxY = Math.max(boundingBox.maxY, y);
-            }
-            
-            // Drawing Functions (remain the same)
-            function draw() {
-                ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-                ctx.save();
-                ctx.translate(canvasWidth / 2, canvasHeight / 2);
-                ctx.scale(scale, scale);
-                ctx.translate(offsetX, offsetY);
-                
-                if (showGrid) drawGrid();
-                drawCIFObjects();
-                
-                ctx.restore();
-                updateZoomIndicator();
-            }
-            
-            function drawGrid() {
-                const gridSize = 100;
-                const scaledGridSize = gridSize * scale;
-                
-                if (scaledGridSize < 10) return;
-                
-                const startX = -canvasWidth / 2 + offsetX;
-                const endX = canvasWidth / 2 + offsetX;
-                const startY = -canvasHeight / 2 + offsetY;
-                const endY = canvasHeight / 2 + offsetY;
-                
-                const gridStartX = Math.floor(startX / gridSize) * gridSize;
-                const gridStartY = Math.floor(startY / gridSize) * gridSize;
-                
-                ctx.strokeStyle = 'rgba(100, 100, 100, 0.3)';
-                ctx.lineWidth = 1 / scale;
-                
-                for (let x = gridStartX; x <= endX; x += gridSize) {
-                    ctx.beginPath();
-                    ctx.moveTo(x, startY);
-                    ctx.lineTo(x, endY);
-                    ctx.stroke();
-                }
-                
-                for (let y = gridStartY; y <= endY; y += gridSize) {
-                    ctx.beginPath();
-                    ctx.moveTo(startX, y);
-                    ctx.lineTo(endX, y);
-                    ctx.stroke();
-                }
-            }
-            
-            function drawCIFObjects() {
-                layers.forEach((layer, index) => {
-                    if (!activeLayers.has(layer.id)) return;
-                    
-                    const color = layerColors[index % layerColors.length];
-                    ctx.fillStyle = color + '80';
-                    ctx.strokeStyle = color;
-                    ctx.lineWidth = 1 / scale;
-                    
-                    layer.objects.forEach(obj => {
-                        drawObject(obj);
-                    });
-                });
-            }
-            
-            function drawObject(obj) {
-                switch (obj.type) {
-                    case 'B':
-                        ctx.beginPath();
-                        ctx.rect(obj.x, obj.y, obj.width, obj.height);
-                        ctx.fill();
-                        ctx.stroke();
-                        break;
-                        
-                    case 'P':
-                        if (obj.points.length >= 3) {
-                            ctx.beginPath();
-                            ctx.moveTo(obj.points[0].x, obj.points[0].y);
-                            for (let i = 1; i < obj.points.length; i++) {
-                                ctx.lineTo(obj.points[i].x, obj.points[i].y);
-                            }
-                            ctx.closePath();
-                            ctx.fill();
-                            ctx.stroke();
-                        }
-                        break;
-                        
-                    case 'W':
-                        if (obj.points.length >= 2) {
-                            ctx.beginPath();
-                            ctx.moveTo(obj.points[0].x, obj.points[0].y);
-                            for (let i = 1; i < obj.points.length; i++) {
-                                ctx.lineTo(obj.points[i].x, obj.points[i].y);
-                            }
-                            ctx.stroke();
-                        }
-                        break;
-                }
-            }
-            
-            // UI Functions (remain the same with PWA updates)
-            function toggleLayerSheet() {
-                layerSheet.classList.toggle('open');
-                updateFileInfoPanel();
-            }
-            
-            function updateLayerList() {
-                const layerList = document.getElementById('layer-list');
-                layerList.innerHTML = '';
-                
-                layers.forEach((layer, index) => {
-                    const color = layerColors[index % layerColors.length];
-                    const isActive = activeLayers.has(layer.id);
-                    
-                    const layerElement = document.createElement('div');
-                    layerElement.className = 'layer-item';
-                    layerElement.innerHTML = `
-                        <div class="layer-color" style="background-color: ${color}"></div>
-                        <div class="layer-info">
-                            <div class="layer-name">${layer.name}</div>
-                            <div class="layer-stats">${layer.objects.length} objects</div>
-                        </div>
-                        <div class="layer-toggle ${isActive ? 'active' : ''}" data-layer-id="${layer.id}"></div>
-                    `;
-                    
-                    layerElement.querySelector('.layer-toggle').addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        toggleLayerVisibility(layer.id);
-                    });
-                    
-                    layerList.appendChild(layerElement);
-                });
-            }
-            
-            function toggleLayerVisibility(layerId) {
-                if (activeLayers.has(layerId)) {
-                    activeLayers.delete(layerId);
-                } else {
-                    activeLayers.add(layerId);
-                }
-                
-                updateLayerList();
-                draw();
-            }
-            
-            function updateFileInfo(fileName) {
-                document.getElementById('file-name').textContent = fileName || 'None';
-                document.getElementById('total-objects').textContent = 
-                    layers.reduce((sum, layer) => sum + layer.objects.length, 0);
-                document.getElementById('total-layers').textContent = layers.length;
-                document.getElementById('file-info-panel').style.display = 'block';
-            }
-            
-            function updateFileInfoPanel() {
-                document.getElementById('current-zoom').textContent = `${Math.round(scale * 100)}%`;
-                
-                // Update PWA status
-                if (isStandalone) {
-                    document.getElementById('app-mode').textContent = 'PWA Mode';
-                } else if (isPWAInstalled) {
-                    document.getElementById('app-mode').textContent = 'Installed';
-                } else {
-                    document.getElementById('app-mode').textContent = 'Browser';
-                }
-            }
-            
-            function updateCoordinateDisplay(e) {
-                let clientX, clientY;
-                
-                if (e.type.startsWith('touch')) {
-                    const touch = e.touches[0];
-                    clientX = touch.clientX;
-                    clientY = touch.clientY;
-                } else {
-                    clientX = e.clientX;
-                    clientY = e.clientY;
-                }
-                
-                const rect = canvas.getBoundingClientRect();
-                const x = clientX - rect.left;
-                const y = clientY - rect.top;
-                
-                const worldX = (x - canvasWidth/2) / scale - offsetX;
-                const worldY = (y - canvasHeight/2) / scale - offsetY;
-                
-                document.getElementById('coordinate-display').textContent = 
-                    `X: ${worldX.toFixed(2)}, Y: ${worldY.toFixed(2)}`;
-            }
-            
-            function updateZoomIndicator() {
-                document.getElementById('zoom-indicator').textContent = 
-                    `Zoom: ${Math.round(scale * 100)}%`;
-            }
-            
-            // View Control Functions (remain the same)
-            function fitToScreen() {
-                if (boundingBox.maxX <= boundingBox.minX || boundingBox.maxY <= boundingBox.minY) {
-                    resetView();
-                    return;
-                }
-                
-                const contentWidth = boundingBox.maxX - boundingBox.minX;
-                const contentHeight = boundingBox.maxY - boundingBox.minY;
-                const centerX = (boundingBox.minX + boundingBox.maxX) / 2;
-                const centerY = (boundingBox.minY + boundingBox.maxY) / 2;
-                
-                const padding = 0.1;
-                const scaleX = canvasWidth / (contentWidth * (1 + padding));
-                const scaleY = canvasHeight / (contentHeight * (1 + padding));
-                
-                scale = Math.min(scaleX, scaleY, maxScale);
-                offsetX = -centerX;
-                offsetY = -centerY;
-                
-                draw();
-            }
-            
-            function resetView() {
-                scale = 1.0;
-                offsetX = 0;
-                offsetY = 0;
-                draw();
-            }
-            
-            function toggleGrid() {
-                showGrid = !showGrid;
-                document.getElementById('btn-toggle-grid').textContent = showGrid ? '⏹️' : '⬜';
-                draw();
-            }
-            
-            // Fullscreen Functions (remain the same)
-            function toggleFullscreen() {
-                if (!isFullscreen) {
-                    enterFullscreen();
-                } else {
-                    exitFullscreen();
-                }
-            }
-            
-            function enterFullscreen() {
-                const element = appContainer;
-                
-                if (element.requestFullscreen) {
-                    element.requestFullscreen();
-                } else if (element.webkitRequestFullscreen) {
-                    element.webkitRequestFullscreen();
-                } else if (element.mozRequestFullScreen) {
-                    element.mozRequestFullScreen();
-                } else if (element.msRequestFullscreen) {
-                    element.msRequestFullscreen();
-                }
-            }
-            
-            function exitFullscreen() {
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
-                } else if (document.webkitExitFullscreen) {
-                    document.webkitExitFullscreen();
-                } else if (document.mozCancelFullScreen) {
-                    document.mozCancelFullScreen();
-                } else if (document.msExitFullscreen) {
-                    document.msExitFullscreen();
-                }
-            }
-            
-            function handleFullscreenChange() {
-                isFullscreen = !!(document.fullscreenElement || 
-                                document.webkitFullscreenElement || 
-                                document.mozFullScreenElement || 
-                                document.msFullscreenElement);
-                
-                if (isFullscreen) {
-                    appContainer.classList.add('fullscreen');
-                    document.getElementById('btn-toggle-fullscreen').style.display = 'flex';
-                } else {
-                    appContainer.classList.remove('fullscreen');
-                    document.getElementById('btn-toggle-fullscreen').style.display = 'none';
-                }
-                
-                setupCanvas();
-            }
-            
-            // Help Functions (remain the same)
-            function checkFirstTimeUser() {
-                const hasSeenHelp = localStorage.getItem('klayout-mobile-help-seen');
-                if (!hasSeenHelp) {
-                    touchOverlay.classList.remove('hidden');
-                }
-            }
-            
-            function showHelp() {
-                touchOverlay.classList.remove('hidden');
-            }
-            
-            function hideHelp() {
-                touchOverlay.classList.add('hidden');
-                localStorage.setItem('klayout-mobile-help-seen', 'true');
-            }
-            
-            // Utility Functions (remain the same)
-            function handleResize() {
-                setupCanvas();
-                if (cifData) {
-                    draw();
-                }
-            }
-            
-            function loadSampleData() {
-                const sampleCIF = `# Sample CIF file for demonstration
-L METAL1;
-B 100 50 0 0;
-B 50 100 150 0;
-P 4 0 200 50 200 50 250 0 250;
-W 3 200 0 250 50 200 100;
-L POLY;
-B 80 80 50 50;
-P 3 300 0 350 50 300 100;
-L CONTACT;
-B 20 20 120 120;
-B 20 20 180 180;
-# End of sample file`;
-                
-                parseCIF(sampleCIF, 'sample.cif');
-                updateFileInfo('sample.cif');
-            }
-            
-            // Initialize the application
-            init();
-        });
-    </script>
+  <!-- ============ NOTES ============ -->
+  <section class="panel">
+    <h2>Về UDP / TCP / Scanning</h2>
+    <div class="notes">
+      <div class="note">
+        <h3>UDP — STUN binding</h3>
+        <p>WebRTC gửi Binding Request qua UDP tới STUN server. Trình duyệt <em>không cho</em>
+        JS mở raw UDP socket — mọi thứ đi qua <code>RTCPeerConnection</code>. Bạn chỉ <em>quan sát</em>
+        mapping NAT tạo ra, không thể tự bắn gói UDP tuỳ ý để test filtering.</p>
+      </div>
+      <div class="note">
+        <h3>TCP — không hỗ trợ STUN</h3>
+        <p>STUN chỉ định nghĩa trên UDP (RFC 5389/8489). Muốn kiểm tra TCP NAT cần raw socket
+        (Node.js, native app) hoặc <code>Direct Sockets API</code> trong Isolated Web App của Chrome.</p>
+      </div>
+      <div class="note warn">
+        <h3>Port scan trong browser — giới hạn</h3>
+        <p>Không có raw TCP socket → chỉ có thể dùng <code>fetch(no-cors)</code>, <code>WebSocket</code>,
+        <code>&lt;img&gt;</code> và đo <strong>timing + error type</strong>. Kết quả mang tính
+        <strong>suy đoán</strong>: open / closed / filtered. Chỉ quét được <em>localhost và chính máy</em> —
+        không quét được host từ xa vì CORS + same-origin policy.</p>
+      </div>
+      <div class="note danger">
+        <h3>Cảnh báo pháp lý</h3>
+        <p>Chỉ quét thiết bị của chính bạn. Quét cổng hệ thống không thuộc quyền sở hữu là
+        <strong>hành vi vi phạm pháp luật</strong> tại nhiều quốc gia.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>NAT Inspector + Port Scan · 100% client-side · Không tracking</footer>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  // ================================================================
+  //  CẤU HÌNH STUN
+  // ================================================================
+  const STUN_SERVERS = [
+    { url: 'stun:stun.l.google.com:19302',  name: 'Google #1 (19302)' },
+    { url: 'stun:stun.l.google.com:19305',  name: 'Google #2 (19305)' },
+    { url: 'stun:stun1.l.google.com:19302', name: 'Google #3 (stun1)' },
+    { url: 'stun:stun2.l.google.com:19302', name: 'Google #4 (stun2)' },
+    { url: 'stun:stun3.l.google.com:19302', name: 'Google #5 (stun3)' },
+    { url: 'stun:stun4.l.google.com:19302', name: 'Google #6 (stun4)' },
+    { url: 'stun:stun.cloudflare.com:3478', name: 'Cloudflare (fallback)' },
+  ];
+  const TIMEOUT_MS = 6000;
+
+  // ================================================================
+  //  PORT PRESETS — kèm tên dịch vụ
+  // ================================================================
+  const SERVICE_NAMES = {
+    21: 'FTP', 22: 'SSH', 23: 'Telnet', 25: 'SMTP', 53: 'DNS',
+    80: 'HTTP', 81: 'HTTP-alt', 110: 'POP3', 111: 'rpcbind', 135: 'MSRPC',
+    139: 'NetBIOS', 143: 'IMAP', 161: 'SNMP', 389: 'LDAP', 443: 'HTTPS',
+    445: 'SMB', 465: 'SMTPS', 514: 'Syslog', 515: 'LPD', 548: 'AFP',
+    587: 'SMTP-sub', 631: 'IPP/CUPS', 636: 'LDAPS', 873: 'rsync',
+    993: 'IMAPS', 995: 'POP3S', 1080: 'SOCKS', 1433: 'MSSQL',
+    1521: 'Oracle', 1723: 'PPTP', 1883: 'MQTT', 2049: 'NFS',
+    2181: 'ZooKeeper', 2375: 'Docker', 2376: 'Docker-TLS',
+    3000: 'Dev-HTTP', 3128: 'Squid', 3306: 'MySQL', 3389: 'RDP',
+    4000: 'Dev', 5000: 'Dev/UPnP', 5432: 'PostgreSQL', 5601: 'Kibana',
+    5672: 'AMQP', 5900: 'VNC', 5985: 'WinRM-HTTP', 5986: 'WinRM-HTTPS',
+    6379: 'Redis', 6443: 'K8s-API', 7001: 'WebLogic', 8000: 'HTTP-alt',
+    8080: 'HTTP-proxy', 8081: 'HTTP-alt', 8086: 'InfluxDB',
+    8443: 'HTTPS-alt', 8888: 'HTTP-alt', 9000: 'PHP-FPM/Portainer',
+    9090: 'Prometheus', 9200: 'Elasticsearch', 9300: 'Elasticsearch-node',
+    10000: 'Webmin', 11211: 'Memcached', 27017: 'MongoDB',
+    50000: 'SAP', 50051: 'gRPC',
+  };
+
+  const PRESETS = {
+    common: [21,22,23,25,53,80,110,143,443,445,993,995,1433,1521,3306,3389,5432,5900,6379,8080,8443,8888,9090,9200,11211,27017,50051,10000,25565,32400],
+    web:    [80,443,3000,4000,4200,5000,5173,8000,8001,8080,8081,8088,8443,8888,9000,9090,9443,1337,3001],
+    db:     [1433,1521,3306,5432,6379,9200,9300,11211,27017,2379,2380,2181,5672,15672,5984,9042],
+    all:    Array.from({ length: 1024 }, (_, i) => i + 1),
+  };
+
+  // ================================================================
+  //  DOM
+  // ================================================================
+  const $ = (id) => document.getElementById(id);
+  const els = {
+    publicIP: $('publicIP'), publicPort: $('publicPort'),
+    localIP: $('localIP'), natType: $('natType'),
+    runBtn: $('runBtn'), copyBtn: $('copyBtn'),
+    progress: $('progress'), progressBar: $('progressBar'),
+    progressLabel: $('progressLabel'),
+    resultBody: $('resultBody'),
+    analysis: $('analysis'), rawJson: $('rawJson'),
+    installBtn: $('installBtn'),
+
+    scanHost: $('scanHost'), scanPreset: $('scanPreset'),
+    scanCustom: $('scanCustom'), customPortsWrap: $('customPortsWrap'),
+    scanConc: $('scanConc'), scanTimeout: $('scanTimeout'),
+    scanBtn: $('scanBtn'), stopBtn: $('stopBtn'), useLocalBtn: $('useLocalBtn'),
+    scanStats: $('scanStats'), statScanned: $('statScanned'), statTotal: $('statTotal'),
+    statOpen: $('statOpen'), statClosed: $('statClosed'), statFiltered: $('statFiltered'),
+    statTime: $('statTime'),
+    scanProgress: $('scanProgress'), scanProgressBar: $('scanProgressBar'),
+    scanBody: $('scanBody'), openList: $('openList'),
+  };
+
+  let lastNatResult = null;
+  let scanAbort = { aborted: false };
+
+  // ================================================================
+  //  ==== PHẦN NAT (giống bản trước) ====
+  // ================================================================
+  function parseCandidate(str) {
+    const p = str.split(/\s+/);
+    if (p.length < 8) return null;
+    const protocol = p[2].toLowerCase();
+    const ip = p[4], port = parseInt(p[5], 10), typ = p[7];
+    let raddr = null, rport = null;
+    for (let i = 8; i < p.length - 1; i++) {
+      if (p[i] === 'raddr') raddr = p[i + 1];
+      if (p[i] === 'rport') rport = p[i + 1];
+    }
+    return { protocol, ip, port, typ, raddr, rport };
+  }
+
+  function queryStunServer(server) {
+    return new Promise((resolve) => {
+      const pc = new RTCPeerConnection({
+        iceServers: [{ urls: server.url }],
+        iceTransportPolicy: 'all',
+        iceCandidatePoolSize: 0,
+      });
+      const result = {
+        server: server.url, name: server.name,
+        srflx: [], host: [], prflx: [],
+        error: null, durationMs: 0,
+      };
+      const start = performance.now();
+      let finished = false;
+      const finish = (err) => {
+        if (finished) return;
+        finished = true;
+        result.durationMs = Math.round(performance.now() - start);
+        if (err) result.error = err;
+        try { pc.close(); } catch (_) {}
+        resolve(result);
+      };
+      pc.onicecandidate = (evt) => {
+        if (!evt.candidate) return finish(null);
+        const c = parseCandidate(evt.candidate.candidate);
+        if (!c || c.protocol !== 'udp') return;
+        if (c.typ === 'srflx') result.srflx.push(c);
+        else if (c.typ === 'host') result.host.push(c);
+        else if (c.typ === 'prflx') result.prflx.push(c);
+      };
+      pc.onicegatheringstatechange = () => {
+        if (pc.iceGatheringState === 'complete') finish(null);
+      };
+      pc.onicecandidateerror = (e) => {
+        if (result.error === null) result.error = `ICE ${e.errorCode}: ${e.errorText || 'error'}`;
+      };
+      try {
+        pc.createDataChannel('probe');
+        pc.createOffer()
+          .then(o => pc.setLocalDescription(o))
+          .catch(err => finish(err.message || String(err)));
+      } catch (err) { finish(err.message || String(err)); return; }
+      setTimeout(() => finish(result.error || 'timeout'), TIMEOUT_MS);
+    });
+  }
+
+  function isPrivateIP(ip) {
+    if (!ip) return false;
+    if (ip.includes(':')) return /^(fe80|fc|fd)/i.test(ip);
+    const p = ip.split('.').map(Number);
+    if (p.length !== 4) return false;
+    return p[0] === 10 || p[0] === 127 ||
+      (p[0] === 172 && p[1] >= 16 && p[1] <= 31) ||
+      (p[0] === 192 && p[1] === 168) ||
+      (p[0] === 169 && p[1] === 254);
+  }
+
+  function analyzeNat(results) {
+    const findings = [];
+    const successful = results.filter(r => r.srflx.length > 0 && !r.error);
+    if (successful.length === 0) {
+      findings.push({ level: 'bad', text: 'Không nhận được srflx candidate — UDP có thể bị chặn hoàn toàn hoặc STUN unreachable.' });
+      return { type: 'Blocked/Unknown', findings, mapping: null, hostIps: [] };
+    }
+    const mapped = successful.map(r => ({
+      server: r.name, ip: r.srflx[0].ip, port: r.srflx[0].port,
+    }));
+    const uniqueSet = new Set(mapped.map(m => `${m.ip}:${m.port}`));
+    const uniqueCount = uniqueSet.size;
+    const hostCands = results.flatMap(r => r.host);
+    const hostIps = [...new Set(hostCands.map(h => h.ip))];
+
+    let natType = 'Unknown', mapping = 'unknown';
+    if (uniqueCount === 1) {
+      natType = 'Cone NAT (EIM)'; mapping = 'endpoint-independent';
+      findings.push({ level: 'ok', text: `<strong>Endpoint-Independent Mapping (EIM)</strong> — mọi STUN thấy cùng mapping <code>${mapped[0].ip}:${mapped[0].port}</code>. Dấu hiệu <strong>Cone NAT</strong>. Hole punching khả thi cao.` });
+    } else {
+      natType = 'Symmetric NAT (PDM)'; mapping = 'port-dependent';
+      findings.push({ level: 'bad', text: `<strong>Port-Dependent Mapping (PDM)</strong> — phát hiện <strong>${uniqueCount} mapping khác nhau</strong> trên ${successful.length} STUN. Dấu hiệu <strong>Symmetric NAT</strong>. Hole punching thường thất bại, cần TURN.` });
+    }
+    const uniqueIps = new Set(mapped.map(m => m.ip));
+    if (uniqueIps.size > 1) {
+      findings.push({ level: 'warn', text: `IP công khai khác nhau giữa các STUN (${[...uniqueIps].join(', ')}). Có thể multi-WAN / CGNAT pool.` });
+    }
+    const hasPrivateHost = hostIps.some(isPrivateIP);
+    if (!hasPrivateHost && hostIps.length > 0) {
+      findings.push({ level: 'info', text: 'Host candidate = public IP → có thể ở <strong>public IP trực tiếp</strong> hoặc dùng VPN/TUN.' });
+    }
+    const avgMs = Math.round(successful.reduce((a, r) => a + r.durationMs, 0) / successful.length);
+    findings.push({ level: 'info', text: `ICE gathering trung bình: <strong>${avgMs} ms</strong>. ${avgMs < 500 ? 'Mạng tốt.' : avgMs < 2000 ? 'Trung bình.' : 'Cao, có thể bị throttle.'}` });
+    return { type: natType, findings, mapping, mapped, hostIps };
+  }
+
+  function renderNatTable(results) {
+    const tbody = els.resultBody;
+    tbody.innerHTML = '';
+    results.forEach((r, i) => {
+      const tr = document.createElement('tr');
+      const srflx = r.srflx[0], host = r.host[0];
+      const srflxText = srflx ? `${srflx.ip}:${srflx.port}` : '—';
+      const hostText  = host  ? `${host.ip}:${host.port}`  : '—';
+      let sCls = 'status-pend', sTxt = '⏳ Pending';
+      if (r.error && !srflx) { sCls = 'status-fail'; sTxt = '✕ ' + r.error; }
+      else if (srflx) { sCls = 'status-ok'; sTxt = `✓ ${r.durationMs} ms`; }
+      tr.innerHTML = `
+        <td>${i + 1}</td>
+        <td>${escapeHtml(r.name)}</td>
+        <td class="${srflx ? '' : 'status-fail'}">${escapeHtml(srflxText)}</td>
+        <td>${escapeHtml(hostText)}</td>
+        <td class="${sCls}">${escapeHtml(sTxt)}</td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function renderAnalysis(a) {
+    els.analysis.innerHTML = '';
+    const ul = document.createElement('ul');
+    ul.className = 'analysis-list';
+    a.findings.forEach(f => {
+      const li = document.createElement('li');
+      li.innerHTML = `<span class="dot ${f.level}"></span><div>${f.text}</div>`;
+      ul.appendChild(li);
+    });
+    els.analysis.appendChild(ul);
+  }
+
+  function setBadge(text, cls) {
+    els.natType.textContent = text;
+    els.natType.className = 'value badge' + (cls ? ' ' + cls : '');
+  }
+
+  function setNatProgress(cur, total, label) {
+    els.progress.hidden = false;
+    els.progressLabel.hidden = false;
+    const pct = Math.round((cur / total) * 100);
+    els.progressBar.style.width = pct + '%';
+    els.progressLabel.textContent = `[${cur}/${total}] ${label} — ${pct}%`;
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+  }
+
+  async function runNatCheck() {
+    els.runBtn.disabled = true;
+    els.copyBtn.disabled = true;
+    els.resultBody.innerHTML = '<tr><td colspan="5" class="empty">Đang quét STUN servers…</td></tr>';
+    els.analysis.innerHTML = '<p class="muted">Đang phân tích…</p>';
+    setBadge('Đang quét…', '');
+
+    const results = [];
+    const total = STUN_SERVERS.length;
+    for (let i = 0; i < total; i++) {
+      setNatProgress(i, total, STUN_SERVERS[i].name);
+      const r = await queryStunServer(STUN_SERVERS[i]);
+      results.push(r);
+      renderNatTable(results);
+    }
+    setNatProgress(total, total, 'Hoàn tất');
+
+    const anySrflx = results.find(r => r.srflx.length > 0);
+    const anyHost  = results.find(r => r.host.length > 0);
+    els.publicIP.textContent   = anySrflx ? anySrflx.srflx[0].ip   : '—';
+    els.publicPort.textContent = anySrflx ? anySrflx.srflx[0].port : '—';
+    els.localIP.textContent    = anyHost  ? anyHost.host[0].ip     : '—';
+
+    const analysis = analyzeNat(results);
+    let cls = '';
+    if (analysis.type.includes('Cone')) cls = 'ok';
+    else if (analysis.type.includes('Symm')) cls = 'warn';
+    else if (analysis.type.includes('Block')) cls = 'bad';
+    setBadge(analysis.type, cls);
+    renderAnalysis(analysis);
+
+    lastNatResult = {
+      timestamp: new Date().toISOString(),
+      userAgent: navigator.userAgent,
+      natType: analysis.type,
+      mapping: analysis.mapping,
+      publicEndpoint: anySrflx ? `${anySrflx.srflx[0].ip}:${anySrflx.srflx[0].port}` : null,
+      localIPs: analysis.hostIps || [],
+      servers: results,
+    };
+    els.rawJson.textContent = JSON.stringify(lastNatResult, null, 2);
+    els.copyBtn.disabled = false;
+    els.runBtn.disabled = false;
+  }
+
+  async function copyJson() {
+    if (!lastNatResult) return;
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(lastNatResult, null, 2));
+      els.copyBtn.textContent = '✓ Đã copy';
+    } catch { els.copyBtn.textContent = '✕ Lỗi'; }
+    setTimeout(() => { els.copyBtn.textContent = '⎘ Copy JSON'; }, 1500);
+  }
+
+  // ================================================================
+  //  ==== PORT SCANNER ====
+  //  Kỹ thuật: probe timing với fetch(no-cors) + WebSocket + Image
+  //  Phân loại: open / closed / filtered / unknown
+  // ================================================================
+
+  function parsePorts(str) {
+    const out = new Set();
+    str.split(',').map(s => s.trim()).filter(Boolean).forEach(part => {
+      if (part.includes('-')) {
+        const [a, b] = part.split('-').map(n => parseInt(n, 10));
+        if (Number.isFinite(a) && Number.isFinite(b) && a <= b && b - a <= 65535) {
+          for (let p = a; p <= b; p++) out.add(p);
+        }
+      } else {
+        const p = parseInt(part, 10);
+        if (Number.isFinite(p) && p > 0 && p <= 65535) out.add(p);
+      }
+    });
+    return [...out].sort((a, b) => a - b);
+  }
+
+  function getPortList() {
+    const preset = els.scanPreset.value;
+    if (preset === 'custom') return parsePorts(els.scanCustom.value || '');
+    return PRESETS[preset] || [];
+  }
+
+  // ---- PROBE 1: fetch no-cors với timeout ----
+  // Trả về: { result: 'open'|'closed'|'filtered'|'unknown', latency }
+  async function probeFetch(host, port, timeoutMs) {
+    const url = `http://${host}:${port}/`;
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort('timeout'), timeoutMs);
+    const t0 = performance.now();
+
+    try {
+      // no-cors: request gửi đi, response opaque hoặc throw network error
+      await fetch(url, {
+        mode: 'no-cors',
+        cache: 'no-store',
+        redirect: 'manual',
+        signal: ctrl.signal,
+        credentials: 'omit',
+      });
+      // Fulfilled → server đã phản hồi (dù opaque)
+      clearTimeout(timer);
+      return { result: 'open', latency: Math.round(performance.now() - t0) };
+    } catch (err) {
+      clearTimeout(timer);
+      const lat = Math.round(performance.now() - t0);
+      // AbortError → timeout → filtered (hoặc service lạ không trả lời)
+      if (err && (err.name === 'AbortError' || String(err).includes('aborted'))) {
+        return { result: 'filtered', latency: lat };
+      }
+      // Network error: phân biệt dựa vào latency
+      // RST từ OS thường <100ms → closed; chậm hơn → filtered
+      if (lat < 120) return { result: 'closed', latency: lat };
+      return { result: 'filtered', latency: lat };
+    }
+  }
+
+  // ---- PROBE 2: WebSocket (bắt được các WS server) ----
+  function probeWebSocket(host, port, timeoutMs) {
+    return new Promise((resolve) => {
+      const t0 = performance.now();
+      let done = false;
+      let ws;
+      const finish = (result) => {
+        if (done) return;
+        done = true;
+        try { ws && ws.close(); } catch (_) {}
+        resolve({ result, latency: Math.round(performance.now() - t0) });
+      };
+      try {
+        ws = new WebSocket(`ws://${host}:${port}/`);
+      } catch {
+        return finish('closed');
+      }
+      const timer = setTimeout(() => finish('filtered'), timeoutMs);
+      ws.onopen = () => { clearTimeout(timer); finish('open'); };
+      ws.onerror = () => {
+        clearTimeout(timer);
+        const lat = performance.now() - t0;
+        // WS error: nếu nhanh → closed (RST), nếu chậm → filtered/timeout
+        finish(lat < 120 ? 'closed' : 'filtered');
+      };
+      ws.onclose = () => { clearTimeout(timer); if (!done) finish('closed'); };
+    });
+  }
+
+  // ---- PROBE 3: Image beacon (bắt HTTP service) ----
+  function probeImage(host, port, timeoutMs) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      const t0 = performance.now();
+      let done = false;
+      const finish = (result) => {
+        if (done) return;
+        done = true;
+        img.onload = img.onerror = null;
+        img.src = '';
+        resolve({ result, latency: Math.round(performance.now() - t0) });
+      };
+      const timer = setTimeout(() => finish('filtered'), timeoutMs);
+      img.onload = () => { clearTimeout(timer); finish('open'); };
+      img.onerror = () => {
+        clearTimeout(timer);
+        const lat = performance.now() - t0;
+        finish(lat < 120 ? 'closed' : 'filtered');
+      };
+      img.src = `http://${host}:${port}/favicon.ico?_=${Date.now()}`;
+    });
+  }
+
+  // ---- PROBE TỔNG HỢP: chạy song song 3 kỹ thuật, vote kết quả ----
+  async function probePort(host, port, timeoutMs) {
+    const [rFetch, rWs, rImg] = await Promise.all([
+      probeFetch(host, port, timeoutMs),
+      probeWebSocket(host, port, timeoutMs),
+      probeImage(host, port, timeoutMs),
+    ]);
+
+    const all = [rFetch, rWs, rImg];
+    const openCount = all.filter(r => r.result === 'open').length;
+    const closedCount = all.filter(r => r.result === 'closed').length;
+    const filteredCount = all.filter(r => r.result === 'filtered').length;
+
+    let verdict = 'unknown';
+    let method = '';
+    let latency = Math.min(...all.map(r => r.latency).filter(n => n > 0)) || 0;
+
+    if (openCount >= 1) {
+      verdict = 'open';
+      const oMethods = [];
+      if (rFetch.result === 'open') oMethods.push('http');
+      if (rWs.result === 'open') oMethods.push('ws');
+      if (rImg.result === 'open') oMethods.push('img');
+      method = oMethods.join('+');
+    } else if (closedCount >= 2) {
+      verdict = 'closed';
+      method = 'rst';
+    } else if (filteredCount >= 2) {
+      verdict = 'filtered';
+      method = 'timeout';
+    } else if (closedCount >= 1) {
+      verdict = 'closed';
+      method = 'rst';
+    } else {
+      verdict = 'filtered';
+      method = 'timeout';
+    }
+
+    return {
+      port,
+      service: SERVICE_NAMES[port] || '',
+      status: verdict,
+      method,
+      latency,
+      raw: { fetch: rFetch.result, ws: rWs.result, img: rImg.result },
+    };
+  }
+
+  // ---- BỘ ĐIỀU KHIỂN SCAN (concurrency pool) ----
+  async function runScan() {
+    const host = els.scanHost.value.trim() || '127.0.0.1';
+    const ports = getPortList();
+    const conc = Math.max(1, Math.min(64, parseInt(els.scanConc.value, 10) || 24));
+    const timeoutMs = Math.max(300, Math.min(5000, parseInt(els.scanTimeout.value, 10) || 1200));
+
+    if (ports.length === 0) {
+      alert('Danh sách cổng trống. Kiểm tra lại cấu hình.');
+      return;
+    }
+
+    // Reset
+    scanAbort = { aborted: false };
+    els.scanBtn.disabled = true;
+    els.stopBtn.disabled = false;
+    els.scanStats.hidden = false;
+    els.scanProgress.hidden = false;
+    els.openList.hidden = true;
+    els.scanBody.innerHTML = '';
+    els.scanProgressBar.style.width = '0%';
+
+    const stats = { total: ports.length, scanned: 0, open: 0, closed: 0, filtered: 0 };
+    els.statTotal.textContent = stats.total;
+    els.statScanned.textContent = '0';
+    els.statOpen.textContent = '0';
+    els.statClosed.textContent = '0';
+    els.statFiltered.textContent = '0';
+
+    const t0 = performance.now();
+    const timerId = setInterval(() => {
+      els.statTime.textContent = ((performance.now() - t0) / 1000).toFixed(1) + 's';
+    }, 100);
+
+    // Sort results by port for stable display
+    const resultsByPort = new Map();
+
+    // Concurrency pool
+    let cursor = 0;
+    async function worker() {
+      while (!scanAbort.aborted) {
+        const idx = cursor++;
+        if (idx >= ports.length) return;
+        const port = ports[idx];
+        const res = await probePort(host, port, timeoutMs);
+        resultsByPort.set(port, res);
+        stats.scanned++;
+        if (res.status === 'open') stats.open++;
+        else if (res.status === 'closed') stats.closed++;
+        else stats.filtered++;
+
+        els.statScanned.textContent = stats.scanned;
+        els.statOpen.textContent = stats.open;
+        els.statClosed.textContent = stats.closed;
+        els.statFiltered.textContent = stats.filtered;
+        els.scanProgressBar.style.width = Math.round((stats.scanned / stats.total) * 100) + '%';
+      }
+    }
+
+    await Promise.all(Array.from({ length: conc }, () => worker()));
+
+    clearInterval(timerId);
+    els.statTime.textContent = ((performance.now() - t0) / 1000).toFixed(1) + 's';
+
+    // Sort + render final table
+    const sorted = [...resultsByPort.values()].sort((a, b) => a.port - b.port);
+    renderScanTable(sorted);
+    renderOpenList(sorted);
+
+    els.scanBtn.disabled = false;
+    els.stopBtn.disabled = true;
+  }
+
+  function renderScanTable(list) {
+    const tbody = els.scanBody;
+    tbody.innerHTML = '';
+
+    if (list.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty">Không có kết quả.</td></tr>';
+      return;
+    }
+
+    // Ưu tiên hiển thị open lên đầu
+    const ordered = [
+      ...list.filter(r => r.status === 'open'),
+      ...list.filter(r => r.status === 'filtered'),
+      ...list.filter(r => r.status === 'closed'),
+    ];
+
+    ordered.forEach(r => {
+      const tr = document.createElement('tr');
+      let cls = 'status-unknown';
+      if (r.status === 'open') cls = 'status-open';
+      else if (r.status === 'closed') cls = 'status-closed';
+      else if (r.status === 'filtered') cls = 'status-filtered';
+
+      const icon = r.status === 'open' ? '●' :
+                   r.status === 'closed' ? '○' :
+                   r.status === 'filtered' ? '◐' : '?';
+
+      tr.innerHTML = `
+        <td><b>${r.port}</b></td>
+        <td>${escapeHtml(r.service || '—')}</td>
+        <td class="${cls}">${icon} ${r.status}</td>
+        <td>${escapeHtml(r.method || '')}</td>
+        <td>${r.latency} ms</td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function renderOpenList(list) {
+    const open = list.filter(r => r.status === 'open');
+    if (open.length === 0) {
+      els.openList.hidden = true;
+      return;
+    }
+    els.openList.hidden = false;
+    els.openList.innerHTML = '<span class="muted" style="font-size:0.8rem;align-self:center;width:100%">— Cổng mở phát hiện —</span>';
+    open.forEach(r => {
+      const tag = document.createElement('span');
+      const cls = r.method.includes('ws') ? 'tag ws' :
+                  r.method.includes('http') ? 'tag http' : 'tag';
+      tag.className = cls;
+      tag.textContent = `${r.port}${r.service ? ' · ' + r.service : ''}`;
+      els.openList.appendChild(tag);
+    });
+  }
+
+  // ================================================================
+  //  ==== EVENT WIRING ====
+  // ================================================================
+  els.runBtn.addEventListener('click', runNatCheck);
+  els.copyBtn.addEventListener('click', copyJson);
+  els.scanBtn.addEventListener('click', runScan);
+  els.stopBtn.addEventListener('click', () => { scanAbort.aborted = true; });
+
+  els.scanPreset.addEventListener('change', () => {
+    els.customPortsWrap.hidden = els.scanPreset.value !== 'custom';
+  });
+
+  els.useLocalBtn.addEventListener('click', () => {
+    const local = els.localIP.textContent.trim();
+    if (local && local !== '—') {
+      // Nếu là mDNS (.local) thì không dùng được, fallback 127.0.0.1
+      if (/\.local$/i.test(local)) {
+        els.scanHost.value = '127.0.0.1';
+        alert('Host candidate là mDNS (.local) — trình duyệt che giấu IP thật. Dùng 127.0.0.1.\nĐể tránh mDNS: chrome://flags/#enable-webrtc-hide-local-ips-with-mdns → Disabled');
+      } else {
+        els.scanHost.value = local;
+      }
+    } else {
+      alert('Chưa có Local IP. Chạy "Kiểm tra NAT" trước.');
+    }
+  });
+
+  // ================================================================
+  //  PWA: Manifest + Service Worker inline
+  // ================================================================
+  const manifest = {
+    name: 'NAT Inspector + Port Scan',
+    short_name: 'NAT+Scan',
+    description: 'Kiểm tra NAT và quét cổng local qua WebRTC STUN',
+    start_url: '.',
+    display: 'standalone',
+    background_color: '#0a0e17',
+    theme_color: '#0a0e17',
+    orientation: 'portrait-primary',
+    icons: [{
+      src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='96' fill='%230a0e17'/><circle cx='256' cy='256' r='160' fill='none' stroke='%2300e5a0' stroke-width='24'/><path d='M96 256h320M256 96c60 80 60 240 0 320M256 96c-60 80-60 240 0 320' fill='none' stroke='%233b82f6' stroke-width='20'/></svg>",
+      sizes: '512x512',
+      type: 'image/svg+xml',
+      purpose: 'any maskable',
+    }],
+  };
+  const manifestURL = URL.createObjectURL(new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' }));
+  const link = document.createElement('link');
+  link.rel = 'manifest';
+  link.href = manifestURL;
+  document.head.appendChild(link);
+
+  const swCode = `
+    const CACHE = 'nat-inspector-v2';
+    self.addEventListener('install', () => self.skipWaiting());
+    self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
+    self.addEventListener('fetch', (e) => {
+      e.respondWith(
+        caches.open(CACHE).then(c =>
+          fetch(e.request).then(res => {
+            if (e.request.method === 'GET' && res.ok) c.put(e.request, res.clone());
+            return res;
+          }).catch(() => c.match(e.request))
+        )
+      );
+    });
+  `;
+  if ('serviceWorker' in navigator) {
+    const swURL = URL.createObjectURL(new Blob([swCode], { type: 'application/javascript' }));
+    navigator.serviceWorker.register(swURL).catch(err => console.warn('SW:', err));
+  }
+
+  let deferredPrompt = null;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    els.installBtn.classList.remove('hidden');
+  });
+  els.installBtn.addEventListener('click', async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    if (outcome === 'accepted') els.installBtn.classList.add('hidden');
+  });
+  window.addEventListener('appinstalled', () => els.installBtn.classList.add('hidden'));
+
+})();
+</script>
 </body>
 </html>
