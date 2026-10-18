@@ -4,14 +4,13 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>MD File Grabber — Tải tệp từ Markdown</title>
-<meta name="description" content="Dán Markdown và trích xuất, tải xuống mọi tệp được nhúng trong đó — kể cả tải tất cả thành một file ZIP." />
+<meta name="description" content="Dán Markdown và trích xuất, tải xuống mọi tệp được nhúng — kể cả trong code block và tải tất cả thành một file ZIP." />
 <meta name="theme-color" content="#0b0e14" />
-<link rel="manifest" href="manifest.json" />
-<link rel="icon" href="icon.svg" type="image/svg+xml" />
-<link rel="apple-touch-icon" href="icon.svg" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%2338bdf8'/%3E%3Cstop offset='1' stop-color='%23a78bfa'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='512' height='512' rx='112' fill='%230b0e14'/%3E%3Cpath d='M256 120v190' stroke='url(%23g)' stroke-width='36' stroke-linecap='round'/%3E%3Cpath d='M178 250l78 78 78-78' fill='none' stroke='url(%23g)' stroke-width='36' stroke-linecap='round' stroke-linejoin='round'/%3E%3Crect x='140' y='368' width='232' height='36' rx='18' fill='url(%23g)'/%3E%3C/svg%3E" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="MD Grabber" />
 <style>
 :root{
   --bg:#0b0e14; --panel:#111722; --line:#1e2a3a; --line-2:#26364a;
@@ -151,6 +150,10 @@ body{
   border:1px solid rgba(56,189,248,.25);
 }
 .badge.muted{background:rgba(130,150,176,.1); color:var(--muted); border-color:rgba(130,150,176,.22)}
+.badge.code{
+  background:rgba(167,139,250,.14); color:var(--accent-2);
+  border-color:rgba(167,139,250,.28);
+}
 
 .empty{
   padding:34px 20px; text-align:center; color:var(--muted);
@@ -210,7 +213,7 @@ body{
         <button id="clearBtn" class="btn ghost">✕ Xoá</button>
       </div>
     </div>
-    <textarea id="md" spellcheck="false" placeholder="Dán Markdown vào đây…&#10;&#10;Ví dụ:&#10;[Báo cáo](https://example.com/files/report.pdf)&#10;![Ảnh](https://example.com/img/pic.png)&#10;<a href=&quot;https://example.com/data.zip&quot;>tải zip</a>&#10;[ref]: https://example.com/archive.tar.gz"></textarea>
+    <textarea id="md" spellcheck="false" placeholder="Dán Markdown vào đây…&#10;&#10;Ví dụ:&#10;[Báo cáo](https://example.com/files/report.pdf)&#10;![Ảnh](https://example.com/img/pic.png)&#10;<a href=&quot;https://example.com/data.zip&quot;>tải zip</a>&#10;```js&#10;import x from 'https://example.com/data.json';&#10;```"></textarea>
     <div class="stats" id="stats">0 liên kết · 0 tệp</div>
   </section>
 
@@ -231,6 +234,128 @@ body{
 </main>
 
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script>
+'use strict';
+
+/* =========================================================
+   ALL-IN-ONE PWA BOOTSTRAP
+   - Tạo manifest.json động → Blob URL
+   - Tạo sw.js động → Blob URL (scope tự động)
+   - Nạp JSZip từ CDN (có fallback)
+   Lưu ý: SW chỉ hoạt động khi chạy qua http(s)://, không chạy file://
+   ========================================================= */
+(function bootstrapPWA(){
+  /* ---------- Manifest động ---------- */
+  const ICON_SVG =
+    "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'>" +
+    "<defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>" +
+    "<stop offset='0' stop-color='#38bdf8'/><stop offset='1' stop-color='#a78bfa'/>" +
+    "</linearGradient></defs>" +
+    "<rect width='512' height='512' rx='112' fill='#0b0e14'/>" +
+    "<path d='M256 120v190' stroke='url(#g)' stroke-width='36' stroke-linecap='round'/>" +
+    "<path d='M178 250l78 78 78-78' fill='none' stroke='url(#g)' stroke-width='36' " +
+    "stroke-linecap='round' stroke-linejoin='round'/>" +
+    "<rect x='140' y='368' width='232' height='36' rx='18' fill='url(#g)'/></svg>";
+
+  const iconUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(ICON_SVG);
+
+  const manifest = {
+    name: 'MD File Grabber — Tải tệp từ Markdown',
+    short_name: 'MD Grabber',
+    description: 'Dán Markdown, trích xuất và tải mọi tệp được nhúng — kể cả trong code block và tải tất cả thành một file ZIP.',
+    start_url: './',
+    scope: './',
+    display: 'standalone',
+    orientation: 'any',
+    background_color: '#0b0e14',
+    theme_color: '#0b0e14',
+    lang: 'vi',
+    categories: ['productivity', 'utilities'],
+    icons: [
+      { src: iconUrl, sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
+      { src: iconUrl, sizes: 'any', type: 'image/svg+xml', purpose: 'maskable' }
+    ]
+  };
+
+  try {
+    const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+    const manifestUrl = URL.createObjectURL(manifestBlob);
+    const link = document.createElement('link');
+    link.rel = 'manifest';
+    link.href = manifestUrl;
+    document.head.appendChild(link);
+
+    const appleIcon = document.createElement('link');
+    appleIcon.rel = 'apple-touch-icon';
+    appleIcon.href = iconUrl;
+    document.head.appendChild(appleIcon);
+  } catch (_) { /* ignore */ }
+
+  /* ---------- Service Worker động ---------- */
+  if (!('serviceWorker' in navigator) || !location.protocol.startsWith('http')) return;
+
+  const SW_CODE = `
+    const CACHE = 'md-grabber-inline-v1';
+    const PRECACHE = ['./', location.href.split('#')[0]];
+
+    self.addEventListener('install', (e) => {
+      e.waitUntil(
+        caches.open(CACHE)
+          .then(c => c.addAll(PRECACHE.map(u => new Request(u, {cache:'reload'}))))
+          .catch(() => {})
+          .then(() => self.skipWaiting())
+      );
+    });
+
+    self.addEventListener('activate', (e) => {
+      e.waitUntil(
+        caches.keys()
+          .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+          .then(() => self.clients.claim())
+      );
+    });
+
+    self.addEventListener('fetch', (e) => {
+      const req = e.request;
+      if (req.method !== 'GET') return;
+
+      if (req.mode === 'navigate') {
+        e.respondWith(fetch(req).catch(() => caches.match(req).then(r => r || caches.match('./'))));
+        return;
+      }
+
+      e.respondWith(
+        caches.match(req).then(cached => {
+          if (cached) {
+            fetch(req).then(res => {
+              if (res && res.ok) caches.open(CACHE).then(c => c.put(req, res));
+            }).catch(() => {});
+            return cached;
+          }
+          return fetch(req).then(res => {
+            const sameOrigin = req.url.startsWith(self.location.origin);
+            const isCdn = /cdn\\.jsdelivr\\.net|cdnjs\\.cloudflare\\.com/.test(req.url);
+            if (res && res.ok && (sameOrigin || isCdn)) {
+              const clone = res.clone();
+              caches.open(CACHE).then(c => c.put(req, clone));
+            }
+            return res;
+          });
+        })
+      );
+    });
+  `;
+
+  try {
+    const swBlob = new Blob([SW_CODE], { type: 'application/javascript' });
+    const swUrl = URL.createObjectURL(swBlob);
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register(swUrl, { scope: './' }).catch(() => {});
+    });
+  } catch (_) { /* ignore */ }
+})();
+</script>
 
 <!-- JSZip: CDN chính + fallback CDN phụ -->
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"
@@ -257,18 +382,81 @@ const ZIP_LABEL  = zipBtn.textContent;
 /* =========================================================
    State
    ========================================================= */
-let all = [];          // toàn bộ liên kết đã trích xuất
-let sel = new Set();   // các url đang được chọn
+let all = [];
+let sel = new Set();
+
+/* =========================================================
+   Hằng số lọc nhiễu
+   ========================================================= */
+const SKIP_PROTO = /^(javascript|vbscript|mailto|tel|sms|blob):/i;
+const IGNORE_HOST = /^(localhost|127\.0\.0\.1|0\.0\.0\.0|schema\.org|www\.w3\.org|w3\.org|example\.(com|org)|your-domain\.com)$/i;
 
 /* =========================================================
    Trích xuất liên kết từ Markdown
    ========================================================= */
-const SKIP_PROTO = /^(javascript|vbscript|mailto|tel|sms|blob):/i;
-
 function normalizeUrl(raw) {
   let u = (raw || '').trim();
   if (u.startsWith('<') && u.endsWith('>')) u = u.slice(1, -1).trim();
   return u;
+}
+
+function splitFences(md) {
+  const codes = [];
+  const TEXT = [];
+  let i = 0, n = md.length;
+  let buf = '';
+
+  while (i < n) {
+    const rest = md.slice(i);
+    const open = /^[ \t]{0,3}(`{3,}|~{3,})[^\n]*\n?/m.exec(rest);
+    if (!open) { buf += rest; break; }
+
+    buf += rest.slice(0, open.index);
+    const fence = open[1][0];
+    const fenceLen = open[1].length;
+    const bodyStart = i + open.index + open[0].length;
+
+    const closeRe = new RegExp(
+      '^[ \\t]{0,3}' + (fence === '`' ? '`' : '~') + '{' + fenceLen + ',}[ \\t]*$', 'm'
+    );
+    const after = md.slice(bodyStart);
+    const close = closeRe.exec(after);
+
+    if (!close) {
+      codes.push({ lang: '', body: after });
+      TEXT.push('\u0000CODE' + (codes.length - 1) + '\u0000');
+      i = n; break;
+    }
+
+    const body = after.slice(0, close.index);
+    codes.push({ lang: (open[0].match(/\S+/g) || [''])[1] || '', body });
+    TEXT.push('\u0000CODE' + (codes.length - 1) + '\u0000');
+    i = bodyStart + close.index + close[0].length;
+    while (md[i] === '\n' || md[i] === '\r') i++;
+  }
+
+  return { text: buf + TEXT.join(''), codes };
+}
+
+function collectFromCode(body, out) {
+  const add = (u) => {
+    u = normalizeUrl(u);
+    if (!u || SKIP_PROTO.test(u) || u.startsWith('#')) return;
+    out.push({ url: u, label: '', kind: 'code' });
+  };
+
+  let m;
+  const reBare = /\b(?:https?|ftp|data):[^\s"'`<>()\[\]{}]+/gi;
+  while ((m = reBare.exec(body))) add(m[0]);
+
+  const reStr = /["'`]((?:https?|ftp|data):[^"'`\s]+)["'`]/gi;
+  while ((m = reStr.exec(body))) add(m[1]);
+
+  const reAttr = /\b(?:src|href)\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s>]+))/gi;
+  while ((m = reAttr.exec(body))) add(m[1] ?? m[2] ?? m[3]);
+
+  const reMd = /\[([^\]\n]*)\]\(\s*(<[^>\n]*>|[^)\s]+)(?:\s+["'(][^)"']*["')])?\s*\)/g;
+  while ((m = reMd.exec(body))) add(m[2]);
 }
 
 function collect(md) {
@@ -276,41 +464,46 @@ function collect(md) {
   const add = (url, label = '', kind = 'link') => {
     url = normalizeUrl(url);
     if (!url || SKIP_PROTO.test(url) || url.startsWith('#')) return;
+
+    if (kind !== 'code') {
+      let host = '';
+      try { host = new URL(url, location.href).hostname; } catch (_) {}
+      if (host && IGNORE_HOST.test(host)) return;
+    }
     found.push({ url, label, kind });
   };
 
-  // 1) [text](url) và ![alt](url)
-  const reInline = /(!?)\[([^\]\n]*)\]\(\s*(<[^>\n]*>|[^)\s]+)(?:\s+(?:"[^"\n]*"|'[^'\n]*'|\([^)\n]*\)))?\s*\)/g;
+  const { text, codes } = splitFences(md);
   let m;
-  while ((m = reInline.exec(md))) {
+
+  const reInline = /(!?)\[([^\]\n]*)\]\(\s*(<[^>\n]*>|[^)\s]+)(?:\s+(?:"[^"\n]*"|'[^'\n]*'|\([^)\n]*\)))?\s*\)/g;
+  while ((m = reInline.exec(text))) {
     add(m[3], m[2], m[1] === '!' ? 'image' : 'link');
   }
 
-  // 2) Định nghĩa tham chiếu: [id]: url
   const reRef = /^[ \t]{0,3}\[([^\]\n]+)\]:[ \t]*(<[^>\n]*>|\S+)/gm;
-  while ((m = reRef.exec(md))) add(m[2], m[1], 'ref');
+  while ((m = reRef.exec(text))) add(m[2], m[1], 'ref');
 
-  // 3) HTML: href / src
   const reHtml = /\b(?:href|src)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/gi;
-  while ((m = reHtml.exec(md))) add(m[1] ?? m[2] ?? m[3], '', 'html');
+  while ((m = reHtml.exec(text))) add(m[1] ?? m[2] ?? m[3], '', 'html');
 
-  // 4) Autolink <https://...>
   const reAuto = /<((?:https?|ftp):\/\/[^>\s]+)>/gi;
-  while ((m = reAuto.exec(md))) add(m[1], '', 'auto');
+  while ((m = reAuto.exec(text))) add(m[1], '', 'auto');
 
-  // 5) URL trần
   const reBare = /\b(?:https?|ftp):\/\/[^\s<>"'`)\]]+/gi;
-  while ((m = reBare.exec(md))) {
-    const prev = md[m.index - 1];
+  while ((m = reBare.exec(text))) {
+    const prev = text[m.index - 1];
     if (prev && /[[(<"'=]/.test(prev)) continue;
     add(m[0], '', 'bare');
   }
+
+  for (const c of codes) collectFromCode(c.body, found);
 
   return found;
 }
 
 /* =========================================================
-   Nhận diện tệp / phần mở rộng
+   Nhận diện tệp
    ========================================================= */
 const MIME_EXT = {
   'image/png':'png','image/jpeg':'jpg','image/jpg':'jpg','image/gif':'gif',
@@ -403,9 +596,12 @@ function visibleItems() {
 
 function render() {
   const vis = visibleItems();
+  const codeCount = all.filter(i => i.kind === 'code').length;
 
   statsEl.innerHTML =
-    `<b>${all.length}</b> liên kết · <b>${all.filter(i => i.isFile).length}</b> tệp`;
+    `<b>${all.length}</b> liên kết · ` +
+    `<b>${all.filter(i => i.isFile).length}</b> tệp` +
+    (codeCount ? ` · <b>${codeCount}</b> trong code` : '');
 
   listEl.innerHTML = '';
   emptyEl.hidden = vis.length > 0;
@@ -447,8 +643,17 @@ function renderItem(it) {
   meta.append(nm, ur);
 
   const badge = document.createElement('span');
-  badge.className = 'badge' + (it.isFile ? '' : ' muted');
-  badge.textContent = it.ext ? '.' + it.ext : (it.kind === 'image' ? 'img' : 'link');
+  badge.className = 'badge';
+  if (it.kind === 'code') {
+    badge.classList.add('code');
+    badge.textContent = 'code';
+    badge.title = 'Link trích từ code block';
+  } else {
+    badge.textContent = it.ext
+      ? '.' + it.ext
+      : (it.kind === 'image' ? 'img' : 'link');
+    if (!it.isFile) badge.classList.add('muted');
+  }
 
   const btn = document.createElement('button');
   btn.className = 'icon-btn';
@@ -462,7 +667,7 @@ function renderItem(it) {
 }
 
 /* =========================================================
-   Tải xuống (đơn lẻ)
+   Tải xuống đơn lẻ
    ========================================================= */
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
@@ -562,7 +767,7 @@ async function downloadAll() {
 }
 
 /* =========================================================
-   📦 Tải tất cả thành một file ZIP (JSZip từ CDN)
+   📦 Tải tất cả thành ZIP (JSZip CDN)
    ========================================================= */
 async function downloadZip() {
   const vis = visibleItems().filter(it => sel.has(it.url));
@@ -578,7 +783,6 @@ async function downloadZip() {
   const used = new Set();
   let added = 0, failed = 0;
 
-  // Bước 1: tải từng tệp
   for (let i = 0; i < vis.length; i++) {
     zipBtn.textContent = `Đang tải ${i + 1}/${vis.length}…`;
     try {
@@ -593,7 +797,6 @@ async function downloadZip() {
         blob = await res.blob();
       }
 
-      // Đảm bảo tên duy nhất trong ZIP
       let name = safeZipName(fileName(vis[i]));
       if (used.has(name)) {
         const dot = name.lastIndexOf('.');
@@ -619,7 +822,6 @@ async function downloadZip() {
     return toast('Không tệp nào tải được (bị CORS chặn). Thử tải lẻ.');
   }
 
-  // Bước 2: nén
   zipBtn.textContent = 'Đang nén…';
   try {
     const blob = await zip.generateAsync(
@@ -711,7 +913,6 @@ $('#copyAll').addEventListener('click', async () => {
   } catch (_) { toast('Không copy được'); }
 });
 
-// Kéo–thả file .md vào textarea
 ['dragenter', 'dragover'].forEach(ev =>
   mdEl.addEventListener(ev, e => { e.preventDefault(); mdEl.classList.add('drag'); })
 );
@@ -726,7 +927,6 @@ mdEl.addEventListener('drop', async (e) => {
   toast('Đã nạp ' + f.name);
 });
 
-// Ctrl/⌘ + Enter → quét ngay
 mdEl.addEventListener('keydown', (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
     e.preventDefault();
@@ -736,7 +936,7 @@ mdEl.addEventListener('keydown', (e) => {
 });
 
 /* =========================================================
-   PWA: install prompt + service worker
+   PWA install prompt
    ========================================================= */
 let deferredPrompt = null;
 const installBtn = $('#installBtn');
@@ -759,12 +959,6 @@ window.addEventListener('appinstalled', () => {
   installBtn.hidden = true;
   toast('Đã cài đặt ứng dụng 🎉');
 });
-
-if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
-  });
-}
 
 /* Khởi tạo */
 refresh();
