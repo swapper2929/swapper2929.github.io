@@ -1,967 +1,1017 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>MD File Grabber — Tải tệp từ Markdown</title>
-<meta name="description" content="Dán Markdown và trích xuất, tải xuống mọi tệp được nhúng — kể cả trong code block và tải tất cả thành một file ZIP." />
-<meta name="theme-color" content="#0b0e14" />
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%2338bdf8'/%3E%3Cstop offset='1' stop-color='%23a78bfa'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='512' height='512' rx='112' fill='%230b0e14'/%3E%3Cpath d='M256 120v190' stroke='url(%23g)' stroke-width='36' stroke-linecap='round'/%3E%3Cpath d='M178 250l78 78 78-78' fill='none' stroke='url(%23g)' stroke-width='36' stroke-linecap='round' stroke-linejoin='round'/%3E%3Crect x='140' y='368' width='232' height='36' rx='18' fill='url(%23g)'/%3E%3C/svg%3E" />
-<meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<meta name="apple-mobile-web-app-title" content="MD Grabber" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0f0f23">
+<title>BERT MLM + NSP Trainer</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>">
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgpu@4.22.0/dist/tf-backend-webgpu.min.js"></script>
 <style>
-:root{
-  --bg:#0b0e14; --panel:#111722; --line:#1e2a3a; --line-2:#26364a;
-  --text:#e7eef8; --muted:#8296b0;
-  --accent:#38bdf8; --accent-2:#a78bfa; --ok:#34d399; --danger:#f87171;
-  --r:14px;
-}
-*{box-sizing:border-box}
-html,body{height:100%}
-body{
-  margin:0;
-  font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
-  color:var(--text);
-  background:
-    radial-gradient(1200px 600px at 8% -10%, #16233a 0%, transparent 60%),
-    radial-gradient(1000px 520px at 108% 8%, #251a3d 0%, transparent 55%),
-    var(--bg);
-  display:flex; flex-direction:column;
-  -webkit-font-smoothing:antialiased;
-}
-@media (min-width:901px){ body{ overflow:hidden; } }
-
-/* ---------- Topbar ---------- */
-.topbar{
-  display:flex; align-items:center; justify-content:space-between; gap:12px;
-  padding:12px 16px calc(12px + env(safe-area-inset-top)) 16px;
-  padding-top:calc(12px + env(safe-area-inset-top));
-  border-bottom:1px solid var(--line);
-  background:rgba(11,14,20,.72);
-  backdrop-filter:blur(12px);
-  position:sticky; top:0; z-index:20;
-}
-.brand{display:flex; align-items:center; gap:10px; min-width:0}
-.logo{width:30px; height:30px; flex:none; border-radius:9px; box-shadow:0 6px 18px -8px var(--accent)}
-.brand h1{
-  font-size:15px; margin:0; font-weight:700; letter-spacing:.2px; white-space:nowrap;
-  overflow:hidden; text-overflow:ellipsis;
-}
-.brand small{display:block; font-size:11px; color:var(--muted); font-weight:500}
-
-/* ---------- Buttons ---------- */
-.btn{
-  display:inline-flex; align-items:center; gap:6px;
-  border:1px solid var(--line-2); background:#16202e; color:var(--text);
-  padding:8px 12px; border-radius:10px; font-size:13px; font-weight:600;
-  cursor:pointer; transition:background .15s,border-color .15s,transform .06s,filter .15s;
-  white-space:nowrap; font-family:inherit; line-height:1.1;
-}
-.btn:hover{background:#1c2839; border-color:#31465f}
-.btn:active{transform:translateY(1px)}
-.btn.primary{
-  background:linear-gradient(135deg,#0ea5e9,#6366f1);
-  border-color:transparent; color:#fff;
-  box-shadow:0 8px 22px -12px #0ea5e9;
-}
-.btn.primary:hover{filter:brightness(1.1)}
-.btn.ghost{background:transparent}
-.btn:disabled{opacity:.55; cursor:not-allowed}
-.icon-btn{
-  flex:none; width:34px; height:34px; display:grid; place-items:center;
-  border-radius:9px; border:1px solid var(--line-2); background:#16202e;
-  color:var(--accent); font-size:15px; cursor:pointer; transition:.15s;
-}
-.icon-btn:hover{background:#1d2a3c; border-color:#33495f}
-.icon-btn:disabled{opacity:.5; cursor:progress}
-
-/* ---------- Layout ---------- */
-.grid{
-  flex:1; min-height:0; width:100%; max-width:1500px; margin:0 auto;
-  display:grid; gap:14px; padding:14px;
-  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
-  padding-bottom:calc(14px + env(safe-area-inset-bottom));
-}
-@media (max-width:900px){
-  .grid{grid-template-columns:1fr; flex:none}
-  body{height:auto; min-height:100%; overflow:auto}
-  .panel{min-height:330px}
-}
-
-.panel{
-  background:linear-gradient(180deg,#121a26,#0f151f);
-  border:1px solid var(--line); border-radius:var(--r);
-  display:flex; flex-direction:column; min-height:0; overflow:hidden;
-  box-shadow:0 20px 50px -40px #000;
-}
-.panel-head{
-  display:flex; align-items:center; justify-content:space-between; gap:10px;
-  padding:10px 12px; border-bottom:1px solid var(--line); flex-wrap:wrap;
-}
-.panel-head h2{
-  margin:0; font-size:12px; font-weight:700; letter-spacing:.9px;
-  text-transform:uppercase; color:var(--muted);
-}
-.row{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
-
-/* ---------- Textarea ---------- */
-#md{
-  flex:1; min-height:180px; width:100%; resize:none; border:0; outline:0;
-  background:transparent; color:var(--text); padding:14px;
-  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
-  font-size:13px; line-height:1.6; tab-size:2;
-}
-#md::placeholder{color:#4d5f77}
-#md.drag{background:rgba(56,189,248,.07); box-shadow:inset 0 0 0 2px var(--accent)}
-.stats{
-  padding:7px 12px; border-top:1px solid var(--line);
-  font-size:11.5px; color:var(--muted); display:flex; gap:10px; flex-wrap:wrap;
-}
-.stats b{color:var(--accent); font-weight:700}
-
-/* ---------- List ---------- */
-.list{list-style:none; margin:0; padding:0; overflow:auto; flex:1; min-height:0; overscroll-behavior:contain}
-.item{
-  display:flex; align-items:center; gap:10px;
-  padding:9px 12px; border-bottom:1px solid var(--line);
-  transition:background .15s;
-}
-.item:hover{background:#0f1620}
-.item.done{opacity:.45}
-.cb{
-  flex:none; width:16px; height:16px; accent-color:var(--accent);
-  cursor:pointer; margin:0;
-}
-.meta{flex:1; min-width:0}
-.nm{
-  font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden;
-  text-overflow:ellipsis; color:#dbe7f5;
-}
-.ur{
-  font-size:11px; color:var(--muted); white-space:nowrap; overflow:hidden;
-  text-overflow:ellipsis; direction:rtl; text-align:left; margin-top:2px;
-}
-.badge{
-  flex:none; font-size:10.5px; font-weight:700; letter-spacing:.4px;
-  text-transform:uppercase; padding:4px 8px; border-radius:999px;
-  background:rgba(56,189,248,.12); color:var(--accent);
-  border:1px solid rgba(56,189,248,.25);
-}
-.badge.muted{background:rgba(130,150,176,.1); color:var(--muted); border-color:rgba(130,150,176,.22)}
-.badge.code{
-  background:rgba(167,139,250,.14); color:var(--accent-2);
-  border-color:rgba(167,139,250,.28);
-}
-
-.empty{
-  padding:34px 20px; text-align:center; color:var(--muted);
-  font-size:13px; line-height:1.7; margin:auto 0;
-}
-.chk{
-  display:inline-flex; align-items:center; gap:6px; font-size:12.5px;
-  color:var(--muted); cursor:pointer; user-select:none;
-}
-.chk input{accent-color:var(--accent); width:15px; height:15px; margin:0}
-
-/* ---------- Toast ---------- */
-.toast{
-  position:fixed; left:50%; bottom:calc(24px + env(safe-area-inset-bottom));
-  transform:translate(-50%, 24px); opacity:0; pointer-events:none;
-  background:#1a2434; border:1px solid var(--line-2); color:var(--text);
-  padding:11px 18px; border-radius:12px; font-size:13px; font-weight:600;
-  box-shadow:0 18px 40px -18px #000; z-index:100;
-  transition:opacity .22s, transform .22s; max-width:90vw; text-align:center;
-}
-.toast.show{opacity:1; transform:translate(-50%,0)}
+  :root {
+    --bg: #0f0f23; --panel: #1a1a2e; --border: #2a2a3e;
+    --text: #e0e0e0; --muted: #888; --accent: #7c3aed;
+    --success: #10b981; --warning: #f59e0b; --error: #ef4444;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg); color: var(--text); min-height: 100vh; padding: 16px;
+  }
+  .app { max-width: 900px; margin: 0 auto; }
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px; background: var(--panel); border-radius: 12px;
+    border: 1px solid var(--border); margin-bottom: 16px;
+  }
+  h1 { font-size: 18px; font-weight: 600; }
+  .badge {
+    padding: 4px 10px; border-radius: 6px; font-size: 12px;
+    background: var(--border); color: var(--muted);
+  }
+  .badge.success { background: rgba(16,185,129,0.15); color: var(--success); }
+  .badge.warning { background: rgba(245,158,11,0.15); color: var(--warning); }
+  .badge.error { background: rgba(239,68,68,0.15); color: var(--error); }
+  .panel {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px; margin-bottom: 16px;
+  }
+  .panel h2 {
+    font-size: 12px; font-weight: 600; margin-bottom: 12px;
+    color: var(--muted); text-transform: uppercase; letter-spacing: 1px;
+  }
+  .controls { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  button {
+    padding: 10px 20px; border: none; border-radius: 8px;
+    background: var(--accent); color: white; font-weight: 500;
+    cursor: pointer; font-size: 14px; transition: opacity 0.2s;
+  }
+  button:hover:not(:disabled) { opacity: 0.85; }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  button.secondary { background: var(--border); color: var(--text); }
+  .file-btn {
+    display: inline-block; padding: 10px 20px; border-radius: 8px;
+    background: var(--accent); color: white; font-weight: 500;
+    cursor: pointer; font-size: 14px; transition: opacity 0.2s;
+  }
+  .file-btn:hover { opacity: 0.85; }
+  .config-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px;
+  }
+  .config-item {
+    background: var(--bg); padding: 8px 12px; border-radius: 6px;
+    display: flex; justify-content: space-between; font-size: 13px;
+  }
+  .config-item .label { color: var(--muted); }
+  .config-item .value { font-weight: 600; font-family: 'SF Mono', monospace; }
+  .metric { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .metric-label { min-width: 100px; font-size: 13px; color: var(--muted); }
+  .metric-bar {
+    flex: 1; height: 8px; background: var(--bg); border-radius: 4px;
+    overflow: hidden;
+  }
+  .metric-fill {
+    height: 100%; background: var(--accent); border-radius: 4px;
+    transition: width 0.3s; width: 0%;
+  }
+  .metric-value {
+    min-width: 90px; text-align: right; font-size: 13px;
+    font-family: 'SF Mono', monospace;
+  }
+  #log {
+    background: var(--bg); border-radius: 8px; padding: 12px;
+    height: 240px; overflow-y: auto; font-family: 'SF Mono', monospace;
+    font-size: 12px; line-height: 1.6;
+  }
+  .log-entry { margin-bottom: 2px; word-break: break-all; }
+  .log-entry.info { color: var(--muted); }
+  .log-entry.success { color: var(--success); }
+  .log-entry.warning { color: var(--warning); }
+  .log-entry.error { color: var(--error); }
+  .stat { font-size: 12px; color: var(--muted); margin-top: 8px; }
+  code {
+    background: var(--bg); padding: 2px 6px; border-radius: 4px;
+    font-family: 'SF Mono', monospace; font-size: 12px;
+  }
+  .help-box {
+    font-size: 12px; color: var(--muted); line-height: 1.7;
+    padding: 12px; background: var(--bg); border-radius: 8px;
+  }
+  .help-box code { color: var(--accent); }
+  #preview {
+    font-family: 'SF Mono', monospace; font-size: 12px;
+    color: var(--muted); line-height: 1.7;
+    padding: 12px; background: var(--bg); border-radius: 8px;
+    margin-top: 12px; display: none; max-height: 300px; overflow-y: auto;
+  }
+  #preview.active { display: block; }
+  #preview .sentence {
+    padding: 6px 10px; margin: 3px 0; background: var(--panel);
+    border-left: 3px solid var(--accent); border-radius: 4px;
+    color: var(--text); word-break: break-word;
+  }
+  #preview .sentence.grouped { border-left-color: var(--warning); }
+  #preview .sentence.standalone { border-left-color: var(--success); }
+  #preview .meta { font-size: 11px; color: var(--muted); margin-top: 8px; }
+  .stat-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 8px; margin-bottom: 12px;
+  }
+  .stat-box {
+    background: var(--bg); padding: 10px 12px; border-radius: 6px;
+  }
+  .stat-box .num { font-size: 20px; font-weight: 700; color: var(--accent); }
+  .stat-box .lbl { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .format-tag {
+    display: inline-block; padding: 3px 8px; border-radius: 4px;
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .format-tag.dict { background: rgba(124,58,237,0.2); color: var(--accent); }
+  .format-tag.prefix { background: rgba(245,158,11,0.2); color: var(--warning); }
 </style>
 </head>
 <body>
+<div class="app">
+  <header>
+    <h1>🧠 BERT MLM + NSP Trainer</h1>
+    <span class="badge" id="backend-badge">Đang khởi tạo...</span>
+  </header>
 
-<header class="topbar">
-  <div class="brand">
-    <svg class="logo" viewBox="0 0 512 512" aria-hidden="true">
-      <defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0" stop-color="#38bdf8"/><stop offset="1" stop-color="#a78bfa"/>
-      </linearGradient></defs>
-      <rect width="512" height="512" rx="112" fill="#0b0e14"/>
-      <path d="M256 120v190" stroke="url(#lg)" stroke-width="36" stroke-linecap="round"/>
-      <path d="M178 250l78 78 78-78" fill="none" stroke="url(#lg)" stroke-width="36"
-            stroke-linecap="round" stroke-linejoin="round"/>
-      <rect x="140" y="368" width="232" height="36" rx="18" fill="url(#lg)"/>
-    </svg>
-    <div>
-      <h1>MD File Grabber</h1>
-      <small>Dán Markdown → tải tệp / ZIP</small>
+  <div class="panel">
+    <h2>📁 Dữ liệu huấn luyện</h2>
+    <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 12px;">
+      <label for="file-input" class="file-btn">📁 Tải file .txt</label>
+      <input type="file" id="file-input" accept=".txt,text/plain" style="display: none;">
+      <button id="reset-data" class="secondary" style="padding: 10px 16px; font-size: 13px;">↺ Dùng dữ liệu mẫu</button>
+      <span id="file-status" style="color: var(--muted); font-size: 13px;">
+        Chưa tải file — dùng dữ liệu mẫu (<span id="sample-count">0</span> câu)
+      </span>
+    </div>
+    <div class="help-box">
+      <strong>Hai định dạng được hỗ trợ (tự động phát hiện):</strong><br>
+      <br>
+      <strong>① Từ điển (mỗi dòng một mục):</strong><br>
+      <code>a-ba-giua</code> • <code>A Di Đà kinh</code> • <code>a-lê hấp</code><br>
+      <em>→ Các mục ngắn (&lt; 6 token) sẽ được <b>ghép liền kề</b> thành "câu giả" (~12 token) để MLM có đủ ngữ cảnh.</em><br>
+      <br>
+      <strong>② Prefix + câu đầy đủ:</strong><br>
+      <code>a Trí tuệ nhân tạo đang thay đổi thế giới.</code><br>
+      <code>b. Học máy là lĩnh vực con của AI.</code><br>
+      <em>→ Chữ cái + dấu phân cách đầu dòng sẽ được tự động loại bỏ.</em>
+    </div>
+    <div id="preview"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Điều khiển</h2>
+    <div class="controls">
+      <button id="start-btn">Bắt đầu huấn luyện</button>
+      <button id="stop-btn" class="secondary" disabled>Dừng</button>
+    </div>
+    <div class="config-grid" id="config-grid">
+      <div class="config-item"><span class="label">Sẵn sàng</span><span class="value">-</span></div>
     </div>
   </div>
-  <div class="row">
-    <button id="installBtn" class="btn ghost" hidden>⬇ Cài đặt</button>
+
+  <div class="panel">
+    <h2>Tiến trình</h2>
+    <div class="metric">
+      <span class="metric-label">Epoch</span>
+      <div class="metric-bar"><div class="metric-fill" id="epoch-bar"></div></div>
+      <span class="metric-value" id="epoch-val">0 / 0</span>
+    </div>
+    <div class="metric">
+      <span class="metric-label">MLM Loss</span>
+      <div class="metric-bar"><div class="metric-fill" id="mlm-bar" style="background: var(--warning)"></div></div>
+      <span class="metric-value" id="mlm-val">-</span>
+    </div>
+    <div class="metric">
+      <span class="metric-label">NSP Loss</span>
+      <div class="metric-bar"><div class="metric-fill" id="nsp-bar" style="background: var(--error)"></div></div>
+      <span class="metric-value" id="nsp-val">-</span>
+    </div>
   </div>
-</header>
 
-<main class="grid">
-  <!-- Cột 1 -->
-  <section class="panel">
-    <div class="panel-head">
-      <h2>1 · Dán Markdown</h2>
-      <div class="row">
-        <button id="pasteBtn" class="btn">📋 Dán</button>
-        <label class="btn ghost" for="fileInput">📂 Mở .md</label>
-        <input type="file" id="fileInput" accept=".md,.markdown,.txt,text/markdown,text/plain" hidden />
-        <button id="clearBtn" class="btn ghost">✕ Xoá</button>
-      </div>
-    </div>
-    <textarea id="md" spellcheck="false" placeholder="Dán Markdown vào đây…&#10;&#10;Ví dụ:&#10;[Báo cáo](https://example.com/files/report.pdf)&#10;![Ảnh](https://example.com/img/pic.png)&#10;<a href=&quot;https://example.com/data.zip&quot;>tải zip</a>&#10;```js&#10;import x from 'https://example.com/data.json';&#10;```"></textarea>
-    <div class="stats" id="stats">0 liên kết · 0 tệp</div>
-  </section>
-
-  <!-- Cột 2 -->
-  <section class="panel">
-    <div class="panel-head">
-      <h2>2 · Tệp tìm thấy</h2>
-      <div class="row">
-        <label class="chk"><input type="checkbox" id="onlyFiles" checked /> Chỉ tệp</label>
-        <button id="copyAll" class="btn ghost">🔗 Copy link</button>
-        <button id="zipAll"  class="btn">📦 Tải ZIP</button>
-        <button id="dlAll"   class="btn primary">⬇ Tải tất cả</button>
-      </div>
-    </div>
-    <ul id="list" class="list"></ul>
-    <div id="empty" class="empty">Chưa có gì. Dán Markdown ở khung bên trái.</div>
-  </section>
-</main>
-
-<div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div class="panel">
+    <h2>Log</h2>
+    <div id="log"></div>
+    <div class="stat" id="stat"></div>
+  </div>
+</div>
 
 <script>
-'use strict';
-
-/* =========================================================
-   ALL-IN-ONE PWA BOOTSTRAP
-   - Tạo manifest.json động → Blob URL
-   - Tạo sw.js động → Blob URL (scope tự động)
-   - Nạp JSZip từ CDN (có fallback)
-   Lưu ý: SW chỉ hoạt động khi chạy qua http(s)://, không chạy file://
-   ========================================================= */
-(function bootstrapPWA(){
-  /* ---------- Manifest động ---------- */
-  const ICON_SVG =
-    "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'>" +
-    "<defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>" +
-    "<stop offset='0' stop-color='#38bdf8'/><stop offset='1' stop-color='#a78bfa'/>" +
-    "</linearGradient></defs>" +
-    "<rect width='512' height='512' rx='112' fill='#0b0e14'/>" +
-    "<path d='M256 120v190' stroke='url(#g)' stroke-width='36' stroke-linecap='round'/>" +
-    "<path d='M178 250l78 78 78-78' fill='none' stroke='url(#g)' stroke-width='36' " +
-    "stroke-linecap='round' stroke-linejoin='round'/>" +
-    "<rect x='140' y='368' width='232' height='36' rx='18' fill='url(#g)'/></svg>";
-
-  const iconUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(ICON_SVG);
-
+/* ============================================================
+   1. PWA MANIFEST
+   ============================================================ */
+(function setupManifest() {
+  const iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+    <rect width="192" height="192" rx="32" fill="#7c3aed"/>
+    <text x="96" y="132" font-size="96" text-anchor="middle" fill="white">🧠</text>
+  </svg>`;
+  const iconUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(iconSvg)));
   const manifest = {
-    name: 'MD File Grabber — Tải tệp từ Markdown',
-    short_name: 'MD Grabber',
-    description: 'Dán Markdown, trích xuất và tải mọi tệp được nhúng — kể cả trong code block và tải tất cả thành một file ZIP.',
-    start_url: './',
-    scope: './',
+    name: 'BERT MLM + NSP Trainer',
+    short_name: 'BERT Trainer',
+    description: 'Huấn luyện BERT với MLM và NSP trên trình duyệt dùng WebGPU',
+    start_url: location.href,
     display: 'standalone',
-    orientation: 'any',
-    background_color: '#0b0e14',
-    theme_color: '#0b0e14',
-    lang: 'vi',
-    categories: ['productivity', 'utilities'],
+    background_color: '#0f0f23',
+    theme_color: '#7c3aed',
     icons: [
-      { src: iconUrl, sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
-      { src: iconUrl, sizes: 'any', type: 'image/svg+xml', purpose: 'maskable' }
+      { src: iconUrl, sizes: '192x192', type: 'image/svg+xml', purpose: 'any maskable' },
+      { src: iconUrl, sizes: '512x512', type: 'image/svg+xml' }
     ]
   };
+  const link = document.createElement('link');
+  link.rel = 'manifest';
+  link.href = URL.createObjectURL(new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' }));
+  document.head.appendChild(link);
+})();
+
+/* ============================================================
+   2. LOGGING
+   ============================================================ */
+const logEl = document.getElementById('log');
+function log(msg, type = 'info') {
+  const div = document.createElement('div');
+  div.className = 'log-entry ' + type;
+  div.textContent = `[${new Date().toLocaleTimeString('vi-VN')}] ${msg}`;
+  logEl.appendChild(div);
+  logEl.scrollTop = logEl.scrollHeight;
+  while (logEl.children.length > 250) logEl.removeChild(logEl.firstChild);
+}
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ============================================================
+   3. BACKEND SETUP
+   ============================================================ */
+async function setupBackend() {
+  const badge = document.getElementById('backend-badge');
+  let backend = 'cpu';
+  try {
+    await tf.setBackend('webgpu').catch(() => false);
+    await tf.ready();
+    backend = tf.getBackend();
+    if (backend !== 'webgpu') {
+      try {
+        await tf.setBackend('webgl');
+        await tf.ready();
+        backend = tf.getBackend();
+      } catch (e) { /* giữ cpu */ }
+    }
+  } catch (e) {
+    try {
+      await tf.setBackend('cpu');
+      await tf.ready();
+      backend = tf.getBackend();
+    } catch (e2) { /* không thể */ }
+  }
+  if (backend === 'webgpu') {
+    badge.textContent = '⚡ WebGPU';
+    badge.className = 'badge success';
+    log('WebGPU backend đã kích hoạt thành công', 'success');
+  } else if (backend === 'webgl') {
+    badge.textContent = '🔶 WebGL';
+    badge.className = 'badge warning';
+    log('WebGPU không khả dụng — dùng WebGL', 'warning');
+  } else {
+    badge.textContent = '🐢 CPU';
+    badge.className = 'badge warning';
+    log('Chỉ có CPU — tốc độ sẽ chậm', 'warning');
+  }
+  log('TF.js v' + tf.version.tfjs + ' | Backend: ' + backend);
+}
+
+/* ============================================================
+   4. CORPUS MẶC ĐỊNH
+   ============================================================ */
+const CORPUS = [
+  "Trí tuệ nhân tạo đang thay đổi cách chúng ta sống và làm việc.",
+  "Học máy là một lĩnh vực con của trí tuệ nhân tạo.",
+  "Mạng nơ-ron nhân tạo lấy cảm hứng từ bộ não con người.",
+  "Học sâu sử dụng nhiều lớp mạng nơ-ron để học biểu diễn dữ liệu.",
+  "Transformer là kiến trúc nền tảng cho nhiều mô hình ngôn ngữ hiện đại.",
+  "BERT là một mô hình ngôn ngữ dựa trên kiến trúc Transformer.",
+  "BERT được huấn luyện trước trên một lượng lớn văn bản không gán nhãn.",
+  "Mô hình ngôn ngữ bị che khuất giúp BERT hiểu ngữ cảnh hai chiều.",
+  "Dự đoán câu tiếp theo giúp mô hình hiểu mối quan hệ giữa các câu.",
+  "Tiền huấn luyện là giai đoạn đầu tiên trong quá trình huấn luyện BERT.",
+  "Tinh chỉnh giúp BERT thích nghi với các tác vụ cụ thể.",
+  "Xử lý ngôn ngữ tự nhiên là một ứng dụng quan trọng của học sâu.",
+  "Dịch máy là bài toán chuyển đổi văn bản giữa các ngôn ngữ.",
+  "Phân loại văn bản là một tác vụ phổ biến trong xử lý ngôn ngữ.",
+  "Nhận dạng thực thể có tên giúp trích xuất thông tin từ văn bản.",
+  "Trả lời câu hỏi là bài toán tìm câu trả lời cho câu hỏi đầu vào.",
+  "Mô hình ngôn ngữ lớn có hàng tỷ tham số.",
+  "GPT là một mô hình ngôn ngữ tự hồi quy dựa trên Transformer.",
+  "Attention là cơ chế cốt lõi trong kiến trúc Transformer.",
+  "Self-attention cho phép mô hình chú ý đến các phần khác nhau của đầu vào.",
+  "Multi-head attention sử dụng nhiều đầu attention song song.",
+  "Positional encoding giúp mô hình biết thứ tự của các từ.",
+  "Tokenization là bước chia văn bản thành các đơn vị nhỏ hơn.",
+  "WordPiece là một thuật toán tokenization phổ biến.",
+  "Từ vựng của mô hình ngôn ngữ thường có hàng chục nghìn token.",
+  "Embedding biến đổi token thành vector số thực.",
+  "Lớp embedding học biểu diễn cho mỗi token trong từ vựng.",
+  "Layer normalization giúp ổn định quá trình huấn luyện.",
+  "Dropout là kỹ thuật regularization để tránh overfitting.",
+  "Hàm kích hoạt GELU được sử dụng trong nhiều mô hình Transformer.",
+  "Residual connection giúp lan truyền gradient hiệu quả.",
+  "Adam là một thuật toán tối ưu hóa phổ biến trong học sâu.",
+  "Learning rate quyết định tốc độ cập nhật trọng số của mô hình.",
+  "Batch size ảnh hưởng đến quá trình huấn luyện và sử dụng bộ nhớ.",
+  "Epoch là một lần duyệt qua toàn bộ tập dữ liệu huấn luyện.",
+  "Loss function đo lường mức độ sai khác giữa dự đoán và nhãn thực.",
+  "Cross-entropy là hàm mất mát phổ biến cho bài toán phân loại.",
+  "Gradient descent là phương pháp tối ưu hóa cơ bản trong học máy.",
+  "Backpropagation lan truyền ngược gradient qua các lớp của mạng.",
+  "Overfitting xảy ra khi mô hình học thuộc lòng dữ liệu huấn luyện.",
+  "Regularization giúp giảm overfitting và cải thiện khả năng tổng quát.",
+  "Validation set được sử dụng để đánh giá mô hình trong quá trình huấn luyện.",
+  "Test set đánh giá hiệu suất cuối cùng của mô hình.",
+  "WebGPU là một API đồ họa và tính toán mới trên trình duyệt.",
+  "TensorFlow.js cho phép chạy các mô hình học máy trên trình duyệt.",
+  "Progressive Web App mang lại trải nghiệm giống ứng dụng gốc.",
+  "Trí tuệ nhân tạo có thể giúp giải quyết nhiều vấn đề phức tạp.",
+  "Học máy đang được ứng dụng rộng rãi trong nhiều ngành công nghiệp.",
+  "Y tế là một lĩnh vực có nhiều ứng dụng của trí tuệ nhân tạo.",
+  "Tài chính sử dụng học máy để phát hiện gian lận và dự đoán thị trường.",
+  "Giáo dục có thể được cải thiện nhờ các hệ thống gia sư thông minh.",
+  "Nông nghiệp ứng dụng trí tuệ nhân tạo để tối ưu hóa sản xuất.",
+  "Giao thông thông minh sử dụng học máy để giảm ùn tắc.",
+  "An ninh mạng sử dụng trí tuệ nhân tạo để phát hiện tấn công.",
+  "Robot có thể được điều khiển bằng các thuật toán học tăng cường.",
+  "Học tăng cường giúp tác nhân học từ tương tác với môi trường.",
+  "Mạng nơ-ron tích chập rất hiệu quả cho xử lý ảnh.",
+  "Mạng nơ-ron hồi tiếp phù hợp cho dữ liệu chuỗi.",
+  "Dữ liệu lớn là nguồn nhiên liệu cho các mô hình học sâu.",
+  "Điện toán đám mây cung cấp tài nguyên tính toán cho huấn luyện mô hình.",
+  "GPU tăng tốc đáng kể quá trình huấn luyện mạng nơ-ron."
+];
+
+let activeCorpus = [...CORPUS];
+let activeSourceName = 'dữ liệu mẫu';
+let activeParseStats = null;
+
+/* ============================================================
+   5. TOKENIZER
+   ============================================================ */
+class SimpleTokenizer {
+  constructor() {
+    this.vocab = new Map();
+    this.idToToken = [];
+    this.specialTokens = ['[PAD]', '[UNK]', '[CLS]', '[SEP]', '[MASK]'];
+  }
+  tokenize(text) {
+    return text.toLowerCase()
+      .replace(/([.,!?;:()\[\]{}"'`])/g, ' $1 ')
+      .split(/\s+/)
+      .filter(t => t.length > 0);
+  }
+  fit(texts) {
+    for (const t of this.specialTokens) {
+      if (!this.vocab.has(t)) {
+        this.vocab.set(t, this.idToToken.length);
+        this.idToToken.push(t);
+      }
+    }
+    const counts = new Map();
+    for (const text of texts)
+      for (const tok of this.tokenize(text))
+        counts.set(tok, (counts.get(tok) || 0) + 1);
+    for (const [tok] of counts) {
+      if (!this.vocab.has(tok)) {
+        this.vocab.set(tok, this.idToToken.length);
+        this.idToToken.push(tok);
+      }
+    }
+    return this;
+  }
+  encode(tokens) {
+    return tokens.map(t => this.vocab.get(t) ?? this.vocab.get('[UNK]'));
+  }
+  get size() { return this.vocab.size; }
+}
+
+/* Tokenize tiện dụng (không cần instance) */
+function countTokens(text) {
+  return text.toLowerCase()
+    .replace(/([.,!?;:()\[\]{}"'`])/g, ' $1 ')
+    .split(/\s+/)
+    .filter(t => t.length > 0).length;
+}
+
+/* ============================================================
+   6. CONFIG
+   ============================================================ */
+const CONFIG = {
+  maxLen: 32,
+  hiddenSize: 64,
+  numLayers: 2,
+  numHeads: 4,
+  intermediateSize: 128,
+  batchSize: 16,
+  epochs: 30,
+  learningRate: 1e-3,
+  maskProb: 0.15,
+  vocabSize: 0,
+};
+
+const PARSE_CONFIG = {
+  minTokensStandalone: 6,   // >= 6 token thì dùng nguyên mục
+  targetTokensPerGroup: 12, // ghép mục ngắn đạt ~12 token
+};
+
+/* ============================================================
+   7. PARSER THÔNG MINH (dictionary + prefix)
+   ============================================================ */
+function parseWordlist(text) {
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+  if (lines.length === 0) return null;
+
+  // Auto-detect format dựa trên độ dài trung bình
+  const avgLen = lines.reduce((s, l) => s + l.length, 0) / lines.length;
+  const isPrefixFormat = avgLen > 30;
+
+  const longEntries = [];   // >= minTokensStandalone
+  const shortEntries = [];  // < minTokensStandalone
+  let strippedPrefixes = 0;
+
+  for (const line of lines) {
+    let content = line;
+
+    if (isPrefixFormat) {
+      // Strip "a Sentence..." hoặc "a. Sentence..."
+      const m = line.match(/^[a-zA-Z0-9][-.,:;)\]|\s]+([\p{Lu}\p{L}].{9,})$/u);
+      if (m) {
+        content = m[1].trim();
+        strippedPrefixes++;
+      }
+    }
+
+    const tc = countTokens(content);
+    if (tc >= PARSE_CONFIG.minTokensStandalone) {
+      longEntries.push(content);
+    } else if (tc > 0) {
+      shortEntries.push(content);
+    }
+  }
+
+  // Ghép các mục ngắn liền kề với target ~12 token
+  const groups = [];
+  let buffer = [];
+  let bufferTokens = 0;
+
+  for (const entry of shortEntries) {
+    buffer.push(entry);
+    bufferTokens += countTokens(entry);
+    if (bufferTokens >= PARSE_CONFIG.targetTokensPerGroup) {
+      groups.push([...buffer]);
+      buffer = [];
+      bufferTokens = 0;
+    }
+  }
+  if (buffer.length > 0) groups.push([...buffer]);
+
+  // Xây mảng sentences cuối cùng
+  const sentences = [];
+  const sentenceMeta = []; // 'long' | 'grouped'
+
+  for (const entry of longEntries) {
+    sentences.push(entry);
+    sentenceMeta.push('long');
+  }
+  for (const g of groups) {
+    sentences.push(g.join(' . '));
+    sentenceMeta.push('grouped');
+  }
+
+  // Retry nếu groups quá ít
+  if (sentences.length < 5 && shortEntries.length >= 6) {
+    const smallerGroups = [];
+    let buf = [];
+    let bt = 0;
+    for (const entry of shortEntries) {
+      buf.push(entry);
+      bt += countTokens(entry);
+      if (bt >= 5) { smallerGroups.push([...buf]); buf = []; bt = 0; }
+    }
+    if (buf.length > 0) smallerGroups.push([...buf]);
+
+    const retry = [...longEntries];
+    const retryMeta = longEntries.map(() => 'long');
+    for (const g of smallerGroups) {
+      retry.push(g.join(' . '));
+      retryMeta.push('grouped');
+    }
+    if (retry.length > sentences.length) {
+      sentences.length = 0;
+      sentenceMeta.length = 0;
+      sentences.push(...retry);
+      sentenceMeta.push(...retryMeta);
+    }
+  }
+
+  return {
+    sentences,
+    sentenceMeta,
+    stats: {
+      totalLines: lines.length,
+      longEntries: longEntries.length,
+      shortEntries: shortEntries.length,
+      groupedSentences: sentenceMeta.filter(m => m === 'grouped').length,
+      finalSentences: sentences.length,
+      format: isPrefixFormat ? 'prefix' : 'dictionary',
+      avgLineLength: avgLen.toFixed(1),
+      strippedPrefixes,
+    }
+  };
+}
+
+/* ============================================================
+   8. PREPARE DATA (MLM + NSP)
+   ============================================================ */
+function prepareData(sentences, tokenizer, config) {
+  const { maxLen, maskProb } = config;
+  const padId = tokenizer.vocab.get('[PAD]');
+  const clsId = tokenizer.vocab.get('[CLS]');
+  const sepId = tokenizer.vocab.get('[SEP]');
+  const maskId = tokenizer.vocab.get('[MASK]');
+  const vocabSize = tokenizer.size;
+
+  const encoded = sentences.map(s => tokenizer.encode(tokenizer.tokenize(s)));
+
+  const pairs = [];
+  for (let i = 0; i < encoded.length - 1; i++) {
+    pairs.push({ a: encoded[i], b: encoded[i + 1], label: 1 });
+    let r, tries = 0;
+    do { r = Math.floor(Math.random() * encoded.length); tries++; }
+    while ((r === i || r === i + 1) && tries < 50);
+    if (r !== i && r !== i + 1) {
+      pairs.push({ a: encoded[i], b: encoded[r], label: 0 });
+    }
+  }
+
+  const N = pairs.length;
+  const inputIds      = new Int32Array(N * maxLen).fill(padId);
+  const segmentIds    = new Int32Array(N * maxLen);
+  const attentionMask = new Float32Array(N * maxLen);
+  const positionIds   = new Int32Array(N * maxLen);
+  const mlmLabels     = new Int32Array(N * maxLen).fill(-1);
+  const nspLabels     = new Int32Array(N);
+
+  for (let s = 0; s < N; s++) {
+    const { a, b, label } = pairs[s];
+    const maxA = Math.min(a.length, maxLen - 3);
+    const maxB = Math.min(b.length, maxLen - 3 - maxA);
+    const tokens = [clsId, ...a.slice(0, maxA), sepId, ...b.slice(0, maxB), sepId];
+    const segs   = [0,     ...Array(maxA).fill(0), 0, ...Array(maxB).fill(1), 1];
+
+    for (let i = 0; i < tokens.length; i++) {
+      const idx = s * maxLen + i;
+      inputIds[idx]      = tokens[i];
+      segmentIds[idx]    = segs[i];
+      attentionMask[idx] = 1;
+      positionIds[idx]   = i;
+
+      const isSpecial = tokens[i] === clsId || tokens[i] === sepId;
+      if (!isSpecial && Math.random() < maskProb) {
+        mlmLabels[idx] = tokens[i];
+        const r = Math.random();
+        if (r < 0.8)      inputIds[idx] = maskId;
+        else if (r < 0.9) inputIds[idx] = Math.floor(Math.random() * vocabSize);
+      }
+    }
+    nspLabels[s] = label;
+  }
+
+  return {
+    inputIds:      tf.tensor2d(inputIds,      [N, maxLen], 'int32'),
+    segmentIds:    tf.tensor2d(segmentIds,    [N, maxLen], 'int32'),
+    attentionMask: tf.tensor2d(attentionMask, [N, maxLen], 'float32'),
+    positionIds:   tf.tensor2d(positionIds,   [N, maxLen], 'int32'),
+    mlmLabels:     tf.tensor2d(mlmLabels,     [N, maxLen], 'int32'),
+    nspLabels:     tf.tensor1d(nspLabels, 'int32'),
+    numSamples: N,
+  };
+}
+
+/* ============================================================
+   9. CUSTOM LAYERS
+   ============================================================ */
+class TransformerBlock extends tf.layers.Layer {
+  constructor(config) {
+    super({});
+    this.config = config;
+    const H = config.hiddenSize, I = config.intermediateSize;
+    this.qDense   = tf.layers.dense({ units: H });
+    this.kDense   = tf.layers.dense({ units: H });
+    this.vDense   = tf.layers.dense({ units: H });
+    this.outDense = tf.layers.dense({ units: H });
+    this.ln1      = tf.layers.layerNormalization({ epsilon: 1e-12 });
+    this.ffn1     = tf.layers.dense({ units: I, activation: 'gelu' });
+    this.ffn2     = tf.layers.dense({ units: H });
+    this.ln2      = tf.layers.layerNormalization({ epsilon: 1e-12 });
+  }
+  computeOutputShape(inputShape) {
+    return Array.isArray(inputShape) ? inputShape[0] : inputShape;
+  }
+  call(inputs) {
+    let x, mask;
+    if (Array.isArray(inputs)) { [x, mask] = inputs; }
+    else { x = inputs; mask = null; }
+    const H = this.config.hiddenSize;
+    const nH = this.config.numHeads;
+    const hDim = H / nH;
+
+    return tf.tidy(() => {
+      const B = x.shape[0], S = x.shape[1];
+      let q = this.qDense.apply(x);
+      let k = this.kDense.apply(x);
+      let v = this.vDense.apply(x);
+      q = tf.transpose(tf.reshape(q, [B, S, nH, hDim]), [0, 2, 1, 3]);
+      k = tf.transpose(tf.reshape(k, [B, S, nH, hDim]), [0, 2, 1, 3]);
+      v = tf.transpose(tf.reshape(v, [B, S, nH, hDim]), [0, 2, 1, 3]);
+      const scale = 1.0 / Math.sqrt(hDim);
+      let scores = tf.matMul(q, k, false, true).mul(scale);
+      if (mask) {
+        const maskExp = tf.reshape(mask, [B, 1, 1, S]);
+        scores = scores.add(maskExp.sub(1).mul(1e9));
+      }
+      const attn = tf.softmax(scores, -1);
+      let ctx = tf.matMul(attn, v);
+      ctx = tf.transpose(ctx, [0, 2, 1, 3]);
+      ctx = tf.reshape(ctx, [B, S, H]);
+      ctx = this.outDense.apply(ctx);
+      const x1 = this.ln1.apply(tf.add(x, ctx));
+      const ffn = this.ffn2.apply(this.ffn1.apply(x1));
+      return this.ln2.apply(tf.add(x1, ffn));
+    });
+  }
+}
+
+class SliceCLS extends tf.layers.Layer {
+  computeOutputShape(inputShape) { return [inputShape[0], inputShape[2]]; }
+  call(inputs) {
+    return tf.tidy(() => tf.slice(inputs, [0, 0, 0], [-1, 1, -1]).squeeze([1]));
+  }
+}
+
+function maskedMlmLoss(yTrue, yPred) {
+  return tf.tidy(() => {
+    const vocabSize = yPred.shape[2];
+    const ytFlat = tf.reshape(yTrue, [-1]);
+    const ypFlat = tf.reshape(yPred, [-1, vocabSize]);
+    const mask = tf.cast(tf.notEqual(ytFlat, -1), 'float32');
+    const labels = tf.clipByValue(ytFlat, 0, vocabSize - 1);
+    const oneHot = tf.oneHot(labels, vocabSize);
+    const logProbs = tf.logSoftmax(ypFlat, -1);
+    const perPos = tf.neg(tf.sum(tf.mul(oneHot, logProbs), -1));
+    return tf.sum(tf.mul(perPos, mask)).div(tf.sum(mask).add(1e-8));
+  });
+}
+
+/* ============================================================
+   10. BUILD MODEL
+   ============================================================ */
+function buildModel(config) {
+  const inputIds      = tf.input({ shape: [config.maxLen], dtype: 'int32',   name: 'input_ids' });
+  const segmentIds    = tf.input({ shape: [config.maxLen], dtype: 'int32',   name: 'segment_ids' });
+  const attentionMask = tf.input({ shape: [config.maxLen], dtype: 'float32', name: 'attention_mask' });
+  const positionIds   = tf.input({ shape: [config.maxLen], dtype: 'int32',   name: 'position_ids' });
+
+  const tokEmb = tf.layers.embedding({ inputDim: config.vocabSize, outputDim: config.hiddenSize, name: 'tok_emb' }).apply(inputIds);
+  const posEmb = tf.layers.embedding({ inputDim: config.maxLen,    outputDim: config.hiddenSize, name: 'pos_emb' }).apply(positionIds);
+  const segEmb = tf.layers.embedding({ inputDim: 2,                outputDim: config.hiddenSize, name: 'seg_emb' }).apply(segmentIds);
+
+  let x = tf.layers.add({ name: 'emb_add' }).apply([tokEmb, posEmb, segEmb]);
+  x = tf.layers.layerNormalization({ epsilon: 1e-12, name: 'emb_ln' }).apply(x);
+  x = tf.layers.dropout({ rate: 0.1, name: 'emb_drop' }).apply(x);
+
+  for (let i = 0; i < config.numLayers; i++) {
+    x = new TransformerBlock(config).apply([x, attentionMask]);
+  }
+
+  let mlmH = tf.layers.dense({ units: config.hiddenSize, activation: 'gelu', name: 'mlm_dense' }).apply(x);
+  mlmH = tf.layers.layerNormalization({ epsilon: 1e-12, name: 'mlm_ln' }).apply(mlmH);
+  const mlmLogits = tf.layers.dense({ units: config.vocabSize, name: 'mlm_out' }).apply(mlmH);
+
+  const cls = new SliceCLS().apply(x);
+  const nspH = tf.layers.dense({ units: config.hiddenSize, activation: 'tanh', name: 'nsp_dense' }).apply(cls);
+  const nspLogits = tf.layers.dense({ units: 2, name: 'nsp_out' }).apply(nspH);
+
+  return tf.model({
+    inputs: [inputIds, segmentIds, attentionMask, positionIds],
+    outputs: [mlmLogits, nspLogits],
+  });
+}
+
+/* ============================================================
+   11. TRAINING
+   ============================================================ */
+let isTraining = false;
+let stopRequested = false;
+
+async function train() {
+  if (isTraining) return;
+  if (activeCorpus.length < 3) {
+    log(`Cần ít nhất 3 câu để huấn luyện (hiện có ${activeCorpus.length})`, 'error');
+    return;
+  }
+
+  isTraining = true;
+  stopRequested = false;
+  const startBtn = document.getElementById('start-btn');
+  const stopBtn  = document.getElementById('stop-btn');
+  startBtn.disabled = true;
+  stopBtn.disabled  = false;
+
+  let data = null;
 
   try {
-    const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
-    const manifestUrl = URL.createObjectURL(manifestBlob);
-    const link = document.createElement('link');
-    link.rel = 'manifest';
-    link.href = manifestUrl;
-    document.head.appendChild(link);
+    log(`Nguồn dữ liệu: ${activeSourceName} — ${activeCorpus.length} câu huấn luyện`);
+    log('Đang xây dựng từ vựng...');
+    const tokenizer = new SimpleTokenizer().fit(activeCorpus);
+    log(`Từ vựng: ${tokenizer.size} tokens`, 'success');
+    CONFIG.vocabSize = tokenizer.size;
 
-    const appleIcon = document.createElement('link');
-    appleIcon.rel = 'apple-touch-icon';
-    appleIcon.href = iconUrl;
-    document.head.appendChild(appleIcon);
-  } catch (_) { /* ignore */ }
+    log('Đang chuẩn bị dữ liệu (MLM + NSP)...');
+    data = prepareData(activeCorpus, tokenizer, CONFIG);
+    log(`Số mẫu huấn luyện: ${data.numSamples}`, 'success');
 
-  /* ---------- Service Worker động ---------- */
-  if (!('serviceWorker' in navigator) || !location.protocol.startsWith('http')) return;
+    log('Đang xây dựng mô hình BERT...');
+    const model = buildModel(CONFIG);
+    log(`Tổng tham số: ${model.countParams().toLocaleString()}`, 'success');
 
-  const SW_CODE = `
-    const CACHE = 'md-grabber-inline-v1';
-    const PRECACHE = ['./', location.href.split('#')[0]];
-
-    self.addEventListener('install', (e) => {
-      e.waitUntil(
-        caches.open(CACHE)
-          .then(c => c.addAll(PRECACHE.map(u => new Request(u, {cache:'reload'}))))
-          .catch(() => {})
-          .then(() => self.skipWaiting())
-      );
+    model.compile({
+      optimizer: tf.train.adam(CONFIG.learningRate),
+      loss: [maskedMlmLoss, 'sparseCategoricalCrossentropy'],
+      lossWeights: [1.0, 1.0],
     });
 
-    self.addEventListener('activate', (e) => {
-      e.waitUntil(
-        caches.keys()
-          .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
-          .then(() => self.clients.claim())
-      );
-    });
+    const cfg = [
+      ['Tham số',      model.countParams().toLocaleString()],
+      ['Từ vựng',      CONFIG.vocabSize],
+      ['Max Length',   CONFIG.maxLen],
+      ['Hidden (H)',   CONFIG.hiddenSize],
+      ['Số lớp',       CONFIG.numLayers],
+      ['Số head',      CONFIG.numHeads],
+      ['Batch size',   CONFIG.batchSize],
+      ['Epochs',       CONFIG.epochs],
+      ['Learning rate', CONFIG.learningRate],
+      ['Samples',      data.numSamples],
+      ['Corpus',       activeCorpus.length + ' câu'],
+      ['Backend',      tf.getBackend().toUpperCase()],
+    ];
+    document.getElementById('config-grid').innerHTML =
+      cfg.map(([k, v]) =>
+        `<div class="config-item"><span class="label">${k}</span><span class="value">${escapeHtml(String(v))}</span></div>`
+      ).join('');
 
-    self.addEventListener('fetch', (e) => {
-      const req = e.request;
-      if (req.method !== 'GET') return;
+    log('🚀 Bắt đầu huấn luyện...', 'success');
+    const totalEpochs = CONFIG.epochs;
 
-      if (req.mode === 'navigate') {
-        e.respondWith(fetch(req).catch(() => caches.match(req).then(r => r || caches.match('./'))));
+    await model.fit(
+      [data.inputIds, data.segmentIds, data.attentionMask, data.positionIds],
+      [data.mlmLabels, data.nspLabels],
+      {
+        batchSize: CONFIG.batchSize,
+        epochs: totalEpochs,
+        shuffle: true,
+        validationSplit: 0.1,
+        yieldEvery: 'auto',
+        callbacks: {
+          onEpochEnd: async (epoch, logs) => {
+            if (stopRequested) model.stopTraining = true;
+            const ep = epoch + 1;
+            const mlmLoss = logs.mlm_out_loss ?? logs.loss ?? 0;
+            const nspLoss = logs.nsp_out_loss ?? 0;
+
+            document.getElementById('epoch-val').textContent = `${ep} / ${totalEpochs}`;
+            document.getElementById('epoch-bar').style.width = `${(ep / totalEpochs) * 100}%`;
+            document.getElementById('mlm-val').textContent = mlmLoss.toFixed(4);
+            document.getElementById('mlm-bar').style.width =
+              `${Math.max(0, Math.min(100, (mlmLoss / 5) * 100))}%`;
+            document.getElementById('nsp-val').textContent = nspLoss.toFixed(4);
+            document.getElementById('nsp-bar').style.width =
+              `${Math.max(0, Math.min(100, (nspLoss / 0.7) * 100))}%`;
+
+            const v = logs.val_loss != null ? ` | val: ${logs.val_loss.toFixed(4)}` : '';
+            log(
+              `Epoch ${ep}/${totalEpochs} | MLM ${mlmLoss.toFixed(4)} | NSP ${nspLoss.toFixed(4)}${v}`,
+              mlmLoss < 2.5 ? 'success' : 'info'
+            );
+          }
+        }
+      }
+    );
+
+    if (stopRequested) {
+      log('⏹️ Đã dừng huấn luyện theo yêu cầu', 'warning');
+    } else {
+      log('✅ Hoàn tất huấn luyện!', 'success');
+      await testMlmPrediction(model, tokenizer, CONFIG, activeCorpus);
+    }
+
+    document.getElementById('stat').textContent =
+      `Hoàn tất | Backend: ${tf.getBackend().toUpperCase()} | Tensors: ${tf.memory().numTensors}`;
+
+  } catch (e) {
+    log('❌ Lỗi huấn luyện: ' + e.message, 'error');
+    console.error(e);
+  } finally {
+    if (data) {
+      ['inputIds','segmentIds','attentionMask','positionIds','mlmLabels','nspLabels']
+        .forEach(k => { try { data[k].dispose(); } catch(_) {} });
+    }
+    isTraining = false;
+    startBtn.disabled = false;
+    stopBtn.disabled  = true;
+  }
+}
+
+/* ============================================================
+   12. TEST MLM
+   ============================================================ */
+async function testMlmPrediction(model, tokenizer, config, corpus) {
+  log('Đang kiểm tra khả năng dự đoán MLM...');
+  const candidates = corpus.filter(s => tokenizer.tokenize(s).length >= 5);
+  if (candidates.length === 0) {
+    log('Không có câu đủ dài để test MLM', 'warning');
+    return;
+  }
+  const testSentence = candidates[Math.floor(Math.random() * candidates.length)];
+  const tokens = tokenizer.tokenize(testSentence);
+
+  const validIdx = tokens
+    .map((t, i) => i)
+    .filter(i => i > 0 && i < tokens.length - 1 && tokenizer.vocab.has(tokens[i]));
+  if (validIdx.length === 0) { log('Không tìm được token để che', 'warning'); return; }
+  const targetIdx = validIdx[Math.floor(Math.random() * validIdx.length)];
+  const targetWord = tokens[targetIdx];
+
+  const encoded = tokenizer.encode(tokens);
+  const maskId = tokenizer.vocab.get('[MASK]');
+  const clsId  = tokenizer.vocab.get('[CLS]');
+  const sepId  = tokenizer.vocab.get('[SEP]');
+  const padId  = tokenizer.vocab.get('[PAD]');
+
+  const maskedEncoded = [...encoded];
+  maskedEncoded[targetIdx] = maskId;
+
+  const seq = [clsId, ...maskedEncoded, sepId];
+  while (seq.length < config.maxLen) seq.push(padId);
+  const seqArr = seq.slice(0, config.maxLen);
+  const seqLen = Math.min(seq.length, config.maxLen);
+
+  const inputIds = tf.tensor2d(seqArr, [1, config.maxLen], 'int32');
+  const segIds   = tf.zeros([1, config.maxLen], 'int32');
+  const maskArr  = new Float32Array(config.maxLen);
+  for (let i = 0; i < seqLen; i++) maskArr[i] = 1;
+  const attnMask = tf.tensor2d(maskArr, [1, config.maxLen], 'float32');
+  const posIds   = tf.tensor2d(
+    Array.from({ length: config.maxLen }, (_, i) => i), [1, config.maxLen], 'int32'
+  );
+
+  try {
+    const [mlmLogits] = model.predict([inputIds, segIds, attnMask, posIds]);
+    const logitsArr = await mlmLogits.data();
+    const vocabSize = config.vocabSize;
+    const offset = (targetIdx + 1) * vocabSize;
+
+    const preds = [];
+    for (let v = 0; v < vocabSize; v++) preds.push({ id: v, score: logitsArr[offset + v] });
+    preds.sort((a, b) => b.score - a.score);
+
+    log(`📝 Câu: "${testSentence}"`);
+    log(`🎯 Từ bị che: "${targetWord}"`);
+    log('🔮 Top-5 dự đoán:', 'success');
+    for (const p of preds.slice(0, 5)) {
+      log(`   → "${tokenizer.idToToken[p.id]}" (score: ${p.score.toFixed(2)})`);
+    }
+
+    [inputIds, segIds, attnMask, posIds, mlmLogits].forEach(t => t.dispose());
+  } catch (e) {
+    log('Lỗi test MLM: ' + e.message, 'error');
+  }
+}
+
+/* ============================================================
+   13. UI: LOAD FILE + PREVIEW
+   ============================================================ */
+const fileInput = document.getElementById('file-input');
+const fileStatus = document.getElementById('file-status');
+const previewEl = document.getElementById('preview');
+
+fileInput.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (isTraining) {
+    log('Không thể đổi file khi đang huấn luyện', 'warning');
+    e.target.value = '';
+    return;
+  }
+  log(`Đang đọc "${file.name}" (${(file.size / 1024).toFixed(1)} KB)...`);
+
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const parsed = parseWordlist(ev.target.result);
+      if (!parsed || parsed.sentences.length < 3) {
+        const n = parsed ? parsed.sentences.length : 0;
+        log(`File chỉ có ${n} câu hợp lệ — cần ≥ 3 để huấn luyện`, 'error');
+        fileStatus.innerHTML = `❌ <strong>${escapeHtml(file.name)}</strong> — chỉ ${n} câu`;
+        fileStatus.style.color = 'var(--error)';
+        previewEl.classList.remove('active');
         return;
       }
 
-      e.respondWith(
-        caches.match(req).then(cached => {
-          if (cached) {
-            fetch(req).then(res => {
-              if (res && res.ok) caches.open(CACHE).then(c => c.put(req, res));
-            }).catch(() => {});
-            return cached;
-          }
-          return fetch(req).then(res => {
-            const sameOrigin = req.url.startsWith(self.location.origin);
-            const isCdn = /cdn\\.jsdelivr\\.net|cdnjs\\.cloudflare\\.com/.test(req.url);
-            if (res && res.ok && (sameOrigin || isCdn)) {
-              const clone = res.clone();
-              caches.open(CACHE).then(c => c.put(req, clone));
-            }
-            return res;
-          });
-        })
-      );
-    });
-  `;
+      activeCorpus = parsed.sentences;
+      activeSourceName = file.name;
+      activeParseStats = parsed.stats;
 
-  try {
-    const swBlob = new Blob([SW_CODE], { type: 'application/javascript' });
-    const swUrl = URL.createObjectURL(swBlob);
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register(swUrl, { scope: './' }).catch(() => {});
-    });
-  } catch (_) { /* ignore */ }
+      fileStatus.innerHTML =
+        `✅ <strong>${escapeHtml(file.name)}</strong> — ${parsed.stats.finalSentences} câu huấn luyện ` +
+        `<span class="format-tag ${parsed.stats.format}">${parsed.stats.format}</span>`;
+      fileStatus.style.color = 'var(--success)';
+
+      // Hiển thị thống kê + preview
+      const st = parsed.stats;
+      const statHtml = `
+        <div class="stat-grid">
+          <div class="stat-box"><div class="num">${st.totalLines}</div><div class="lbl">Dòng đọc</div></div>
+          <div class="stat-box"><div class="num">${st.longEntries}</div><div class="lbl">Mục dài (đứng riêng)</div></div>
+          <div class="stat-box"><div class="num">${st.shortEntries}</div><div class="lbl">Mục ngắn (ghép nhóm)</div></div>
+          <div class="stat-box"><div class="num">${st.groupedSentences}</div><div class="lbl">Câu ghép</div></div>
+          <div class="stat-box"><div class="num">${st.finalSentences}</div><div class="lbl">Tổng câu</div></div>
+          <div class="stat-box"><div class="num">${st.avgLineLength}</div><div class="lbl">Độ dài TB dòng</div></div>
+        </div>
+        ${st.format === 'prefix' ? `<div class="meta">✂️ Đã strip prefix ở ${st.strippedPrefixes} dòng</div>` : ''}
+      `;
+
+      const previewRows = parsed.sentences.slice(0, 8).map((s, i) => {
+        const type = parsed.sentenceMeta[i];
+        return `<div class="sentence ${type}">${i + 1}. ${escapeHtml(s)}</div>`;
+      }).join('');
+
+      previewEl.innerHTML =
+        `<div class="meta" style="margin-bottom:8px;">📊 Thống kê parse:</div>${statHtml}` +
+        `<div class="meta" style="margin-top:8px;">↳ 8 câu đầu (<span style="color:var(--success)">xanh=lá mục dài</span>, <span style="color:var(--warning)">vàng=câu ghép</span>):</div>${previewRows}` +
+        (parsed.sentences.length > 8 ? `<div class="meta">… và ${parsed.sentences.length - 8} câu nữa</div>` : '');
+      previewEl.classList.add('active');
+
+      log(`✅ Đã tải: ${st.totalLines} dòng → ${st.finalSentences} câu (${st.longEntries} mục dài + ${st.groupedSentences} câu ghép)`, 'success');
+      log(`Format: ${st.format.toUpperCase()} | Avg line length: ${st.avgLineLength}`, 'info');
+      if (st.finalSentences > 500) {
+        log(`⚠️ ${st.finalSentences} câu — huấn luyện có thể mất vài phút`, 'warning');
+      }
+
+      ['epoch','mlm','nsp'].forEach(k => {
+        document.getElementById(`${k}-bar`).style.width = '0%';
+        document.getElementById(`${k}-val`).textContent = k === 'epoch' ? '0 / 0' : '-';
+      });
+    } catch (err) {
+      log('❌ Lỗi xử lý file: ' + err.message, 'error');
+      console.error(err);
+    }
+  };
+  reader.onerror = () => log('Lỗi đọc file', 'error');
+  reader.readAsText(file, 'UTF-8');
+});
+
+document.getElementById('reset-data').addEventListener('click', () => {
+  if (isTraining) { log('Không thể đổi dữ liệu khi đang huấn luyện', 'warning'); return; }
+  activeCorpus = [...CORPUS];
+  activeSourceName = 'dữ liệu mẫu';
+  activeParseStats = null;
+  fileInput.value = '';
+  fileStatus.innerHTML = `Chưa tải file — dùng dữ liệu mẫu (<span id="sample-count">${CORPUS.length}</span> câu)`;
+  fileStatus.style.color = 'var(--muted)';
+  previewEl.classList.remove('active');
+  previewEl.innerHTML = '';
+  log(`↺ Đã khôi phục dữ liệu mẫu (${CORPUS.length} câu)`, 'info');
+});
+
+/* ============================================================
+   14. INIT
+   ============================================================ */
+document.getElementById('start-btn').addEventListener('click', train);
+document.getElementById('stop-btn').addEventListener('click', () => {
+  stopRequested = true;
+  log('Đang dừng...', 'warning');
+});
+
+(async () => {
+  await setupBackend();
+  document.getElementById('sample-count').textContent = CORPUS.length;
+  log('Sẵn sàng! Nhấn "Bắt đầu huấn luyện" để khởi động.', 'success');
+  log(`Dữ liệu mẫu: ${CORPUS.length} câu tiếng Việt về AI/ML`);
+  log('💡 Hoặc tải file .txt wordlist/dictionary ở panel "Dữ liệu huấn luyện"', 'info');
 })();
-</script>
-
-<!-- JSZip: CDN chính + fallback CDN phụ -->
-<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"
-        onerror="this.onerror=null;this.src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'"></script>
-
-<script>
-'use strict';
-
-/* =========================================================
-   DOM
-   ========================================================= */
-const $ = (s, r = document) => r.querySelector(s);
-const mdEl       = $('#md');
-const listEl     = $('#list');
-const emptyEl    = $('#empty');
-const statsEl    = $('#stats');
-const toastEl    = $('#toast');
-const onlyFiles  = $('#onlyFiles');
-const dlAllBtn   = $('#dlAll');
-const zipBtn     = $('#zipAll');
-const DL_LABEL   = dlAllBtn.textContent;
-const ZIP_LABEL  = zipBtn.textContent;
-
-/* =========================================================
-   State
-   ========================================================= */
-let all = [];
-let sel = new Set();
-
-/* =========================================================
-   Hằng số lọc nhiễu
-   ========================================================= */
-const SKIP_PROTO = /^(javascript|vbscript|mailto|tel|sms|blob):/i;
-const IGNORE_HOST = /^(localhost|127\.0\.0\.1|0\.0\.0\.0|schema\.org|www\.w3\.org|w3\.org|example\.(com|org)|your-domain\.com)$/i;
-
-/* =========================================================
-   Trích xuất liên kết từ Markdown
-   ========================================================= */
-function normalizeUrl(raw) {
-  let u = (raw || '').trim();
-  if (u.startsWith('<') && u.endsWith('>')) u = u.slice(1, -1).trim();
-  return u;
-}
-
-function splitFences(md) {
-  const codes = [];
-  const TEXT = [];
-  let i = 0, n = md.length;
-  let buf = '';
-
-  while (i < n) {
-    const rest = md.slice(i);
-    const open = /^[ \t]{0,3}(`{3,}|~{3,})[^\n]*\n?/m.exec(rest);
-    if (!open) { buf += rest; break; }
-
-    buf += rest.slice(0, open.index);
-    const fence = open[1][0];
-    const fenceLen = open[1].length;
-    const bodyStart = i + open.index + open[0].length;
-
-    const closeRe = new RegExp(
-      '^[ \\t]{0,3}' + (fence === '`' ? '`' : '~') + '{' + fenceLen + ',}[ \\t]*$', 'm'
-    );
-    const after = md.slice(bodyStart);
-    const close = closeRe.exec(after);
-
-    if (!close) {
-      codes.push({ lang: '', body: after });
-      TEXT.push('\u0000CODE' + (codes.length - 1) + '\u0000');
-      i = n; break;
-    }
-
-    const body = after.slice(0, close.index);
-    codes.push({ lang: (open[0].match(/\S+/g) || [''])[1] || '', body });
-    TEXT.push('\u0000CODE' + (codes.length - 1) + '\u0000');
-    i = bodyStart + close.index + close[0].length;
-    while (md[i] === '\n' || md[i] === '\r') i++;
-  }
-
-  return { text: buf + TEXT.join(''), codes };
-}
-
-function collectFromCode(body, out) {
-  const add = (u) => {
-    u = normalizeUrl(u);
-    if (!u || SKIP_PROTO.test(u) || u.startsWith('#')) return;
-    out.push({ url: u, label: '', kind: 'code' });
-  };
-
-  let m;
-  const reBare = /\b(?:https?|ftp|data):[^\s"'`<>()\[\]{}]+/gi;
-  while ((m = reBare.exec(body))) add(m[0]);
-
-  const reStr = /["'`]((?:https?|ftp|data):[^"'`\s]+)["'`]/gi;
-  while ((m = reStr.exec(body))) add(m[1]);
-
-  const reAttr = /\b(?:src|href)\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s>]+))/gi;
-  while ((m = reAttr.exec(body))) add(m[1] ?? m[2] ?? m[3]);
-
-  const reMd = /\[([^\]\n]*)\]\(\s*(<[^>\n]*>|[^)\s]+)(?:\s+["'(][^)"']*["')])?\s*\)/g;
-  while ((m = reMd.exec(body))) add(m[2]);
-}
-
-function collect(md) {
-  const found = [];
-  const add = (url, label = '', kind = 'link') => {
-    url = normalizeUrl(url);
-    if (!url || SKIP_PROTO.test(url) || url.startsWith('#')) return;
-
-    if (kind !== 'code') {
-      let host = '';
-      try { host = new URL(url, location.href).hostname; } catch (_) {}
-      if (host && IGNORE_HOST.test(host)) return;
-    }
-    found.push({ url, label, kind });
-  };
-
-  const { text, codes } = splitFences(md);
-  let m;
-
-  const reInline = /(!?)\[([^\]\n]*)\]\(\s*(<[^>\n]*>|[^)\s]+)(?:\s+(?:"[^"\n]*"|'[^'\n]*'|\([^)\n]*\)))?\s*\)/g;
-  while ((m = reInline.exec(text))) {
-    add(m[3], m[2], m[1] === '!' ? 'image' : 'link');
-  }
-
-  const reRef = /^[ \t]{0,3}\[([^\]\n]+)\]:[ \t]*(<[^>\n]*>|\S+)/gm;
-  while ((m = reRef.exec(text))) add(m[2], m[1], 'ref');
-
-  const reHtml = /\b(?:href|src)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/gi;
-  while ((m = reHtml.exec(text))) add(m[1] ?? m[2] ?? m[3], '', 'html');
-
-  const reAuto = /<((?:https?|ftp):\/\/[^>\s]+)>/gi;
-  while ((m = reAuto.exec(text))) add(m[1], '', 'auto');
-
-  const reBare = /\b(?:https?|ftp):\/\/[^\s<>"'`)\]]+/gi;
-  while ((m = reBare.exec(text))) {
-    const prev = text[m.index - 1];
-    if (prev && /[[(<"'=]/.test(prev)) continue;
-    add(m[0], '', 'bare');
-  }
-
-  for (const c of codes) collectFromCode(c.body, found);
-
-  return found;
-}
-
-/* =========================================================
-   Nhận diện tệp
-   ========================================================= */
-const MIME_EXT = {
-  'image/png':'png','image/jpeg':'jpg','image/jpg':'jpg','image/gif':'gif',
-  'image/webp':'webp','image/svg+xml':'svg','image/avif':'avif','image/bmp':'bmp',
-  'application/pdf':'pdf','application/zip':'zip','application/json':'json',
-  'application/x-zip-compressed':'zip','application/octet-stream':'bin',
-  'text/plain':'txt','text/csv':'csv','text/html':'html','text/markdown':'md',
-  'audio/mpeg':'mp3','audio/wav':'wav','video/mp4':'mp4','video/webm':'webm'
-};
-
-function fileInfo(url) {
-  if (/^data:/i.test(url)) {
-    const mm = /^data:([^;,]*)/i.exec(url);
-    const mime = ((mm && mm[1]) || '').toLowerCase();
-    let ext = MIME_EXT[mime];
-    if (!ext && mime.includes('/')) {
-      ext = mime.split('/')[1].replace(/[^a-z0-9]/g, '').slice(0, 6) || 'bin';
-    }
-    ext = ext || 'bin';
-    return { ext, base: 'data.' + ext, isFile: true };
-  }
-
-  let path = '';
-  try { path = new URL(url, location.href).pathname; }
-  catch { path = url.split(/[?#]/)[0]; }
-
-  let base = path.split('/').filter(Boolean).pop() || '';
-  try { base = decodeURIComponent(base); } catch (_) {}
-
-  const mm = /\.([a-z0-9]{1,8})$/i.exec(base);
-  return { ext: mm ? mm[1].toLowerCase() : '', base, isFile: !!mm };
-}
-
-/* =========================================================
-   Phân tích & khử trùng lặp
-   ========================================================= */
-function analyze(md) {
-  const raw = collect(md);
-  const map = new Map();
-
-  for (const r of raw) {
-    if (map.has(r.url)) {
-      const e = map.get(r.url);
-      if (!e.label && r.label) e.label = r.label;
-      continue;
-    }
-    const info = fileInfo(r.url);
-    map.set(r.url, {
-      id: Math.random().toString(36).slice(2, 9),
-      url: r.url,
-      label: r.label || '',
-      kind: r.kind,
-      ext: info.ext,
-      base: info.base,
-      isFile: info.isFile
-    });
-  }
-  return [...map.values()];
-}
-
-/* =========================================================
-   Tên tệp
-   ========================================================= */
-function fileName(it) {
-  const label = (it.label || '').trim();
-  if (label && /\.[a-z0-9]{1,8}$/i.test(label) && !/[\/\\:*?"<>|]/.test(label)) {
-    return label;
-  }
-  if (it.base) return it.base;
-  if (label) {
-    return label.replace(/[\/\\:*?"<>|]+/g, '_').slice(0, 80) + (it.ext ? '.' + it.ext : '');
-  }
-  return 'download' + (it.ext ? '.' + it.ext : '');
-}
-
-function safeZipName(name) {
-  return name
-    .replace(/[\/\\:*?"<>|\x00-\x1f]/g, '_')
-    .replace(/^\.+/, '')
-    .trim() || 'file';
-}
-
-/* =========================================================
-   Render
-   ========================================================= */
-function visibleItems() {
-  const only = onlyFiles.checked;
-  return only ? all.filter(i => i.isFile) : all.slice();
-}
-
-function render() {
-  const vis = visibleItems();
-  const codeCount = all.filter(i => i.kind === 'code').length;
-
-  statsEl.innerHTML =
-    `<b>${all.length}</b> liên kết · ` +
-    `<b>${all.filter(i => i.isFile).length}</b> tệp` +
-    (codeCount ? ` · <b>${codeCount}</b> trong code` : '');
-
-  listEl.innerHTML = '';
-  emptyEl.hidden = vis.length > 0;
-  emptyEl.textContent = all.length
-    ? 'Không có tệp nào khớp bộ lọc. Bỏ chọn “Chỉ tệp” để xem tất cả liên kết.'
-    : 'Chưa có gì. Dán Markdown ở khung bên trái.';
-
-  const frag = document.createDocumentFragment();
-  for (const it of vis) frag.appendChild(renderItem(it));
-  listEl.appendChild(frag);
-}
-
-function renderItem(it) {
-  const li = document.createElement('li');
-  li.className = 'item';
-  li.dataset.id = it.id;
-
-  const cb = document.createElement('input');
-  cb.type = 'checkbox';
-  cb.className = 'cb';
-  cb.checked = sel.has(it.url);
-  cb.addEventListener('change', () => {
-    if (cb.checked) sel.add(it.url); else sel.delete(it.url);
-  });
-
-  const meta = document.createElement('div');
-  meta.className = 'meta';
-
-  const nm = document.createElement('div');
-  nm.className = 'nm';
-  nm.textContent = fileName(it);
-  nm.title = fileName(it);
-
-  const ur = document.createElement('div');
-  ur.className = 'ur';
-  ur.textContent = it.url;
-  ur.title = it.url;
-
-  meta.append(nm, ur);
-
-  const badge = document.createElement('span');
-  badge.className = 'badge';
-  if (it.kind === 'code') {
-    badge.classList.add('code');
-    badge.textContent = 'code';
-    badge.title = 'Link trích từ code block';
-  } else {
-    badge.textContent = it.ext
-      ? '.' + it.ext
-      : (it.kind === 'image' ? 'img' : 'link');
-    if (!it.isFile) badge.classList.add('muted');
-  }
-
-  const btn = document.createElement('button');
-  btn.className = 'icon-btn';
-  btn.type = 'button';
-  btn.title = 'Tải xuống';
-  btn.textContent = '⬇';
-  btn.addEventListener('click', () => downloadOne(it, li));
-
-  li.append(cb, meta, badge, btn);
-  return li;
-}
-
-/* =========================================================
-   Tải xuống đơn lẻ
-   ========================================================= */
-const sleep = ms => new Promise(r => setTimeout(r, ms));
-
-function saveBlob(blob, name) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = name;
-  a.rel = 'noopener';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 15000);
-}
-
-function dataUrlToBlob(url) {
-  const comma = url.indexOf(',');
-  const head = url.slice(0, comma);
-  const body = url.slice(comma + 1);
-  const mimeMatch = /data:([^;,]*)/i.exec(head);
-  const mime = (mimeMatch && mimeMatch[1]) || 'application/octet-stream';
-
-  if (/;base64/i.test(head)) {
-    const bin = atob(body.replace(/\s/g, ''));
-    const arr = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-    return new Blob([arr], { type: mime });
-  }
-  return new Blob([decodeURIComponent(body)], { type: mime });
-}
-
-async function saveItem(it) {
-  const name = fileName(it);
-  try {
-    if (/^data:/i.test(it.url)) {
-      saveBlob(dataUrlToBlob(it.url), name);
-      return 'fetched';
-    }
-    const res = await fetch(it.url, {
-      mode: 'cors', credentials: 'omit', referrerPolicy: 'no-referrer'
-    });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    saveBlob(await res.blob(), name);
-    return 'fetched';
-  } catch (_) {
-    try {
-      const a = document.createElement('a');
-      a.href = it.url;
-      a.download = name;
-      a.target = '_blank';
-      a.rel = 'noopener noreferrer';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      return 'opened';
-    } catch (_) { return 'failed'; }
-  }
-}
-
-async function downloadOne(it, li) {
-  const btn = li && li.querySelector('.icon-btn');
-  if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
-  const r = await saveItem(it);
-  if (btn) { btn.disabled = false; btn.textContent = '⬇'; }
-
-  if (r === 'fetched') toast('Đã tải: ' + fileName(it));
-  else if (r === 'opened') toast('Đã mở liên kết (CORS chặn, trình duyệt tự xử lý)');
-  else toast('Không tải được tệp này');
-}
-
-async function downloadAll() {
-  const vis = visibleItems().filter(it => sel.has(it.url));
-  if (!vis.length) return toast('Chưa chọn tệp nào');
-
-  dlAllBtn.disabled = true; zipBtn.disabled = true;
-  let fetched = 0, opened = 0, failed = 0;
-
-  for (let i = 0; i < vis.length; i++) {
-    dlAllBtn.textContent = `Đang tải ${i + 1}/${vis.length}…`;
-    const li = listEl.querySelector(`[data-id="${vis[i].id}"]`);
-    const r = await saveItem(vis[i]);
-    if (r === 'fetched') fetched++;
-    else if (r === 'opened') opened++;
-    else failed++;
-    if (li) li.classList.add('done');
-    await sleep(350);
-  }
-
-  dlAllBtn.textContent = DL_LABEL;
-  dlAllBtn.disabled = false; zipBtn.disabled = false;
-
-  toast(
-    `Xong: ${fetched} tải trực tiếp` +
-    (opened ? `, ${opened} mở tab` : '') +
-    (failed ? `, ${failed} lỗi` : '')
-  );
-}
-
-/* =========================================================
-   📦 Tải tất cả thành ZIP (JSZip CDN)
-   ========================================================= */
-async function downloadZip() {
-  const vis = visibleItems().filter(it => sel.has(it.url));
-  if (!vis.length) return toast('Chưa chọn tệp nào');
-
-  if (typeof JSZip === 'undefined') {
-    return toast('Không tải được thư viện ZIP — kiểm tra kết nối mạng');
-  }
-
-  dlAllBtn.disabled = true;
-  zipBtn.disabled = true;
-  const zip = new JSZip();
-  const used = new Set();
-  let added = 0, failed = 0;
-
-  for (let i = 0; i < vis.length; i++) {
-    zipBtn.textContent = `Đang tải ${i + 1}/${vis.length}…`;
-    try {
-      let blob;
-      if (/^data:/i.test(vis[i].url)) {
-        blob = dataUrlToBlob(vis[i].url);
-      } else {
-        const res = await fetch(vis[i].url, {
-          mode: 'cors', credentials: 'omit', referrerPolicy: 'no-referrer'
-        });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        blob = await res.blob();
-      }
-
-      let name = safeZipName(fileName(vis[i]));
-      if (used.has(name)) {
-        const dot = name.lastIndexOf('.');
-        const base = dot > 0 ? name.slice(0, dot) : name;
-        const ext  = dot > 0 ? name.slice(dot)    : '';
-        let n = 1;
-        while (used.has(`${base} (${n})${ext}`)) n++;
-        name = `${base} (${n})${ext}`;
-      }
-      used.add(name);
-      zip.file(name, blob);
-      added++;
-    } catch (_) {
-      failed++;
-    }
-    await sleep(80);
-  }
-
-  if (!added) {
-    dlAllBtn.disabled = false;
-    zipBtn.disabled = false;
-    zipBtn.textContent = ZIP_LABEL;
-    return toast('Không tệp nào tải được (bị CORS chặn). Thử tải lẻ.');
-  }
-
-  zipBtn.textContent = 'Đang nén…';
-  try {
-    const blob = await zip.generateAsync(
-      { type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } },
-      (meta) => { zipBtn.textContent = `Nén ${Math.round(meta.percent)}%…`; }
-    );
-    const stamp = new Date().toISOString().slice(0, 10);
-    saveBlob(blob, `markdown-files-${stamp}.zip`);
-    const sizeMB = (blob.size / 1048576).toFixed(2);
-    toast(
-      `📦 Đã tạo ZIP: ${added} tệp · ${sizeMB} MB` +
-      (failed ? ` (bỏ qua ${failed} tệp lỗi)` : '')
-    );
-  } catch (e) {
-    toast('Lỗi khi tạo ZIP');
-  }
-
-  dlAllBtn.disabled = false;
-  zipBtn.disabled = false;
-  zipBtn.textContent = ZIP_LABEL;
-}
-
-/* =========================================================
-   Toast
-   ========================================================= */
-let toastTimer;
-function toast(msg) {
-  toastEl.textContent = msg;
-  toastEl.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toastEl.classList.remove('show'), 3200);
-}
-
-/* =========================================================
-   Refresh
-   ========================================================= */
-function refresh() {
-  all = analyze(mdEl.value);
-  sel = new Set(all.map(i => i.url));
-  render();
-}
-
-let debounceTimer;
-mdEl.addEventListener('input', () => {
-  clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(refresh, 220);
-});
-
-onlyFiles.addEventListener('change', render);
-dlAllBtn.addEventListener('click', downloadAll);
-zipBtn.addEventListener('click', downloadZip);
-
-/* =========================================================
-   Sự kiện UI
-   ========================================================= */
-$('#pasteBtn').addEventListener('click', async () => {
-  try {
-    const txt = await navigator.clipboard.readText();
-    if (!txt) return toast('Clipboard đang trống');
-    mdEl.value = txt;
-    refresh();
-    toast('Đã dán Markdown');
-  } catch (_) {
-    toast('Không đọc được clipboard — hãy dán thủ công (Ctrl/⌘+V)');
-  }
-});
-
-$('#clearBtn').addEventListener('click', () => {
-  mdEl.value = '';
-  refresh();
-  mdEl.focus();
-});
-
-$('#fileInput').addEventListener('change', async (e) => {
-  const f = e.target.files && e.target.files[0];
-  if (!f) return;
-  mdEl.value = await f.text();
-  refresh();
-  toast('Đã nạp ' + f.name);
-  e.target.value = '';
-});
-
-$('#copyAll').addEventListener('click', async () => {
-  const vis = visibleItems().filter(i => sel.has(i.url));
-  if (!vis.length) return toast('Chưa có liên kết nào');
-  try {
-    await navigator.clipboard.writeText(vis.map(i => i.url).join('\n'));
-    toast(`Đã copy ${vis.length} liên kết`);
-  } catch (_) { toast('Không copy được'); }
-});
-
-['dragenter', 'dragover'].forEach(ev =>
-  mdEl.addEventListener(ev, e => { e.preventDefault(); mdEl.classList.add('drag'); })
-);
-['dragleave', 'drop'].forEach(ev =>
-  mdEl.addEventListener(ev, e => { e.preventDefault(); mdEl.classList.remove('drag'); })
-);
-mdEl.addEventListener('drop', async (e) => {
-  const f = e.dataTransfer.files && e.dataTransfer.files[0];
-  if (!f) return;
-  mdEl.value = await f.text();
-  refresh();
-  toast('Đã nạp ' + f.name);
-});
-
-mdEl.addEventListener('keydown', (e) => {
-  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-    e.preventDefault();
-    refresh();
-    toast('Đã quét Markdown');
-  }
-});
-
-/* =========================================================
-   PWA install prompt
-   ========================================================= */
-let deferredPrompt = null;
-const installBtn = $('#installBtn');
-
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-  installBtn.hidden = false;
-});
-
-installBtn.addEventListener('click', async () => {
-  if (!deferredPrompt) return;
-  deferredPrompt.prompt();
-  await deferredPrompt.userChoice;
-  deferredPrompt = null;
-  installBtn.hidden = true;
-});
-
-window.addEventListener('appinstalled', () => {
-  installBtn.hidden = true;
-  toast('Đã cài đặt ứng dụng 🎉');
-});
-
-/* Khởi tạo */
-refresh();
 </script>
 </body>
 </html>
