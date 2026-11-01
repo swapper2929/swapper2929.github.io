@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Quiz Pháp Luật - Đánh Đố La Hiên</title>
+<title>Quiz Pháp Luật - La Hiên Học</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   :root { --ink:#20243a; --purple:#46178f; --blue:#1368ce; --red:#e21b3c; --yellow:#d89e00; --green:#26890c; }
@@ -201,9 +201,10 @@ const QUESTIONS = [
   { q: "Biết bạn bàn đánh nhau sau giờ học, em nên làm gì?", a: ["Làm ngơ", "Báo giáo viên chủ nhiệm", "Rủ bạn xem đánh nhau", "Đánh lại các bạn"], c: 1 }
 ];
 
-const TIME_PER_Q = 25;
+const TIME_PER_Q = 6;
 let current = 0;
 let score = 0;
+let quizQuestions = [];
 let timer = null;
 let timeLeft = TIME_PER_Q;
 let answered = false;
@@ -212,20 +213,44 @@ let wrongAnswers = [];
 const $ = id => document.getElementById(id);
 const CIRC = 2 * Math.PI * 26;
 
+function shuffleArray(items) {
+  // Fisher-Yates shuffle.
+  const shuffled = [...items];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
 function startQuiz() {
   current = 0; score = 0; wrongAnswers = [];
+  // Mỗi lượt chơi xáo trộn lại câu hỏi và các lựa chọn.
+  quizQuestions = shuffleArray(QUESTIONS).map(question => {
+    const shuffledAnswers = shuffleArray(
+      question.a.map((answer, originalIndex) => ({
+        text: answer,
+        isCorrect: originalIndex === question.c
+      }))
+    );
+    return {
+      q: question.q,
+      a: shuffledAnswers.map(answer => answer.text),
+      c: shuffledAnswers.findIndex(answer => answer.isCorrect)
+    };
+  });
   $('resultScreen').classList.add('hidden');
   $('quizScreen').classList.remove('hidden');
   loadQuestion();
 }
 
 function loadQuestion() {
-  if (current >= QUESTIONS.length) return showResult();
+  if (current >= quizQuestions.length) return showResult();
   answered = false;
-  const q = QUESTIONS[current];
+  const q = quizQuestions[current];
 
-  $('progressText').textContent = `Câu ${current + 1}/${QUESTIONS.length}`;
-  $('progressFill').style.width = `${(current / QUESTIONS.length) * 100}%`;
+  $('progressText').textContent = `Câu ${current + 1}/${quizQuestions.length}`;
+  $('progressFill').style.width = `${(current / quizQuestions.length) * 100}%`;
   $('questionText').textContent = q.q;
   $('feedback').textContent = '';
   $('feedback').className = 'feedback';
@@ -278,7 +303,7 @@ function selectAnswer(idx) {
   answered = true;
   clearInterval(timer);
 
-  const q = QUESTIONS[current];
+  const q = quizQuestions[current];
   const buttons = $('answersBox').children;
   [...buttons].forEach(b => b.classList.add('disabled'));
 
@@ -310,8 +335,8 @@ function showResult() {
   $('quizScreen').classList.add('hidden');
   $('resultScreen').classList.remove('hidden');
 
-  const pct = Math.round((score / QUESTIONS.length) * 100);
-  $('finalScore').textContent = `${score}/${QUESTIONS.length}`;
+  const pct = Math.round((score / quizQuestions.length) * 100);
+  $('finalScore').textContent = `${score}/${quizQuestions.length}`;
   $('finalDetail').textContent = `Đúng ${pct}% · Sai hoặc bỏ qua ${wrongAnswers.length} câu`;
 
   const medal = pct >= 90 ? '🥇' : pct >= 75 ? '🥈' : pct >= 50 ? '🥉' : '🎖️';
